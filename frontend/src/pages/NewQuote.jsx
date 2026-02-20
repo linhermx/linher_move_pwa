@@ -36,6 +36,19 @@ const NewQuote = () => {
     const handleSearch = async (idx, text) => {
         const newPoints = [...points];
         newPoints[idx].address = text;
+
+        // Check for coordinates (e.g. 19.4326, -99.1332)
+        const coordRegex = /^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?),\s*[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$/;
+        if (coordRegex.test(text.trim())) {
+            const [lat, lng] = text.split(',').map(s => parseFloat(s.trim()));
+            newPoints[idx].lat = lat;
+            newPoints[idx].lng = lng;
+            setPoints(newPoints);
+            setSuggestions([]);
+            setActiveSearchIdx(null);
+            return;
+        }
+
         setPoints(newPoints);
 
         if (text.length > 3) {
