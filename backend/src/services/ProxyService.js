@@ -15,7 +15,7 @@ export class ProxyService {
             throw new Error("ORS_API_KEY_MISSING");
         }
 
-        const url = `https://api.openrouteservice.org/geocode/autocomplete?api_key=${this.apiKey}&text=${encodeURIComponent(text)}&boundary.country=MX`;
+        const url = `https://api.openrouteservice.org/geocode/autocomplete?api_key=${this.apiKey}&text=${encodeURIComponent(text)}&boundary.country=MX&lang=es`;
 
         try {
             const response = await fetch(url);
@@ -71,7 +71,7 @@ export class ProxyService {
             throw new Error("ORS_API_KEY_MISSING");
         }
 
-        const url = `https://api.openrouteservice.org/geocode/reverse?api_key=${this.apiKey}&point.lon=${lng}&point.lat=${lat}&size=1`;
+        const url = `https://api.openrouteservice.org/geocode/reverse?api_key=${this.apiKey}&point.lon=${lng}&point.lat=${lat}&size=1&lang=es`;
 
         try {
             const response = await fetch(url);

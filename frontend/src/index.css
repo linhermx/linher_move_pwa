@@ -51,9 +51,9 @@ body {
 
 /* Animated Map Pulse */
 .custom-marker {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  position: relative;
+  width: 35px;
+  height: 35px;
 }
 
 .pulse-dot {
@@ -61,14 +61,25 @@ body {
   height: 14px;
   border-radius: 50%;
   border: 2px solid white;
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);
-  position: relative;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   z-index: 2;
 }
 
-.pulse-dot.green { background-color: #2ecc71; }
-.pulse-dot.red { background-color: #e74c3c; }
-.pulse-dot.blue { background-color: #3498db; }
+.pulse-dot.green {
+  background-color: #2ecc71;
+}
+
+.pulse-dot.red {
+  background-color: #e74c3c;
+}
+
+.pulse-dot.blue {
+  background-color: #3498db;
+}
 
 .pulse-ring {
   position: absolute;
@@ -77,13 +88,30 @@ body {
   border-radius: 50%;
   animation: marker-pulse 2s infinite;
   z-index: 1;
+  top: 50%;
+  left: 50%;
 }
 
-.pulse-ring.green { border: 3px solid #2ecc71; }
-.pulse-ring.red { border: 3px solid #e74c3c; }
-.pulse-ring.blue { border: 3px solid #3498db; }
+.pulse-ring.green {
+  border: 3px solid #2ecc71;
+}
+
+.pulse-ring.red {
+  border: 3px solid #e74c3c;
+}
+
+.pulse-ring.blue {
+  border: 3px solid #3498db;
+}
 
 @keyframes marker-pulse {
-  0% { transform: scale(0.3); opacity: 1; }
-  100% { transform: scale(1.5); opacity: 0; }
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0;
+  }
 }
