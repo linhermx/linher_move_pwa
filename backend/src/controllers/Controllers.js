@@ -85,6 +85,21 @@ export const MapsController = () => {
                 console.error('Controller Route Error:', err);
                 res.status(500).json({ message: "Error al calcular la ruta" });
             }
+        },
+        reverse: async (req, res) => {
+            const { lat, lng } = req.query;
+            if (!lat || !lng) return res.status(400).json({ message: "Lat and Lng required" });
+            try {
+                const data = await proxy.reverseGeocode(lat, lng);
+                if (data.features && data.features.length > 0) {
+                    res.json({ label: data.features[0].properties.label });
+                } else {
+                    res.json({ label: `${lat}, ${lng}` });
+                }
+            } catch (err) {
+                console.error('Controller Reverse Error:', err);
+                res.status(500).json({ message: "Error in reverse geocoding" });
+            }
         }
     };
 };

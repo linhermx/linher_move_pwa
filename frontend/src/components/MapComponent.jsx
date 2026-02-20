@@ -19,6 +19,15 @@ const MapComponent = ({ points = [], routeData = null, onMarkerDrag }) => {
     const mapInstance = useRef(null);
     const routeLayer = useRef(null);
 
+    const createCustomIcon = (colorClass) => {
+        return L.divIcon({
+            className: 'custom-marker',
+            html: `<div class="pulse-ring ${colorClass}"></div><div class="pulse-dot ${colorClass}"></div>`,
+            iconSize: [35, 35],
+            iconAnchor: [17, 17]
+        });
+    };
+
     useEffect(() => {
         if (!mapInstance.current) {
             mapInstance.current = L.map(mapRef.current).setView([19.0414, -98.2063], 13); // Default to Puebla, MX
@@ -44,9 +53,16 @@ const MapComponent = ({ points = [], routeData = null, onMarkerDrag }) => {
 
         points.forEach((p, idx) => {
             if (p.lat && p.lng) {
-                const marker = L.marker([p.lat, p.lng], { draggable: true })
+                const isOrigin = idx === 0;
+                const isDestination = idx === points.length - 1;
+                const colorClass = isOrigin ? 'green' : (isDestination ? 'red' : 'blue');
+
+                const marker = L.marker([p.lat, p.lng], {
+                    draggable: true,
+                    icon: createCustomIcon(colorClass)
+                })
                     .addTo(mapInstance.current)
-                    .bindPopup(idx === 0 ? 'Origen' : (idx === points.length - 1 ? 'Destino' : `Parada ${idx}`));
+                    .bindPopup(isOrigin ? 'Origen' : (isDestination ? 'Destino' : `Parada ${idx}`));
 
                 marker.on('dragend', (e) => {
                     const { lat, lng } = e.target.getLatLng();

@@ -19,6 +19,12 @@ export const mapsService = {
     getRoute: async (locations) => {
         const response = await apiClient.post('/maps/route', { locations });
         return response.data;
+    },
+    reverseGeocode: async (lat, lng) => {
+        const response = await apiClient.get('/maps/reverse', {
+            params: { lat, lng }
+        });
+        return response.data;
     }
 };
 

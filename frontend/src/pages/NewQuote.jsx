@@ -27,10 +27,23 @@ const NewQuote = () => {
         setPoints(points.filter(p => p.id !== id));
     };
 
-    const updatePoint = (idx, lat, lng) => {
-        const newPoints = [...points];
-        newPoints[idx] = { ...newPoints[idx], lat, lng };
-        setPoints(newPoints);
+    const updatePoint = async (idx, lat, lng) => {
+        setPoints(currentPoints => {
+            const updated = [...currentPoints];
+            updated[idx] = { ...updated[idx], lat, lng };
+            return updated;
+        });
+
+        try {
+            const result = await mapsService.reverseGeocode(lat, lng);
+            setPoints(currentPoints => {
+                const updated = [...currentPoints];
+                updated[idx] = { ...updated[idx], address: result.label, lat, lng };
+                return updated;
+            });
+        } catch (err) {
+            console.error('Reverse geocode error:', err);
+        }
     };
 
     const handleSearch = async (idx, text) => {
@@ -46,6 +59,18 @@ const NewQuote = () => {
             setPoints(newPoints);
             setSuggestions([]);
             setActiveSearchIdx(null);
+
+            // Fetch human-readable address
+            try {
+                const result = await mapsService.reverseGeocode(lat, lng);
+                setPoints(currentPoints => {
+                    const updated = [...currentPoints];
+                    updated[idx] = { ...updated[idx], address: result.label, lat, lng };
+                    return updated;
+                });
+            } catch (err) {
+                console.error('Reverse geocode error:', err);
+            }
             return;
         }
 

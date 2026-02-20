@@ -40,6 +40,7 @@ v1.post('/settings', settingsCtrl.update);
 
 // Maps
 v1.get('/maps/autocomplete', mapsCtrl.autocomplete);
+v1.get('/maps/reverse', mapsCtrl.reverse);
 v1.post('/maps/route', mapsCtrl.route);
 
 // Quotations

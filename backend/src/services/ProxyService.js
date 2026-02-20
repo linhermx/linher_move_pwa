@@ -62,4 +62,28 @@ export class ProxyService {
             throw error;
         }
     }
+
+    /**
+     * Proxy to OpenRouteService for Reverse Geocoding
+     */
+    async reverseGeocode(lat, lng) {
+        if (this.isKeyPlaceholder) {
+            throw new Error("ORS_API_KEY_MISSING");
+        }
+
+        const url = `https://api.openrouteservice.org/geocode/reverse?api_key=${this.apiKey}&point.lon=${lng}&point.lat=${lat}&size=1`;
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                console.error('ORS Reverse Geocode Error:', response.status, errData);
+                throw new Error(`ORS_API_ERROR_${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Fetch Reverse Geocode Error:', error);
+            throw error;
+        }
+    }
 }
