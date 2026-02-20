@@ -18,6 +18,22 @@ export class VehicleModel extends BaseModel {
         const [result] = await this.db.query(query, params);
         return result.insertId;
     }
+
+    async update(id, data) {
+        let query = `UPDATE ${this.tableName} SET name = ?, plate = ?, rendimiento_teorico = ?, rendimiento_real = ?, status = ?`;
+        let params = [data.name, data.plate, data.rendimiento_teorico, data.rendimiento_real, data.status];
+
+        if (data.photo_path) {
+            query += `, photo_path = ?`;
+            params.push(data.photo_path);
+        }
+
+        query += ` WHERE id = ?`;
+        params.push(id);
+
+        const [result] = await this.db.query(query, params);
+        return result.affectedRows > 0;
+    }
 }
 
 export class SettingsModel extends BaseModel {

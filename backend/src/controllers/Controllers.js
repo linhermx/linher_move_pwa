@@ -22,6 +22,20 @@ export const VehicleController = (db) => {
             };
             const id = await model.create(vehicleData);
             res.status(201).json({ id, message: "Vehicle created" });
+        },
+        update: async (req, res) => {
+            const vehicleData = {
+                ...req.body,
+                photo_path: req.file ? `uploads/vehicles/${req.file.filename}` : undefined
+            };
+            const success = await model.update(req.params.id, vehicleData);
+            if (!success) return res.status(404).json({ message: "Vehicle not found" });
+            res.json({ message: "Vehicle updated" });
+        },
+        delete: async (req, res) => {
+            const success = await model.delete(req.params.id);
+            if (!success) return res.status(404).json({ message: "Vehicle not found" });
+            res.json({ message: "Vehicle deleted" });
         }
     };
 };

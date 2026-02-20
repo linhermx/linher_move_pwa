@@ -52,6 +52,8 @@ const quotationCtrl = QuotationController(pool);
 v1.get('/vehicles', vehicleCtrl.list);
 v1.get('/vehicles/:id', vehicleCtrl.show);
 v1.post('/vehicles', upload.single('photo'), vehicleCtrl.create);
+v1.put('/vehicles/:id', upload.single('photo'), vehicleCtrl.update);
+v1.delete('/vehicles/:id', vehicleCtrl.delete);
 
 // Settings
 v1.get('/settings', settingsCtrl.index);

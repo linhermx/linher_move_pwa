@@ -8,6 +8,8 @@ const Fleet = () => {
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [activeMenu, setActiveMenu] = useState(null);
+    const [editingVehicle, setEditingVehicle] = useState(null);
 
     const fetchVehicles = async () => {
         setLoading(true);
@@ -32,7 +34,38 @@ const Fleet = () => {
 
     const handleVehicleCreated = () => {
         fetchVehicles();
+        setEditingVehicle(null);
     };
+
+    const handleEdit = (vehicle) => {
+        setEditingVehicle(vehicle);
+        setIsModalOpen(true);
+        setActiveMenu(null);
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm('¿Estás seguro de que deseas eliminar este vehículo?')) {
+            try {
+                await vehicleService.delete(id);
+                fetchVehicles();
+            } catch (err) {
+                console.error('Error deleting vehicle:', err);
+                alert('No se pudo eliminar el vehículo.');
+            }
+        }
+    };
+
+    const toggleMenu = (e, id) => {
+        e.stopPropagation();
+        setActiveMenu(activeMenu === id ? null : id);
+    };
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const closeMenu = () => setActiveMenu(null);
+        window.addEventListener('click', closeMenu);
+        return () => window.removeEventListener('click', closeMenu);
+    }, []);
 
     return (
         <div>
@@ -42,7 +75,10 @@ const Fleet = () => {
                     <p className="text-muted">Administra los vehículos y sus rendimientos</p>
                 </div>
                 <button
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() => {
+                        setEditingVehicle(null);
+                        setIsModalOpen(true);
+                    }}
                     style={{
                         backgroundColor: 'var(--color-primary)',
                         color: 'white',
@@ -62,8 +98,12 @@ const Fleet = () => {
 
             <VehicleModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingVehicle(null);
+                }}
                 onVehicleCreated={handleVehicleCreated}
+                editData={editingVehicle}
             />
 
             {loading ? (
@@ -100,7 +140,45 @@ const Fleet = () => {
                                         <p className="text-muted" style={{ fontSize: '12px' }}>Placas: {v.plate}</p>
                                     </div>
                                 </div>
-                                <MoreVertical size={18} className="text-muted" cursor="pointer" />
+                                <div style={{ position: 'relative' }}>
+                                    <div
+                                        onClick={(e) => toggleMenu(e, v.id)}
+                                        style={{ cursor: 'pointer', padding: '4px', borderRadius: '4px', backgroundColor: activeMenu === v.id ? 'rgba(255, 255, 255, 0.05)' : 'transparent' }}
+                                    >
+                                        <MoreVertical size={18} className="text-muted" />
+                                    </div>
+
+                                    {activeMenu === v.id && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: '100%',
+                                            right: 0,
+                                            backgroundColor: 'var(--color-surface)',
+                                            border: '1px solid var(--color-border)',
+                                            borderRadius: 'var(--radius-sm)',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                                            zIndex: 100,
+                                            minWidth: '120px',
+                                            padding: '4px 0',
+                                            animation: 'fade-in 0.2s ease-out'
+                                        }}>
+                                            <div
+                                                onClick={() => handleEdit(v)}
+                                                style={{ padding: '8px 16px', fontSize: '12px', cursor: 'pointer', hover: { backgroundColor: 'rgba(255,255,255,0.05)' } }}
+                                                className="menu-item"
+                                            >
+                                                Editar
+                                            </div>
+                                            <div
+                                                onClick={() => handleDelete(v.id)}
+                                                style={{ padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: 'var(--color-primary)' }}
+                                                className="menu-item"
+                                            >
+                                                Eliminar
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div style={{ display: 'flex', gap: '20px', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-md)' }}>

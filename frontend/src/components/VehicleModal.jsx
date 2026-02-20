@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { X, Save, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { vehicleService } from '../services/api';
 
-const VehicleModal = ({ isOpen, onClose, onVehicleCreated }) => {
+const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) => {
+    const isEdit = !!editData;
     const [formData, setFormData] = useState({
         name: '',
         plate: '',
@@ -14,6 +15,29 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated }) => {
     const [photoPreview, setPhotoPreview] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    React.useEffect(() => {
+        if (editData) {
+            setFormData({
+                name: editData.name,
+                plate: editData.plate,
+                rendimiento_teorico: editData.rendimiento_teorico,
+                rendimiento_real: editData.rendimiento_real,
+                status: editData.status
+            });
+            setPhotoPreview(editData.photo_path ? `http://localhost:3000/${editData.photo_path}` : null);
+        } else {
+            setFormData({
+                name: '',
+                plate: '',
+                rendimiento_teorico: '',
+                rendimiento_real: '',
+                status: 'available'
+            });
+            setPhoto(null);
+            setPhotoPreview(null);
+        }
+    }, [editData, isOpen]);
 
     if (!isOpen) return null;
 
@@ -38,7 +62,11 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated }) => {
                 formDataToSend.append('photo', photo);
             }
 
-            await vehicleService.create(formDataToSend);
+            if (isEdit) {
+                await vehicleService.update(editData.id, formDataToSend);
+            } else {
+                await vehicleService.create(formDataToSend);
+            }
 
             onVehicleCreated();
             onClose();
@@ -111,7 +139,9 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated }) => {
                     <X size={24} />
                 </button>
 
-                <h2 style={{ marginBottom: 'var(--spacing-lg)', fontSize: '20px' }}>Nuevo Vehículo</h2>
+                <h2 style={{ marginBottom: 'var(--spacing-lg)', fontSize: '20px' }}>
+                    {isEdit ? 'Editar Vehículo' : 'Nuevo Vehículo'}
+                </h2>
 
                 {error && (
                     <div style={{
@@ -317,7 +347,7 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated }) => {
                             }}
                         >
                             <Save size={18} />
-                            {loading ? 'Guardando...' : 'Guardar Vehículo'}
+                            {loading ? 'Guardando...' : (isEdit ? 'Actualizar Vehículo' : 'Guardar Vehículo')}
                         </button>
                     </div>
                 </form>
