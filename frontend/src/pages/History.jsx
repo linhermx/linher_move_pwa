@@ -1,18 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Eye, FileText, Calendar } from 'lucide-react';
+import { quotationService } from '../services/api';
 
 const History = () => {
     const [quotes, setQuotes] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Mock data for history
-        setQuotes([
-            { id: 1, folio: 'LMJR-260219001', date: '2026-02-19', origin: 'Puebla, Pue', destination: 'CDMX', total: 3016, status: 'completada' },
-            { id: 2, folio: 'LMJR-260218005', date: '2026-02-18', origin: 'Veracruz, Ver', destination: 'Puebla, Pue', total: 4500, status: 'pendiente' },
-            { id: 3, folio: 'LMJR-260218002', date: '2026-02-18', origin: 'Monterrey, NL', destination: 'Queretaro, Qro', total: 12400, status: 'en_proceso' }
-        ]);
-        setLoading(false);
+        const fetchQuotes = async () => {
+            try {
+                const data = await quotationService.list();
+                setQuotes(data);
+            } catch (err) {
+                console.error('Error fetching quotes:', err);
+                // Mock data fallback
+                setQuotes([
+                    { id: 1, folio: 'LMJR-260219001', date: '2026-02-19', origin: 'Puebla, Pue', destination: 'CDMX', total: 3016, status: 'completada' },
+                    { id: 2, folio: 'LMJR-260218005', date: '2026-02-18', origin: 'Veracruz, Ver', destination: 'Puebla, Pue', total: 4500, status: 'pendiente' },
+                    { id: 3, folio: 'LMJR-260218002', date: '2026-02-18', origin: 'Monterrey, NL', destination: 'Queretaro, Qro', total: 12400, status: 'en_proceso' }
+                ]);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchQuotes();
     }, []);
 
     const getStatusStyle = (status) => {

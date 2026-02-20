@@ -1,13 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Clock, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
+import { quotationService } from '../services/api';
 
 const Dashboard = () => {
     const [stats, setStats] = useState({
-        total: 24,
-        pending: 8,
-        in_process: 4,
-        completed: 12
+        total: 0,
+        pending: 0,
+        in_process: 0,
+        completed: 0
     });
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const quotes = await quotationService.list();
+                const newStats = {
+                    total: quotes.length,
+                    pending: quotes.filter(q => q.status === 'pendiente').length,
+                    in_process: quotes.filter(q => q.status === 'en_proceso').length,
+                    completed: quotes.filter(q => q.status === 'completada').length
+                };
+                setStats(newStats);
+            } catch (err) {
+                console.error('Error fetching stats:', err);
+                // Keep initial mock values if you prefer, or set to 0
+            }
+        };
+        fetchStats();
+    }, []);
 
     const cards = [
         { title: 'Total Cotizaciones', value: stats.total, icon: <FileText size={24} />, color: '#FFFFFF', bg: 'rgba(255,255,255,0.05)' },

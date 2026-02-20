@@ -1,18 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Truck, Plus, MoreVertical } from 'lucide-react';
+import { vehicleService } from '../services/api';
 
 const Fleet = () => {
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Mock for now until API is deployed or local server set
-        setVehicles([
-            { id: 1, name: 'Tracto Volvo 2023', plate: 'ABC-123', rendimiento_real: 1.8, status: 'available' },
-            { id: 2, name: 'Camioneta Toyota', plate: 'XYZ-789', rendimiento_real: 8.5, status: 'in_route' }
-        ]);
-        setLoading(false);
+        const fetchVehicles = async () => {
+            try {
+                const data = await vehicleService.list();
+                setVehicles(data);
+            } catch (err) {
+                console.error('Error fetching vehicles:', err);
+                // Fallback to mock if API fails
+                setVehicles([
+                    { id: 1, name: 'Tracto Volvo 2023', plate: 'ABC-123', rendimiento_real: 1.8, status: 'available' },
+                    { id: 2, name: 'Camioneta Toyota', plate: 'XYZ-789', rendimiento_real: 8.5, status: 'in_route' }
+                ]);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchVehicles();
     }, []);
 
     return (

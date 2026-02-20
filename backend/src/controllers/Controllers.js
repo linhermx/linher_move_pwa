@@ -42,17 +42,33 @@ export const MapsController = () => {
     return {
         autocomplete: async (req, res) => {
             const { text } = req.query;
-            if (!text) return res.json({ features: [] });
-            const data = await proxy.geocode(text);
-            res.json(data);
+            if (!text) return res.json([]);
+            try {
+                const data = await proxy.geocode(text);
+                const mapped = data.features.map(f => ({
+                    label: f.properties.label,
+                    lat: f.geometry.coordinates[1],
+                    lng: f.geometry.coordinates[0]
+                }));
+                res.json(mapped);
+            } catch (err) {
+                console.error(err);
+                res.status(500).json({ message: "Geocode error" });
+            }
         },
         route: async (req, res) => {
-            const { coordinates } = req.body;
-            if (!coordinates || coordinates.length < 2) {
+            const { locations, coordinates } = req.body;
+            const points = coordinates || locations; // Accept both
+            if (!points || points.length < 2) {
                 return res.status(400).json({ message: "At least 2 points required." });
             }
-            const data = await proxy.getRoute(coordinates);
-            res.json(data);
+            try {
+                const data = await proxy.getRoute(points);
+                res.json(data);
+            } catch (err) {
+                console.error(err);
+                res.status(500).json({ message: "Routing error" });
+            }
         }
     };
 };
