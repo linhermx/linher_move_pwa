@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
+import logoVertical from '../assets/logo-vertical-negativo.svg';
 
 const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
@@ -27,8 +28,7 @@ const Login = () => {
         }}>
             <div style={{ width: '100%', maxWidth: '400px', padding: 'var(--spacing-lg)' }}>
                 <div style={{ textAlign: 'center', marginBottom: 'var(--spacing-xl)' }}>
-                    <h1 style={{ color: 'var(--color-primary)', fontSize: '32px', fontWeight: 'bold' }}>MOVE</h1>
-                    <p className="text-muted" style={{ fontSize: '12px', marginTop: '4px' }}>LOGÍSTICA E INTELIGENCIA</p>
+                    <img src={logoVertical} alt="LINHER MOVE" style={{ width: '160px', height: 'auto', marginBottom: '10px' }} />
                 </div>
 
                 <div className="card" style={{ padding: 'var(--spacing-xl)' }}>
@@ -62,7 +62,7 @@ const Login = () => {
                                     style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%' }}
                                     required
                                 />
-                                <div onClick={() => setShowPassword(!showPassword)} cursor="pointer">
+                                <div onClick={() => setShowPassword(!showPassword)} style={{ cursor: 'pointer' }}>
                                     {showPassword ? <EyeOff size={18} className="text-muted" /> : <Eye size={18} className="text-muted" />}
                                 </div>
                             </div>

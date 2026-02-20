@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Route, History, Truck, Settings as SettingsIcon, Users, User } from 'lucide-react';
+import logoHorizontal from '../assets/logo-horizontal-negativo.svg';
 
 const Sidebar = () => {
     const menuItems = [
@@ -22,9 +23,8 @@ const Sidebar = () => {
             display: 'flex',
             flexDirection: 'column'
         }}>
-            <div style={{ marginBottom: 'var(--spacing-xl)', textAlign: 'center' }}>
-                <h1 style={{ color: 'var(--color-primary)', fontSize: '24px', fontWeight: 'bold' }}>MOVE</h1>
-                <p className="text-muted" style={{ fontSize: '10px' }}>INTELIGENCIA LOGÍSTICA</p>
+            <div style={{ marginBottom: 'var(--spacing-xl)', textAlign: 'center', padding: '10px' }}>
+                <img src={logoHorizontal} alt="LINHER MOVE" style={{ width: '100%', maxWidth: '180px', height: 'auto' }} />
             </div>
 
             <nav style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
