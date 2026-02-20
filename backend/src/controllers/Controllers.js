@@ -39,6 +39,26 @@ export const SettingsController = (db) => {
 
 export const MapsController = () => {
     const proxy = new ProxyService();
+
+    // Helper to format address nicely
+    const formatAddress = (p) => {
+        const parts = [];
+
+        // Street and Number
+        if (p.street) {
+            parts.push(p.housenumber ? `${p.street} ${p.housenumber}` : p.street);
+        } else if (p.name && p.name !== p.locality) {
+            parts.push(p.name);
+        }
+
+        if (p.neighbourhood) parts.push(p.neighbourhood);
+        if (p.postalcode) parts.push(`C.P. ${p.postalcode}`);
+        if (p.locality) parts.push(p.locality);
+        if (p.region) parts.push(p.region);
+
+        return parts.length > 0 ? parts.join(', ') : p.label;
+    };
+
     return {
         autocomplete: async (req, res) => {
             const { text } = req.query;
@@ -51,7 +71,7 @@ export const MapsController = () => {
                 }
 
                 const mapped = data.features.map(f => ({
-                    label: f.properties.label,
+                    label: formatAddress(f.properties),
                     lat: f.geometry.coordinates[1],
                     lng: f.geometry.coordinates[0]
                 }));
@@ -92,7 +112,7 @@ export const MapsController = () => {
             try {
                 const data = await proxy.reverseGeocode(lat, lng);
                 if (data.features && data.features.length > 0) {
-                    res.json({ label: data.features[0].properties.label });
+                    res.json({ label: formatAddress(data.features[0].properties) });
                 } else {
                     res.json({ label: `${lat}, ${lng}` });
                 }
