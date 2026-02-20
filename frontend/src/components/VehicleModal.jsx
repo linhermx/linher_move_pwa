@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Save, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { vehicleService } from '../services/api';
+import { useNotification } from '../context/NotificationContext';
 
 const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) => {
     const isEdit = !!editData;
@@ -15,6 +16,7 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
     const [photoPreview, setPhotoPreview] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const { showNotification } = useNotification();
 
     React.useEffect(() => {
         if (editData) {
@@ -68,6 +70,7 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                 await vehicleService.create(formDataToSend);
             }
 
+            showNotification(isEdit ? 'Vehículo actualizado exitosamente' : 'Vehículo creado exitosamente', 'success');
             onVehicleCreated();
             onClose();
             setFormData({
@@ -80,7 +83,9 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
             setPhoto(null);
             setPhotoPreview(null);
         } catch (err) {
-            setError(err.response?.data?.message || err.message);
+            const msg = err.response?.data?.message || err.message;
+            setError(msg);
+            showNotification(msg, 'error');
         } finally {
             setLoading(false);
         }

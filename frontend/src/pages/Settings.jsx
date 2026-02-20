@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Info } from 'lucide-react';
+import { useNotification } from '../context/NotificationContext';
+import { settingsService } from '../services/api';
 
 const Settings = () => {
     const [settings, setSettings] = useState({
@@ -11,14 +13,20 @@ const Settings = () => {
         cost_hospedaje: '800',
         cost_interconexion: '200'
     });
+    const { showNotification } = useNotification();
 
     const handleChange = (e) => {
         setSettings({ ...settings, [e.target.name]: e.target.value });
     };
 
-    const handleSave = () => {
-        console.log('Saving settings:', settings);
-        // TODO: Call API
+    const handleSave = async () => {
+        try {
+            await settingsService.update(settings);
+            showNotification('Configuración guardada exitosamente', 'success');
+        } catch (err) {
+            console.error('Error saving settings:', err);
+            showNotification('Error al guardar la configuración', 'error');
+        }
     };
 
     return (

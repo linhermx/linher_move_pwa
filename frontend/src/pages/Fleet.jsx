@@ -4,6 +4,7 @@ import { Truck, Plus, MoreVertical } from 'lucide-react';
 import { vehicleService } from '../services/api';
 import VehicleModal from '../components/VehicleModal';
 import ConfirmModal from '../components/ConfirmModal';
+import { useNotification } from '../context/NotificationContext';
 
 const Fleet = () => {
     const [vehicles, setVehicles] = useState([]);
@@ -13,6 +14,7 @@ const Fleet = () => {
     const [editingVehicle, setEditingVehicle] = useState(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [vehicleToDelete, setVehicleToDelete] = useState(null);
+    const { showNotification } = useNotification();
 
     const fetchVehicles = async () => {
         setLoading(true);
@@ -57,10 +59,10 @@ const Fleet = () => {
         try {
             await vehicleService.delete(vehicleToDelete);
             fetchVehicles();
+            showNotification('Vehículo eliminado exitosamente', 'success');
         } catch (err) {
             console.error('Error deleting vehicle:', err);
-            // We could add a custom Alert modal here if needed, 
-            // but for now we'll just log and maybe show a toast later.
+            showNotification('No se pudo eliminar el vehículo', 'error');
         } finally {
             setVehicleToDelete(null);
         }

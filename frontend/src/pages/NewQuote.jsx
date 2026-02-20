@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import MapComponent from '../components/MapComponent';
-import { MapPin, Navigation, Plus, Trash2, Calculator, Loader2 } from 'lucide-react';
 import { mapsService } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
+import { useNotification } from '../context/NotificationContext';
 
 const NewQuote = () => {
     const [points, setPoints] = useState([
@@ -12,6 +12,7 @@ const NewQuote = () => {
     const [routeData, setRouteData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [activeSearchIdx, setActiveSearchIdx] = useState(null);
+    const { showNotification } = useNotification();
     const [suggestions, setSuggestions] = useState([]);
     const [summary, setSummary] = useState({ distance: 0, duration: 0 });
     const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: '', message: '' });
@@ -128,9 +129,11 @@ const NewQuote = () => {
                     distance: (distance / 1000).toFixed(1),
                     duration: Math.round(duration / 60)
                 });
+                showNotification('Ruta calculada exitosamente', 'success');
             }
         } catch (err) {
             console.error('Routing error:', err);
+            showNotification('Error al calcular la ruta. Verifica las ubicaciones.', 'error');
             setAlertConfig({
                 isOpen: true,
                 title: 'Error de Ruta',
