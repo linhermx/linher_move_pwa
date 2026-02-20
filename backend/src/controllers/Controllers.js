@@ -45,6 +45,11 @@ export const MapsController = () => {
             if (!text) return res.json([]);
             try {
                 const data = await proxy.geocode(text);
+
+                if (!data.features) {
+                    return res.json([]);
+                }
+
                 const mapped = data.features.map(f => ({
                     label: f.properties.label,
                     lat: f.geometry.coordinates[1],
@@ -52,22 +57,33 @@ export const MapsController = () => {
                 }));
                 res.json(mapped);
             } catch (err) {
-                console.error(err);
-                res.status(500).json({ message: "Geocode error" });
+                if (err.message === "ORS_API_KEY_MISSING") {
+                    return res.status(401).json({
+                        message: "Falta la clave de API de OpenRouteService en el servidor.",
+                        setup_needed: true
+                    });
+                }
+                console.error('Controller Geocode Error:', err);
+                res.status(500).json({ message: "Error al buscar la ubicación" });
             }
         },
         route: async (req, res) => {
             const { locations, coordinates } = req.body;
-            const points = coordinates || locations; // Accept both
+            const points = coordinates || locations;
             if (!points || points.length < 2) {
-                return res.status(400).json({ message: "At least 2 points required." });
+                return res.status(400).json({ message: "Se requieren al menos 2 puntos." });
             }
             try {
                 const data = await proxy.getRoute(points);
                 res.json(data);
             } catch (err) {
-                console.error(err);
-                res.status(500).json({ message: "Routing error" });
+                if (err.message === "ORS_API_KEY_MISSING") {
+                    return res.status(401).json({
+                        message: "Configuración de mapas incompleta (API KEY)."
+                    });
+                }
+                console.error('Controller Route Error:', err);
+                res.status(500).json({ message: "Error al calcular la ruta" });
             }
         }
     };
