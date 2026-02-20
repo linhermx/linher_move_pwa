@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import MapComponent from '../components/MapComponent';
 import { MapPin, Navigation, Plus, Trash2, Calculator, Loader2 } from 'lucide-react';
 import { mapsService } from '../services/api';
+import ConfirmModal from '../components/ConfirmModal';
 
 const NewQuote = () => {
     const [points, setPoints] = useState([
@@ -13,6 +14,7 @@ const NewQuote = () => {
     const [activeSearchIdx, setActiveSearchIdx] = useState(null);
     const [suggestions, setSuggestions] = useState([]);
     const [summary, setSummary] = useState({ distance: 0, duration: 0 });
+    const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: '', message: '' });
 
     const addStop = () => {
         if (points.length >= 7) return;
@@ -105,7 +107,11 @@ const NewQuote = () => {
     const calculateRoute = async () => {
         const validPoints = points.filter(p => p.lat && p.lng);
         if (validPoints.length < 2) {
-            alert('Por favor selecciona al menos origen y destino.');
+            setAlertConfig({
+                isOpen: true,
+                title: 'Información Faltante',
+                message: 'Por favor selecciona al menos origen y destino para calcular la ruta.'
+            });
             return;
         }
 
@@ -125,7 +131,11 @@ const NewQuote = () => {
             }
         } catch (err) {
             console.error('Routing error:', err);
-            alert('Error al calcular la ruta.');
+            setAlertConfig({
+                isOpen: true,
+                title: 'Error de Ruta',
+                message: 'No se pudo calcular la ruta. Verifica las direcciones e intenta de nuevo.'
+            });
         } finally {
             setLoading(false);
         }
@@ -234,6 +244,16 @@ const NewQuote = () => {
                     </div>
                 </div>
             </div>
+
+            <ConfirmModal
+                isOpen={alertConfig.isOpen}
+                onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                confirmText="Entendido"
+                showCancel={false}
+                type="info"
+            />
         </div>
     );
 };

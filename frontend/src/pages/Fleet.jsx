@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Truck, Plus, MoreVertical } from 'lucide-react';
 import { vehicleService } from '../services/api';
 import VehicleModal from '../components/VehicleModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 const Fleet = () => {
     const [vehicles, setVehicles] = useState([]);
@@ -10,6 +11,8 @@ const Fleet = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [activeMenu, setActiveMenu] = useState(null);
     const [editingVehicle, setEditingVehicle] = useState(null);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [vehicleToDelete, setVehicleToDelete] = useState(null);
 
     const fetchVehicles = async () => {
         setLoading(true);
@@ -43,15 +46,23 @@ const Fleet = () => {
         setActiveMenu(null);
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('¿Estás seguro de que deseas eliminar este vehículo?')) {
-            try {
-                await vehicleService.delete(id);
-                fetchVehicles();
-            } catch (err) {
-                console.error('Error deleting vehicle:', err);
-                alert('No se pudo eliminar el vehículo.');
-            }
+    const handleDeleteClick = (id) => {
+        setVehicleToDelete(id);
+        setIsConfirmOpen(true);
+        setActiveMenu(null);
+    };
+
+    const confirmDelete = async () => {
+        if (!vehicleToDelete) return;
+        try {
+            await vehicleService.delete(vehicleToDelete);
+            fetchVehicles();
+        } catch (err) {
+            console.error('Error deleting vehicle:', err);
+            // We could add a custom Alert modal here if needed, 
+            // but for now we'll just log and maybe show a toast later.
+        } finally {
+            setVehicleToDelete(null);
         }
     };
 
@@ -104,6 +115,17 @@ const Fleet = () => {
                 }}
                 onVehicleCreated={handleVehicleCreated}
                 editData={editingVehicle}
+            />
+
+            <ConfirmModal
+                isOpen={isConfirmOpen}
+                onClose={() => setIsConfirmOpen(false)}
+                onConfirm={confirmDelete}
+                title="Eliminar Vehículo"
+                message="¿Estás seguro de que deseas eliminar este vehículo? Esta acción no se puede deshacer."
+                confirmText="Eliminar"
+                cancelText="Cancelar"
+                type="danger"
             />
 
             {loading ? (
@@ -170,7 +192,7 @@ const Fleet = () => {
                                                 Editar
                                             </div>
                                             <div
-                                                onClick={() => handleDelete(v.id)}
+                                                onClick={() => handleDeleteClick(v.id)}
                                                 style={{ padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: 'var(--color-primary)' }}
                                                 className="menu-item"
                                             >
