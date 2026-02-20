@@ -6,8 +6,15 @@ export class VehicleModel extends BaseModel {
     }
 
     async create(data) {
-        const query = `INSERT INTO ${this.tableName} (name, type, mpg, capacity, status) VALUES (?, ?, ?, ?, ?)`;
-        const params = [data.name, data.type, data.mpg, data.capacity, data.status || 'available'];
+        const query = `INSERT INTO ${this.tableName} (name, plate, rendimiento_teorico, rendimiento_real, photo_path, status) VALUES (?, ?, ?, ?, ?, ?)`;
+        const params = [
+            data.name,
+            data.plate,
+            data.rendimiento_teorico,
+            data.rendimiento_real,
+            data.photo_path,
+            data.status || 'available'
+        ];
         const [result] = await this.db.query(query, params);
         return result.insertId;
     }
@@ -15,7 +22,7 @@ export class VehicleModel extends BaseModel {
 
 export class SettingsModel extends BaseModel {
     constructor(db) {
-        super('app_settings', db);
+        super('global_settings', db);
     }
 
     async getByKey(key) {

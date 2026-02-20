@@ -43,6 +43,10 @@ export const vehicleService = {
     list: async () => {
         const response = await apiClient.get('/vehicles');
         return response.data;
+    },
+    create: async (data) => {
+        const response = await apiClient.post('/vehicles', data);
+        return response.data;
     }
 };
 

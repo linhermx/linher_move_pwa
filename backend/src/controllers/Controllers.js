@@ -16,7 +16,11 @@ export const VehicleController = (db) => {
             res.json(vehicle);
         },
         create: async (req, res) => {
-            const id = await model.create(req.body);
+            const vehicleData = {
+                ...req.body,
+                photo_path: req.file ? `uploads/vehicles/${req.file.filename}` : null
+            };
+            const id = await model.create(vehicleData);
             res.status(201).json({ id, message: "Vehicle created" });
         }
     };

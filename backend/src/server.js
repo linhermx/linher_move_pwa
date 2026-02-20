@@ -8,14 +8,33 @@ import {
     MapsController,
     QuotationController
 } from './controllers/Controllers.js';
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Multer configuration
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, 'uploads/vehicles'));
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+});
+const upload = multer({ storage: storage });
+
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 const v1 = express.Router();
@@ -32,7 +51,7 @@ const quotationCtrl = QuotationController(pool);
 // Vehicles
 v1.get('/vehicles', vehicleCtrl.list);
 v1.get('/vehicles/:id', vehicleCtrl.show);
-v1.post('/vehicles', vehicleCtrl.create);
+v1.post('/vehicles', upload.single('photo'), vehicleCtrl.create);
 
 // Settings
 v1.get('/settings', settingsCtrl.index);

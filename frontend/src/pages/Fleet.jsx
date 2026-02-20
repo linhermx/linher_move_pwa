@@ -2,29 +2,37 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Truck, Plus, MoreVertical } from 'lucide-react';
 import { vehicleService } from '../services/api';
+import VehicleModal from '../components/VehicleModal';
 
 const Fleet = () => {
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const fetchVehicles = async () => {
+        setLoading(true);
+        try {
+            const data = await vehicleService.list();
+            setVehicles(data);
+        } catch (err) {
+            console.error('Error fetching vehicles:', err);
+            // Fallback to mock if API fails
+            setVehicles([
+                { id: 1, name: 'Tracto Volvo 2023', plate: 'ABC-123', rendimiento_real: 1.8, status: 'available' },
+                { id: 2, name: 'Camioneta Toyota', plate: 'XYZ-789', rendimiento_real: 8.5, status: 'in_route' }
+            ]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchVehicles = async () => {
-            try {
-                const data = await vehicleService.list();
-                setVehicles(data);
-            } catch (err) {
-                console.error('Error fetching vehicles:', err);
-                // Fallback to mock if API fails
-                setVehicles([
-                    { id: 1, name: 'Tracto Volvo 2023', plate: 'ABC-123', rendimiento_real: 1.8, status: 'available' },
-                    { id: 2, name: 'Camioneta Toyota', plate: 'XYZ-789', rendimiento_real: 8.5, status: 'in_route' }
-                ]);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchVehicles();
     }, []);
+
+    const handleVehicleCreated = () => {
+        fetchVehicles();
+    };
 
     return (
         <div>
@@ -33,21 +41,30 @@ const Fleet = () => {
                     <h1 style={{ fontSize: '24px' }}>Gestión de Flota</h1>
                     <p className="text-muted">Administra los vehículos y sus rendimientos</p>
                 </div>
-                <button style={{
-                    backgroundColor: 'var(--color-primary)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '10px 20px',
-                    borderRadius: 'var(--radius-md)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    cursor: 'pointer'
-                }}>
+                <button
+                    onClick={() => setIsModalOpen(true)}
+                    style={{
+                        backgroundColor: 'var(--color-primary)',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: 'var(--radius-md)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        cursor: 'pointer'
+                    }}
+                >
                     <Plus size={18} />
                     Nuevo Vehículo
                 </button>
             </div>
+
+            <VehicleModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onVehicleCreated={handleVehicleCreated}
+            />
 
             {loading ? (
                 <p>Cargando flota...</p>
@@ -57,8 +74,26 @@ const Fleet = () => {
                         <div key={v.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <div style={{ backgroundColor: 'rgba(255, 72, 72, 0.1)', padding: '10px', borderRadius: 'var(--radius-md)', color: 'var(--color-primary)' }}>
-                                        <Truck size={24} />
+                                    <div style={{
+                                        width: '44px',
+                                        height: '44px',
+                                        backgroundColor: 'rgba(255, 72, 72, 0.1)',
+                                        borderRadius: 'var(--radius-md)',
+                                        color: 'var(--color-primary)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        overflow: 'hidden'
+                                    }}>
+                                        {v.photo_path ? (
+                                            <img
+                                                src={`http://localhost:3000/${v.photo_path}`}
+                                                alt={v.name}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            />
+                                        ) : (
+                                            <Truck size={24} />
+                                        )}
                                     </div>
                                     <div>
                                         <h3 style={{ fontSize: '16px' }}>{v.name}</h3>
