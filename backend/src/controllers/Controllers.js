@@ -1,4 +1,4 @@
-import { VehicleModel, SettingsModel } from '../models/OtherModels.js';
+import { VehicleModel, SettingsModel, ServiceModel } from '../models/OtherModels.js';
 import { ProxyService } from '../services/ProxyService.js';
 import { QuotationModel } from '../models/QuotationModel.js';
 import { CalculationMotor } from '../utils/CalculationMotor.js';
@@ -175,6 +175,52 @@ export const QuotationController = (db) => {
             } catch (error) {
                 console.error(error);
                 res.status(500).json({ message: "Internal server error" });
+            }
+        }
+    };
+};
+
+export const ServiceController = (pool) => {
+    const model = new ServiceModel(pool);
+
+    return {
+        list: async (req, res) => {
+            try {
+                const services = await model.getAll('name ASC');
+                res.json(services);
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        },
+        show: async (req, res) => {
+            const service = await model.getById(req.params.id);
+            if (!service) return res.status(404).json({ message: "Service not found" });
+            res.json(service);
+        },
+        create: async (req, res) => {
+            try {
+                const id = await model.create(req.body);
+                res.status(201).json({ id, message: "Service created" });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        },
+        update: async (req, res) => {
+            try {
+                const success = await model.update(req.params.id, req.body);
+                if (!success) return res.status(404).json({ message: "Service not found" });
+                res.json({ message: "Service updated" });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        },
+        delete: async (req, res) => {
+            try {
+                const success = await model.delete(req.params.id);
+                if (!success) return res.status(404).json({ message: "Service not found" });
+                res.json({ message: "Service deleted" });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
             }
         }
     };

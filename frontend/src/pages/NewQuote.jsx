@@ -3,6 +3,7 @@ import MapComponent from '../components/MapComponent';
 import { mapsService } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { useNotification } from '../context/NotificationContext';
+import { MapPin, Trash2, Plus, Loader2, Calculator } from 'lucide-react';
 
 const NewQuote = () => {
     const [points, setPoints] = useState([

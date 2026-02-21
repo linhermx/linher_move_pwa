@@ -4,6 +4,7 @@ import { Truck, Plus, MoreVertical } from 'lucide-react';
 import { vehicleService } from '../services/api';
 import VehicleModal from '../components/VehicleModal';
 import ConfirmModal from '../components/ConfirmModal';
+import StatusView from '../components/StatusView';
 import { useNotification } from '../context/NotificationContext';
 
 const Fleet = () => {

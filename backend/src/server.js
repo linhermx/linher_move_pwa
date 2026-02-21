@@ -6,7 +6,8 @@ import {
     VehicleController,
     SettingsController,
     MapsController,
-    QuotationController
+    QuotationController,
+    ServiceController
 } from './controllers/Controllers.js';
 import multer from 'multer';
 import path from 'path';
@@ -52,6 +53,7 @@ const vehicleCtrl = VehicleController(pool);
 const settingsCtrl = SettingsController(pool);
 const mapsCtrl = MapsController();
 const quotationCtrl = QuotationController(pool);
+const serviceCtrl = ServiceController(pool);
 
 // Vehicles
 v1.get('/vehicles', vehicleCtrl.list);
@@ -59,6 +61,13 @@ v1.get('/vehicles/:id', vehicleCtrl.show);
 v1.post('/vehicles', upload.single('photo'), vehicleCtrl.create);
 v1.put('/vehicles/:id', upload.single('photo'), vehicleCtrl.update);
 v1.delete('/vehicles/:id', vehicleCtrl.delete);
+
+// Services
+v1.get('/services', serviceCtrl.list);
+v1.get('/services/:id', serviceCtrl.show);
+v1.post('/services', serviceCtrl.create);
+v1.put('/services/:id', serviceCtrl.update);
+v1.delete('/services/:id', serviceCtrl.delete);
 
 // Settings
 v1.get('/settings', settingsCtrl.index);

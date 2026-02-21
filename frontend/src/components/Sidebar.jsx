@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Route, History, Truck, Settings as SettingsIcon, Users, User } from 'lucide-react';
+import { LayoutDashboard, Route, History, Truck, Settings as SettingsIcon, Users, User, Package } from 'lucide-react';
 import logoHorizontal from '../assets/logo-horizontal-negativo.svg';
 
 const Sidebar = () => {
@@ -9,6 +9,7 @@ const Sidebar = () => {
         { name: 'Nueva Cotización', path: '/new-quote', icon: <Route size={20} /> },
         { name: 'Historial', path: '/history', icon: <History size={20} /> },
         { name: 'Flota', path: '/fleet', icon: <Truck size={20} /> },
+        { name: 'Servicios', path: '/services', icon: <Package size={20} /> },
         { name: 'Ajustes', path: '/settings', icon: <SettingsIcon size={20} /> },
         { name: 'Usuarios', path: '/admin/users', icon: <Users size={20} /> },
     ];

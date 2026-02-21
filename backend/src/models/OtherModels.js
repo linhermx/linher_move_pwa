@@ -52,3 +52,23 @@ export class SettingsModel extends BaseModel {
         return result.affectedRows > 0;
     }
 }
+
+export class ServiceModel extends BaseModel {
+    constructor(db) {
+        super('services', db);
+    }
+
+    async create(data) {
+        const query = `INSERT INTO ${this.tableName} (name, cost, time_minutes, description, status) VALUES (?, ?, ?, ?, ?)`;
+        const params = [data.name, data.cost, data.time_minutes, data.description, data.status || 'active'];
+        const [result] = await this.db.query(query, params);
+        return result.insertId;
+    }
+
+    async update(id, data) {
+        const query = `UPDATE ${this.tableName} SET name = ?, cost = ?, time_minutes = ?, description = ?, status = ? WHERE id = ?`;
+        const params = [data.name, data.cost, data.time_minutes, data.description, data.status, id];
+        const [result] = await this.db.query(query, params);
+        return result.affectedRows > 0;
+    }
+}

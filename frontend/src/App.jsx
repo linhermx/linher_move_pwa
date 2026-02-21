@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './index.css';
 import Sidebar from './components/Sidebar';
 import Fleet from './pages/Fleet';
+import Services from './pages/Services';
 import Settings from './pages/Settings';
 import NewQuote from './pages/NewQuote';
 import History from './pages/History';
@@ -23,6 +24,7 @@ function App() {
               <Route path="/new-quote" element={<NewQuote />} />
               <Route path="/history" element={<History />} />
               <Route path="/fleet" element={<Fleet />} />
+              <Route path="/services" element={<Services />} />
               <Route path="/settings" element={<Settings />} />
             </Routes>
           </main>
