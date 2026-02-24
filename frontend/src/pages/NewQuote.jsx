@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import MapComponent from '../components/MapComponent';
-import { mapsService } from '../services/api';
+import { mapsService, vehicleService, serviceService, settingsService, quotationService } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { useNotification } from '../context/NotificationContext';
-import { MapPin, Trash2, Plus, Loader2, Calculator } from 'lucide-react';
+import { MapPin, Trash2, Plus, Loader2, Calculator, Truck, Package, ChevronRight, Info } from 'lucide-react';
+import { CalculationMotor } from '../utils/CalculationMotor';
 
 const NewQuote = () => {
     const [points, setPoints] = useState([
@@ -17,6 +18,75 @@ const NewQuote = () => {
     const [suggestions, setSuggestions] = useState([]);
     const [summary, setSummary] = useState({ distance: 0, duration: 0 });
     const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: '', message: '' });
+
+    // New State for Quotation
+    const [vehicles, setVehicles] = useState([]);
+    const [services, setServices] = useState([]);
+    const [globalSettings, setGlobalSettings] = useState({});
+    const [selectedVehicle, setSelectedVehicle] = useState(null);
+    const [selectedServices, setSelectedServices] = useState([]);
+    const [breakdown, setBreakdown] = useState(null);
+
+    useEffect(() => {
+        const fetchMetadata = async () => {
+            try {
+                const [vData, sData, settsData] = await Promise.all([
+                    vehicleService.list(),
+                    serviceService.list(),
+                    settingsService.get()
+                ]);
+                setVehicles(vData);
+                setServices(sData);
+                setGlobalSettings(settsData);
+            } catch (err) {
+                console.error('Error fetching metadata:', err);
+                showNotification('Error al cargar datos necesarios', 'error');
+            }
+        };
+        fetchMetadata();
+    }, []);
+
+    // Real-time calculation when route, vehicle or services change
+    useEffect(() => {
+        if (summary.distance > 0) {
+            handleCalculate();
+        }
+    }, [summary, selectedVehicle, selectedServices, globalSettings]);
+
+    const handleCalculate = () => {
+        if (summary.distance <= 0) return;
+
+        const serviceCosts = selectedServices.reduce((acc, sId) => {
+            const service = services.find(s => s.id === sId);
+            return acc + (service ? parseFloat(service.cost) : 0);
+        }, 0);
+
+        const calculationInputs = {
+            distance: summary.distance,
+            time: summary.duration,
+            num_legs: 1, // Default to one way for now
+            num_tolls: 0, // Manual input could be added later
+            cost_per_toll: 0,
+            unit_mpg: selectedVehicle ? selectedVehicle.rendimiento_real : 1,
+            gas_price: globalSettings.gasoline_price || 24.50,
+            maneuver_factor: globalSettings.maneuver_factor || 1.2,
+            traffic_factor: globalSettings.traffic_factor || 1.5,
+            service_costs: serviceCosts,
+            service_time: 0, // Placeholder
+            ...globalSettings // Tier thresholds and costs
+        };
+
+        const result = CalculationMotor.calculate(calculationInputs);
+        setBreakdown(result);
+    };
+
+    const toggleService = (serviceId) => {
+        setSelectedServices(prev =>
+            prev.includes(serviceId)
+                ? prev.filter(id => id !== serviceId)
+                : [...prev, serviceId]
+        );
+    };
 
     const addStop = () => {
         if (points.length >= 7) return;
@@ -212,6 +282,53 @@ const NewQuote = () => {
                     </div>
                 </div>
 
+                {/* Vehicle Selection */}
+                <div className="card">
+                    <h2 style={{ fontSize: '16px', marginBottom: 'var(--spacing-md)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Truck size={18} className="text-primary" /> Vehículo
+                    </h2>
+                    <select
+                        className="text-white"
+                        style={{ width: '100%', padding: '12px', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}
+                        onChange={(e) => setSelectedVehicle(vehicles.find(v => v.id === parseInt(e.target.value)))}
+                        value={selectedVehicle?.id || ''}
+                    >
+                        <option value="">Seleccionar vehículo...</option>
+                        {vehicles.map(v => (
+                            <option key={v.id} value={v.id}>{v.name} ({v.plate})</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Services Selection */}
+                <div className="card" style={{ flexGrow: 1, overflowY: 'auto' }}>
+                    <h2 style={{ fontSize: '16px', marginBottom: 'var(--spacing-md)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Package size={18} className="text-primary" /> Servicios Adicionales
+                    </h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {services.map(s => (
+                            <div
+                                key={s.id}
+                                onClick={() => toggleService(s.id)}
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    padding: '10px 12px',
+                                    backgroundColor: selectedServices.includes(s.id) ? 'rgba(255, 72, 72, 0.1)' : 'var(--color-bg)',
+                                    border: `1px solid ${selectedServices.includes(s.id) ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                                    borderRadius: 'var(--radius-md)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <span style={{ fontSize: '13px' }}>{s.name}</span>
+                                <span style={{ fontSize: '13px', fontWeight: 'bold' }}>${parseFloat(s.cost || 0).toLocaleString()}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
                 <button
                     onClick={calculateRoute}
                     disabled={loading}
@@ -237,15 +354,70 @@ const NewQuote = () => {
             <div style={{ flexGrow: 1, position: 'relative' }}>
                 <MapComponent points={points} routeData={routeData} onMarkerDrag={updatePoint} />
 
-                <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 1000 }}>
-                    <div style={{ backgroundColor: 'var(--color-surface)', padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-md)' }}>
-                        <p className="text-muted" style={{ fontSize: '10px' }}>DISTANCIA</p>
-                        <p style={{ fontWeight: 'bold' }}>{summary.distance} km</p>
+                <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 1000, width: '280px' }}>
+                    {/* Route Summary */}
+                    <div style={{ backgroundColor: 'var(--color-surface)', padding: '15px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-md)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                        <div>
+                            <p className="text-muted" style={{ fontSize: '10px', marginBottom: '4px' }}>DISTANCIA</p>
+                            <p style={{ fontWeight: 'bold', fontSize: '18px' }}>{summary.distance} <span style={{ fontSize: '12px', fontWeight: 'normal' }}>km</span></p>
+                        </div>
+                        <div>
+                            <p className="text-muted" style={{ fontSize: '10px', marginBottom: '4px' }}>TIEMPO EST.</p>
+                            <p style={{ fontWeight: 'bold', fontSize: '18px' }}>{summary.duration} <span style={{ fontSize: '12px', fontWeight: 'normal' }}>min</span></p>
+                        </div>
                     </div>
-                    <div style={{ backgroundColor: 'var(--color-surface)', padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-md)' }}>
-                        <p className="text-muted" style={{ fontSize: '10px' }}>TIEMPO EST.</p>
-                        <p style={{ fontWeight: 'bold' }}>{summary.duration} min</p>
-                    </div>
+
+                    {/* Cost Breakdown */}
+                    {breakdown && (
+                        <div style={{ backgroundColor: 'var(--color-surface)', padding: '15px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-xl)', animation: 'fade-in 0.3s' }}>
+                            <h3 style={{ fontSize: '14px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)' }}>
+                                <Calculator size={16} /> DESGLOSE DE COSTOS
+                            </h3>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                    <span className="text-muted">Gasolina</span>
+                                    <span>${breakdown.gas_cost.toLocaleString()}</span>
+                                </div>
+                                {breakdown.lodging_cost > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                        <span className="text-muted">Hospedaje (Hotel)</span>
+                                        <span>${breakdown.lodging_cost.toLocaleString()}</span>
+                                    </div>
+                                )}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                    <span className="text-muted">Alimentos/Viáticos</span>
+                                    <span>${breakdown.meal_cost.toLocaleString()}</span>
+                                </div>
+                                {selectedServices.length > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                        <span className="text-muted">Servicios ({selectedServices.length})</span>
+                                        <span>${(breakdown.subtotal - (breakdown.logistics_cost_rounded + breakdown.lodging_cost + breakdown.meal_cost)).toLocaleString()}</span>
+                                    </div>
+                                )}
+
+                                <div style={{ height: '1px', backgroundColor: 'var(--color-border)', margin: '5px 0' }} />
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                    <span className="text-muted">Subtotal</span>
+                                    <span style={{ fontWeight: 'bold' }}>${breakdown.subtotal.toLocaleString()}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                    <span className="text-muted">IVA (16%)</span>
+                                    <span>${breakdown.iva.toLocaleString()}</span>
+                                </div>
+
+                                <div style={{ backgroundColor: 'rgba(255, 72, 72, 0.1)', padding: '12px', borderRadius: 'var(--radius-sm)', marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>TOTAL</span>
+                                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--color-primary)' }}>${breakdown.total.toLocaleString()}</span>
+                                </div>
+                            </div>
+
+                            <p style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginTop: '15px', fontStyle: 'italic' }}>
+                                * Precios aproximados sujetos a cambios en ruta.
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
 
