@@ -94,17 +94,25 @@ const Settings = () => {
     };
 
     const handleMarkerDrag = async (idx, lat, lng) => {
+        const roundedLat = parseFloat(lat.toFixed(6));
+        const roundedLng = parseFloat(lng.toFixed(6));
+
         setSettings(prev => ({
             ...prev,
-            default_origin_lat: lat.toFixed(6),
-            default_origin_lng: lng.toFixed(6)
+            default_origin_address: 'Buscando dirección...',
+            default_origin_lat: roundedLat.toString(),
+            default_origin_lng: roundedLng.toString()
         }));
 
         try {
-            const result = await mapsService.reverseGeocode(lat, lng);
+            const result = await mapsService.reverseGeocode(roundedLat, roundedLng);
             setSettings(prev => ({ ...prev, default_origin_address: result.label }));
         } catch (err) {
             console.error('Reverse geocode error:', err);
+            setSettings(prev => ({
+                ...prev,
+                default_origin_address: `${roundedLat}, ${roundedLng}`
+            }));
         }
     };
 

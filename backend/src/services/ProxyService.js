@@ -34,12 +34,13 @@ export class ProxyService {
     /**
      * Proxy to OpenRouteService for Routing
      */
-    async getRoute(coordinates) {
+    async getRoute(coordinates, retries = 2) {
         if (this.isKeyPlaceholder) {
             throw new Error("ORS_API_KEY_MISSING");
         }
 
         const url = `https://api.openrouteservice.org/v2/directions/driving-car/geojson?api_key=${this.apiKey}`;
+        console.log(`[ORS] Routing request: ${coordinates.length} points`);
 
         try {
             const response = await fetch(url, {
@@ -52,12 +53,17 @@ export class ProxyService {
 
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
-                console.error('ORS Routing Error:', response.status, errData);
+                console.error(`[ORS] Routing Error ${response.status}:`, JSON.stringify(errData));
                 throw new Error(`ORS_API_ERROR_${response.status}`);
             }
             return await response.json();
         } catch (error) {
-            console.error('Fetch Routing Error:', error);
+            if (retries > 0 && (error.message.includes("fetch failed") || error.name === 'ConnectTimeoutError' || (error.cause && error.cause.code === 'UND_ERR_CONNECT_TIMEOUT'))) {
+                console.warn(`[ORS] Routing failed (timeout/network), retrying... (${retries} left)`);
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                return this.getRoute(coordinates, retries - 1);
+            }
+            console.error('[ORS] Fetch Routing Error:', error.message);
             throw error;
         }
     }
@@ -65,23 +71,29 @@ export class ProxyService {
     /**
      * Proxy to OpenRouteService for Reverse Geocoding
      */
-    async reverseGeocode(lat, lng) {
+    async reverseGeocode(lat, lng, retries = 2) {
         if (this.isKeyPlaceholder) {
             throw new Error("ORS_API_KEY_MISSING");
         }
 
         const url = `https://api.openrouteservice.org/geocode/reverse?api_key=${this.apiKey}&point.lon=${lng}&point.lat=${lat}&size=1&lang=es`;
+        console.log(`[ORS] Reverse Geocode request: ${lat}, ${lng}`);
 
         try {
             const response = await fetch(url);
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
-                console.error('ORS Reverse Geocode Error:', response.status, errData);
+                console.error(`[ORS] Reverse Geocode Error ${response.status}:`, JSON.stringify(errData));
                 throw new Error(`ORS_API_ERROR_${response.status}`);
             }
             return await response.json();
         } catch (error) {
-            console.error('Fetch Reverse Geocode Error:', error);
+            if (retries > 0 && (error.message.includes("fetch failed") || error.name === 'ConnectTimeoutError' || (error.cause && error.cause.code === 'UND_ERR_CONNECT_TIMEOUT'))) {
+                console.warn(`[ORS] Reverse Geocode failed (timeout/network), retrying... (${retries} left)`);
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                return this.reverseGeocode(lat, lng, retries - 1);
+            }
+            console.error('[ORS] Fetch Reverse Geocode Error:', error.message);
             throw error;
         }
     }

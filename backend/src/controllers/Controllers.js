@@ -151,6 +151,11 @@ export const MapsController = () => {
                     return res.status(429).json({ message: "Límite de solicitudes de mapas excedido. Intenta de nuevo en un momento." });
                 }
 
+                // Handle connection timeouts or fetch failures
+                if (err.message.includes("fetch failed") || err.name === 'ConnectTimeoutError' || (err.cause && err.cause.code === 'UND_ERR_CONNECT_TIMEOUT')) {
+                    return res.status(503).json({ message: "El servicio de mapas está tardando en responder (Timeout). Por favor, intenta de nuevo." });
+                }
+
                 res.status(500).json({ message: "Error al calcular la ruta" });
             }
         },
