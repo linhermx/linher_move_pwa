@@ -115,15 +115,127 @@ body {
     opacity: 0;
   }
 }
+
 @keyframes fade-in {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .menu-item {
-    transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
 .menu-item:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Custom Scrollbar Styling */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  /* Even thinner */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  /* Hidden by default */
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: #333333;
+  /* Shows when hovering the container */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+  /* Red when hovering the scrollbar itself */
+}
+
+/* For Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.custom-scrollbar:hover {
+  scrollbar-color: #333333 transparent;
+}
+
+/* Spacer for the last card within any scrollable container to prevent it touching the bottom edge */
+.custom-scrollbar>.card:last-child {
+  margin-bottom: 20px;
+}
+
+/* Global scrollbar fallback for other areas */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* Effective Standardized Form Controls (Based on Route Card) */
+.form-field {
+  width: 100%;
+  padding: 8px;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.form-field:focus {
+  border-color: var(--color-primary);
+}
+
+/* Form Field Group (For icons + input) */
+.form-field-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  transition: border-color 0.2s ease;
+}
+
+.form-field-group:focus-within {
+  border-color: var(--color-primary);
+}
+
+.form-field-group input {
+  background: transparent;
+  border: none;
+  color: white;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
 }

@@ -3,7 +3,7 @@ import MapComponent from '../components/MapComponent';
 import { mapsService, vehicleService, serviceService, settingsService, quotationService } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { useNotification } from '../context/NotificationContext';
-import { MapPin, Trash2, Plus, Loader2, Calculator, Truck, Package, ChevronRight, Info } from 'lucide-react';
+import { MapPin, Trash2, Plus, Loader2, Calculator, Truck, Package, ChevronRight, ChevronDown, Info } from 'lucide-react';
 import { CalculationMotor } from '../utils/CalculationMotor';
 
 const NewQuote = () => {
@@ -29,6 +29,16 @@ const NewQuote = () => {
     const [mapsUrl, setMapsUrl] = useState('');
     const [numTolls, setNumTolls] = useState(0);
     const [costPerToll, setCostPerToll] = useState(0);
+    const [numTrips, setNumTrips] = useState(1);
+    const [expandedSections, setExpandedSections] = useState(['ruta', 'logistica', 'servicios']);
+
+    const toggleSection = (section) => {
+        setExpandedSections(prev =>
+            prev.includes(section)
+                ? prev.filter(s => s !== section)
+                : [...prev, section]
+        );
+    };
 
     useEffect(() => {
         const fetchMetadata = async () => {
@@ -68,7 +78,7 @@ const NewQuote = () => {
         if (summary.distance > 0) {
             handleCalculate();
         }
-    }, [summary, selectedVehicle, selectedServices, globalSettings, numTolls, costPerToll]);
+    }, [summary, selectedVehicle, selectedServices, globalSettings, numTolls, costPerToll, numTrips]);
 
     const handleCalculate = () => {
         if (summary.distance <= 0) return;
@@ -81,7 +91,7 @@ const NewQuote = () => {
         const calculationInputs = {
             distance: summary.distance,
             time: summary.duration,
-            num_legs: 1, // Default to one way for now
+            num_legs: parseInt(numTrips || 1),
             num_tolls: parseInt(numTolls || 0),
             cost_per_toll: parseFloat(costPerToll || 0),
             unit_mpg: selectedVehicle ? selectedVehicle.rendimiento_real : 1,
@@ -267,8 +277,10 @@ const NewQuote = () => {
                 origin_address: points[0].address,
                 destination_address: points[points.length - 1].address,
                 google_maps_link: mapsUrl,
-                distance_total: summary.distance,
-                time_total: summary.duration,
+                distance_total: breakdown.distancia_total,
+                time_total: breakdown.tiempo_total_min,
+                num_legs: parseInt(numTrips || 1),
+                toll_cost: breakdown.toll_cost,
                 stops: points.length > 2 ? points.slice(1, -1).map(p => p.address) : [],
                 selected_services: selectedServices,
                 gas_price_applied: globalSettings.gasoline_price,
@@ -289,182 +301,256 @@ const NewQuote = () => {
     };
 
     return (
-        <div style={{ display: 'flex', gap: 'var(--spacing-lg)', height: 'calc(100vh - 80px)' }}>
-            <div style={{ width: '400px', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                <div className="card" style={{ flexGrow: 1, overflowY: 'visible', position: 'relative' }}>
-                    <h2 style={{ fontSize: '18px', marginBottom: 'var(--spacing-lg)' }}>Ruta</h2>
+        <div style={{ display: 'flex', gap: 'var(--spacing-lg)', height: 'calc(100vh - 80px)', overflow: 'hidden' }}>
+            {/* Sidebar with Fixed Distribution */}
+            <div style={{ width: '400px', display: 'flex', flexDirection: 'column', height: '100%', paddingBottom: 'var(--spacing-md)' }}>
+                {/* Scrollable Body area for Accordions - Unified Scrolling */}
+                <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', paddingRight: '4px' }}>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                        {points.map((p, idx) => (
-                            <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <label style={{ fontSize: '10px', fontWeight: 'bold' }} className="text-muted">
-                                        {p.label.toUpperCase()}
-                                    </label>
-                                    {p.id !== 'origin' && p.id !== 'destination' && (
-                                        <Trash2 size={14} className="text-primary" onClick={() => removeStop(p.id)} cursor="pointer" />
-                                    )}
-                                </div>
-                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '8px' }}>
-                                    <MapPin size={16} className={idx === 0 ? 'text-primary' : (idx === points.length - 1 ? 'text-primary' : 'text-muted')} />
-                                    <input
-                                        type="text"
-                                        value={p.address}
-                                        onChange={(e) => handleSearch(idx, e.target.value)}
-                                        placeholder={`Buscar ${p.label}...`}
-                                        style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '14px' }}
-                                    />
-                                </div>
+                    {/* Ruta Section */}
+                    <div className="card" style={{ padding: '0' }}>
+                        <div
+                            onClick={() => toggleSection('ruta')}
+                            style={{
+                                padding: '15px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                cursor: 'pointer',
+                                backgroundColor: expandedSections.includes('ruta') ? 'rgba(255,255,255,0.03)' : 'transparent',
+                                borderBottom: expandedSections.includes('ruta') ? '1px solid var(--color-border)' : 'none'
+                            }}
+                        >
+                            <h2 style={{ fontSize: '16px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <MapPin size={18} className="text-primary" /> Ruta
+                            </h2>
+                            {expandedSections.includes('ruta') ? <ChevronDown size={18} className="text-muted" /> : <ChevronRight size={18} className="text-muted" />}
+                        </div>
 
-                                {activeSearchIdx === idx && suggestions.length > 0 && (
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: '100%',
-                                        left: 0,
-                                        right: 0,
-                                        backgroundColor: 'var(--color-surface)',
-                                        border: '1px solid var(--color-border)',
-                                        borderRadius: 'var(--radius-sm)',
-                                        zIndex: 2000,
-                                        maxHeight: '200px',
-                                        overflowY: 'auto',
-                                        boxShadow: 'var(--shadow-lg)'
-                                    }}>
-                                        {suggestions.map((s, sIdx) => (
-                                            <div
-                                                key={sIdx}
-                                                onClick={() => selectSuggestion(idx, s)}
-                                                style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--color-border)', fontSize: '12px' }}
-                                                onMouseOver={(e) => e.target.style.backgroundColor = 'var(--color-surface-hover)'}
-                                                onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
-                                            >
-                                                {s.label}
+                        {expandedSections.includes('ruta') && (
+                            <div style={{ padding: '15px' }}>
+                                {/* Unified Scroll - No nested scroll here */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                                    {points.map((p, idx) => (
+                                        <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <label style={{ fontSize: '10px', fontWeight: 'bold' }} className="text-muted">
+                                                    {p.label.toUpperCase()}
+                                                </label>
+                                                {p.id !== 'origin' && p.id !== 'destination' && (
+                                                    <Trash2 size={14} className="text-primary" onClick={() => removeStop(p.id)} cursor="pointer" />
+                                                )}
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                                {idx === points.length - 1 && (
-                                    <div style={{ marginTop: 'var(--spacing-sm)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <label style={{ fontSize: '10px', fontWeight: 'bold' }} className="text-muted">LINK DE GOOGLE MAPS (DESTINO)</label>
-                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'rgba(255, 72, 72, 0.05)', border: '1px dashed var(--color-primary)', borderRadius: 'var(--radius-sm)', padding: '8px' }}>
-                                            <input
-                                                type="text"
-                                                value={mapsUrl}
-                                                onChange={(e) => setMapsUrl(e.target.value)}
-                                                placeholder="Pega el link de Maps aquí..."
-                                                style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '13px' }}
-                                            />
+                                            <div className="form-field-group">
+                                                <MapPin size={16} className={idx === 0 ? 'text-primary' : (idx === points.length - 1 ? 'text-primary' : 'text-muted')} />
+                                                <input
+                                                    type="text"
+                                                    value={p.address}
+                                                    onChange={(e) => handleSearch(idx, e.target.value)}
+                                                    placeholder={`Buscar ${p.label}...`}
+                                                />
+                                            </div>
+
+                                            {activeSearchIdx === idx && suggestions.length > 0 && (
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    top: '100%',
+                                                    left: 0,
+                                                    right: 0,
+                                                    backgroundColor: 'var(--color-surface)',
+                                                    border: '1px solid var(--color-border)',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    zIndex: 5000,
+                                                    maxHeight: '200px',
+                                                    overflowY: 'auto',
+                                                    boxShadow: 'var(--shadow-lg)'
+                                                }}>
+                                                    {suggestions.map((s, sIdx) => (
+                                                        <div
+                                                            key={sIdx}
+                                                            onClick={() => selectSuggestion(idx, s)}
+                                                            style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--color-border)', fontSize: '12px' }}
+                                                            onMouseOver={(e) => e.target.style.backgroundColor = 'var(--color-surface-hover)'}
+                                                            onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                                                        >
+                                                            {s.label}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {idx === points.length - 1 && (
+                                                <div style={{ marginTop: 'var(--spacing-sm)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <label style={{ fontSize: '10px', fontWeight: 'bold' }} className="text-muted">LINK DE GOOGLE MAPS (DESTINO)</label>
+                                                    <div className="form-field-group" style={{ borderStyle: 'dashed', border: '1px dashed var(--color-primary)', backgroundColor: 'rgba(255, 72, 72, 0.05)' }}>
+                                                        <input
+                                                            type="text"
+                                                            value={mapsUrl}
+                                                            onChange={(e) => setMapsUrl(e.target.value)}
+                                                            placeholder="Pega el link de Maps aquí..."
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={addStop}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)', background: 'transparent', border: '1px solid var(--color-primary)', padding: '8px', borderRadius: 'var(--radius-md)', marginTop: '12px', cursor: 'pointer', fontSize: '12px', width: '100%', justifyContent: 'center' }}>
+                                    <Plus size={16} />
+                                    Agregar parada
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Logística Section */}
+                    <div className="card" style={{ padding: '0' }}>
+                        <div
+                            onClick={() => toggleSection('logistica')}
+                            style={{
+                                padding: '15px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                cursor: 'pointer',
+                                backgroundColor: expandedSections.includes('logistica') ? 'rgba(255,255,255,0.03)' : 'transparent',
+                                borderBottom: expandedSections.includes('logistica') ? '1px solid var(--color-border)' : 'none'
+                            }}
+                        >
+                            <h2 style={{ fontSize: '16px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Truck size={18} className="text-primary" /> Logística
+                            </h2>
+                            {expandedSections.includes('logistica') ? <ChevronDown size={18} className="text-muted" /> : <ChevronRight size={18} className="text-muted" />}
+                        </div>
+
+                        {expandedSections.includes('logistica') && (
+                            <div style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                                <div>
+                                    <label className="text-muted" style={{ display: 'block', fontSize: '10px', fontWeight: 'bold', marginBottom: '6px' }}>VEHÍCULO</label>
+                                    <select
+                                        className="form-field"
+                                        onChange={(e) => setSelectedVehicle(vehicles.find(v => v.id === parseInt(e.target.value)))}
+                                        value={selectedVehicle?.id || ''}
+                                    >
+                                        <option value="">Seleccionar vehículo...</option>
+                                        {vehicles.map(v => (
+                                            <option key={v.id} value={v.id}>{v.name} ({v.plate})</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <label className="text-muted" style={{ display: 'block', fontSize: '10px', fontWeight: 'bold', marginBottom: '4px' }}>NÚMERO DE TRAYECTOS (RECORRIDO)</label>
+                                        <input
+                                            className="form-field"
+                                            type="number"
+                                            value={numTrips || ''}
+                                            onChange={(e) => setNumTrips(e.target.value)}
+                                            placeholder="1"
+                                        />
                                     </div>
-                                )}
+                                    <div>
+                                        <label className="text-muted" style={{ display: 'block', fontSize: '10px', fontWeight: 'bold', marginBottom: '4px' }}>NÚM. CASETAS (IDA)</label>
+                                        <input
+                                            className="form-field"
+                                            type="number"
+                                            value={numTolls || ''}
+                                            onChange={(e) => setNumTolls(e.target.value)}
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-muted" style={{ display: 'block', fontSize: '10px', fontWeight: 'bold', marginBottom: '4px' }}>COSTO C/U ($)</label>
+                                        <input
+                                            className="form-field"
+                                            type="number"
+                                            value={costPerToll || ''}
+                                            onChange={(e) => setCostPerToll(e.target.value)}
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                        ))}
-
-                        <button
-                            onClick={addStop}
-                            style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)', background: 'transparent', border: '1px solid var(--color-primary)', padding: '8px', borderRadius: 'var(--radius-md)', alignSelf: 'flex-start', cursor: 'pointer', fontSize: '12px' }}>
-                            <Plus size={16} />
-                            Agregar parada
-                        </button>
+                        )}
                     </div>
-                </div>
 
-                {/* Vehicle Selection */}
-                <div className="card">
-                    <h2 style={{ fontSize: '16px', marginBottom: 'var(--spacing-md)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Truck size={18} className="text-primary" /> Vehículo
-                    </h2>
-                    <select
-                        className="text-white"
-                        style={{ width: '100%', padding: '12px', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}
-                        onChange={(e) => setSelectedVehicle(vehicles.find(v => v.id === parseInt(e.target.value)))}
-                        value={selectedVehicle?.id || ''}
-                    >
-                        <option value="">Seleccionar vehículo...</option>
-                        {vehicles.map(v => (
-                            <option key={v.id} value={v.id}>{v.name} ({v.plate})</option>
-                        ))}
-                    </select>
-                </div>
-
-                {/* Tolls Selection */}
-                <div className="card">
-                    <h2 style={{ fontSize: '16px', marginBottom: 'var(--spacing-md)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Calculator size={18} className="text-primary" /> Casetas y Peajes
-                    </h2>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        <div>
-                            <label className="text-muted" style={{ display: 'block', fontSize: '10px', marginBottom: '4px' }}>NÚM. CASETAS</label>
-                            <input
-                                type="number"
-                                value={numTolls || ''}
-                                onChange={(e) => setNumTolls(e.target.value)}
-                                placeholder="0"
-                                style={{ backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '10px', color: 'white', width: '100%', outline: 'none', fontSize: '14px' }}
-                            />
+                    {/* Services Section */}
+                    <div className="card" style={{ padding: '0' }}>
+                        <div
+                            onClick={() => toggleSection('servicios')}
+                            style={{
+                                padding: '15px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                cursor: 'pointer',
+                                backgroundColor: expandedSections.includes('servicios') ? 'rgba(255,255,255,0.03)' : 'transparent',
+                                borderBottom: expandedSections.includes('servicios') ? '1px solid var(--color-border)' : 'none'
+                            }}
+                        >
+                            <h2 style={{ fontSize: '16px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Package size={18} className="text-primary" /> Servicios Adicionales
+                            </h2>
+                            {expandedSections.includes('servicios') ? <ChevronDown size={18} className="text-muted" /> : <ChevronRight size={18} className="text-muted" />}
                         </div>
-                        <div>
-                            <label className="text-muted" style={{ display: 'block', fontSize: '10px', marginBottom: '4px' }}>COSTO C/U ($)</label>
-                            <input
-                                type="number"
-                                value={costPerToll || ''}
-                                onChange={(e) => setCostPerToll(e.target.value)}
-                                placeholder="0.00"
-                                style={{ backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '10px', color: 'white', width: '100%', outline: 'none', fontSize: '14px' }}
-                            />
-                        </div>
-                    </div>
-                </div>
 
-                {/* Services Selection */}
-                <div className="card" style={{ flexGrow: 1, overflowY: 'auto' }}>
-                    <h2 style={{ fontSize: '16px', marginBottom: 'var(--spacing-md)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Package size={18} className="text-primary" /> Servicios Adicionales
-                    </h2>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {services.map(s => (
-                            <div
-                                key={s.id}
-                                onClick={() => toggleService(s.id)}
-                                style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    padding: '10px 12px',
-                                    backgroundColor: selectedServices.includes(s.id) ? 'rgba(255, 72, 72, 0.1)' : 'var(--color-bg)',
-                                    border: `1px solid ${selectedServices.includes(s.id) ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                                    borderRadius: 'var(--radius-md)',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                <span style={{ fontSize: '13px' }}>{s.name}</span>
-                                <span style={{ fontSize: '13px', fontWeight: 'bold' }}>${parseFloat(s.cost || 0).toLocaleString()}</span>
+                        {expandedSections.includes('servicios') && (
+                            <div style={{ padding: '15px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {services.map(s => (
+                                        <div
+                                            key={s.id}
+                                            onClick={() => toggleService(s.id)}
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                padding: '10px 12px',
+                                                backgroundColor: selectedServices.includes(s.id) ? 'rgba(255, 72, 72, 0.1)' : 'var(--color-bg)',
+                                                border: `1px solid ${selectedServices.includes(s.id) ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                                                borderRadius: 'var(--radius-md)',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            <span style={{ fontSize: '13px' }}>{s.name}</span>
+                                            <span style={{ fontSize: '13px', fontWeight: 'bold' }}>${parseFloat(s.cost || 0).toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        ))}
+                        )}
                     </div>
+                    {/* Removed fixed spacer to avoid unnecessary scrollbar */}
                 </div>
 
-                <button
-                    onClick={calculateRoute}
-                    disabled={loading}
-                    style={{
-                        backgroundColor: loading ? 'var(--color-text-dim)' : 'var(--color-primary)',
-                        color: 'white',
-                        border: 'none',
-                        padding: '15px',
-                        borderRadius: 'var(--radius-md)',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        gap: '10px',
-                        fontWeight: 'bold',
-                        fontSize: '16px',
-                        cursor: loading ? 'default' : 'pointer'
-                    }}>
-                    {loading ? <Loader2 className="animate-spin" size={20} /> : <Calculator size={20} />}
-                    Calcular Cotización
-                </button>
+                {/* Fixed Footer Area for Main Button */}
+                <div style={{ paddingTop: '5px' }}>
+                    <button
+                        onClick={calculateRoute}
+                        disabled={loading}
+                        style={{
+                            backgroundColor: loading ? 'var(--color-text-dim)' : 'var(--color-primary)',
+                            color: 'white',
+                            border: 'none',
+                            padding: '16px',
+                            borderRadius: 'var(--radius-md)',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            gap: '10px',
+                            fontWeight: 'bold',
+                            fontSize: '16px',
+                            cursor: loading ? 'default' : 'pointer',
+                            width: '100%',
+                            boxShadow: '0 4px 12px rgba(255, 72, 72, 0.2)'
+                        }}>
+                        {loading ? <Loader2 className="animate-spin" size={20} /> : <Calculator size={20} />}
+                        Calcular Cotización
+                    </button>
+                </div>
             </div>
 
             <div style={{ flexGrow: 1, position: 'relative' }}>
@@ -485,51 +571,98 @@ const NewQuote = () => {
 
                     {/* Cost Breakdown */}
                     {breakdown && (
-                        <div style={{ backgroundColor: 'var(--color-surface)', padding: '15px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-xl)', animation: 'fade-in 0.3s' }}>
+                        <div style={{ backgroundColor: 'var(--color-surface)', padding: '15px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-xl)', animation: 'fade-in 0.3s', maxHeight: '550px', overflowY: 'auto' }}>
                             <h3 style={{ fontSize: '14px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)' }}>
-                                <Calculator size={16} /> DESGLOSE DE COSTOS
+                                <Calculator size={16} /> DESGLOSE DETALLADO
                             </h3>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                    <span className="text-muted">Gasolina</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {/* Distances & Times */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '5px' }}>
+                                    <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '4px' }}>
+                                        <p className="text-muted" style={{ fontSize: '9px', textTransform: 'uppercase' }}>Dist. Total</p>
+                                        <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{breakdown.distancia_total} km</p>
+                                    </div>
+                                    <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '4px' }}>
+                                        <p className="text-muted" style={{ fontSize: '9px', textTransform: 'uppercase' }}>Tiempo Total</p>
+                                        <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{CalculationMotor.formatMinutes(breakdown.tiempo_total_min)}</p>
+                                    </div>
+                                    <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '4px' }}>
+                                        <p className="text-muted" style={{ fontSize: '9px', textTransform: 'uppercase' }}>C/ Tráfico</p>
+                                        <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{CalculationMotor.formatMinutes(breakdown.tiempo_con_trafico_min)}</p>
+                                    </div>
+                                    <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '4px' }}>
+                                        <p className="text-muted" style={{ fontSize: '9px', textTransform: 'uppercase' }}>C/ Servicios</p>
+                                        <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{breakdown.time_formatted}</p>
+                                    </div>
+                                </div>
+
+                                {/* Logistics Breakdown */}
+                                <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span className="text-muted">Gasolina ({breakdown.gasolina_litros}L)</span>
                                     <span>${breakdown.gas_cost.toLocaleString()}</span>
                                 </div>
-                                {breakdown.lodging_cost > 0 && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                        <span className="text-muted">Hospedaje (Hotel)</span>
-                                        <span>${breakdown.lodging_cost.toLocaleString()}</span>
-                                    </div>
-                                )}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                    <span className="text-muted">Alimentos/Viáticos</span>
-                                    <span>${breakdown.meal_cost.toLocaleString()}</span>
+                                <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span className="text-muted">Casetas (Total)</span>
+                                    <span>${breakdown.toll_cost.toLocaleString()}</span>
                                 </div>
-                                {selectedServices.length > 0 && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                        <span className="text-muted">Servicios ({selectedServices.length})</span>
-                                        <span>${(breakdown.subtotal - (breakdown.logistics_cost_rounded + breakdown.lodging_cost + breakdown.meal_cost)).toLocaleString()}</span>
-                                    </div>
-                                )}
+                                <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between', color: 'var(--color-primary)' }}>
+                                    <span style={{ fontWeight: 'bold' }}>Costo Logístico (Flete)</span>
+                                    <span style={{ fontWeight: 'bold' }}>${breakdown.logistics_cost_rounded.toLocaleString()}</span>
+                                </div>
+                                <p style={{ fontSize: '9px', color: 'var(--color-text-dim)', textAlign: 'right', marginTop: '-5px' }}>
+                                    Bruto: ${breakdown.logistics_cost_raw.toLocaleString()}
+                                </p>
 
                                 <div style={{ height: '1px', backgroundColor: 'var(--color-border)', margin: '5px 0' }} />
 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                {/* Viáticos & Services */}
+                                {breakdown.lodging_cost > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                        <span className="text-muted">Viáticos Hospedaje</span>
+                                        <span>${breakdown.lodging_cost.toLocaleString()}</span>
+                                    </div>
+                                )}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                    <span className="text-muted">Viáticos Alimentos</span>
+                                    <span>${breakdown.meal_cost.toLocaleString()}</span>
+                                </div>
+
+                                {services.filter(s => selectedServices.includes(s.id)).map(s => (
+                                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                        <span className="text-muted">{s.name}</span>
+                                        <span>${parseFloat(s.cost).toLocaleString()}</span>
+                                    </div>
+                                ))}
+
+                                <div style={{ height: '2px', backgroundColor: 'var(--color-border)', margin: '10px 0' }} />
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                     <span className="text-muted">Subtotal</span>
                                     <span style={{ fontWeight: 'bold' }}>${breakdown.subtotal.toLocaleString()}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                     <span className="text-muted">IVA (16%)</span>
-                                    <span>${breakdown.iva.toLocaleString()}</span>
+                                    <span style={{ fontWeight: 'bold' }}>${breakdown.iva.toLocaleString()}</span>
                                 </div>
 
-                                <div style={{ backgroundColor: 'rgba(255, 72, 72, 0.1)', padding: '12px', borderRadius: 'var(--radius-sm)', marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>TOTAL</span>
-                                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--color-primary)' }}>${breakdown.total.toLocaleString()}</span>
+                                <div style={{
+                                    backgroundColor: 'rgba(255, 72, 72, 0.05)',
+                                    padding: '12px',
+                                    borderRadius: '8px',
+                                    marginTop: '10px',
+                                    border: '1px solid rgba(255, 72, 72, 0.2)',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <span style={{ fontWeight: 'bold', fontSize: '14px' }}>TOTAL NETO</span>
+                                    <span style={{ fontWeight: 'bold', fontSize: '24px', color: 'var(--color-primary)' }}>
+                                        ${breakdown.total.toLocaleString()}
+                                    </span>
                                 </div>
                             </div>
-
-                            <p style={{ fontSize: '10px', color: 'var(--color-text-dim)', marginTop: '15px', fontStyle: 'italic' }}>
+                            <p style={{ fontSize: '10px', color: 'var(--color-text-dim)', textAlign: 'center', marginTop: '15px', fontStyle: 'italic' }}>
                                 * Precios aproximados sujetos a cambios en ruta.
                             </p>
                         </div>

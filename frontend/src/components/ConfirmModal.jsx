@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 
-const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirmar', cancelText = 'Cancelar', type = 'danger', showCancel = true }) => {
+const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirmar', cancelText = 'Cancelar', type = 'danger', showCancel = true, isLoading = false }) => {
     if (!isOpen) return null;
 
     const accentColor = type === 'danger' ? 'var(--color-primary)' : 'var(--color-info)';
@@ -66,21 +66,22 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
                     )}
                     <button
                         onClick={() => {
-                            if (onConfirm) onConfirm();
-                            onClose();
+                            if (!isLoading && onConfirm) onConfirm();
                         }}
+                        disabled={isLoading}
                         style={{
                             flex: 1,
                             padding: '12px',
-                            backgroundColor: accentColor,
+                            backgroundColor: isLoading ? 'var(--color-text-dim)' : accentColor,
                             border: 'none',
                             borderRadius: 'var(--radius-md)',
                             color: 'white',
                             fontWeight: 'bold',
-                            cursor: 'pointer'
+                            cursor: isLoading ? 'default' : 'pointer',
+                            opacity: isLoading ? 0.7 : 1
                         }}
                     >
-                        {confirmText}
+                        {isLoading ? 'Guardando...' : confirmText}
                     </button>
                 </div>
             </div>

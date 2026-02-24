@@ -7,96 +7,109 @@ export class CalculationMotor {
      */
     static calculate(inputs) {
         // 1. Inputs assignment with defaults
-        const oneWayDist = parseFloat(inputs.distance || 0);
-        const oneWayTime = parseInt(inputs.time || 0); // minutes
-        const numLegs = parseInt(inputs.num_legs || 1);
-        const numTolls = parseInt(inputs.num_tolls || 0);
-        const costPerToll = parseFloat(inputs.cost_per_toll || 0);
-        const unitMpg = parseFloat(inputs.unit_mpg || 1);
-        const gasPrice = parseFloat(inputs.gas_price || 0);
+        const distIda = parseFloat(inputs.distance || 0);
+        const tiempoIda = parseInt(inputs.time || 0); // minutes
+        const numTrayectos = parseInt(inputs.num_legs || 1);
 
-        const maneuverFactor = parseFloat(inputs.maneuver_factor || 1.2);
-        const trafficFactor = parseFloat(inputs.traffic_factor || 1.5);
+        const numCasetasIda = parseInt(inputs.num_tolls || 0);
+        const costoPorCaseta = parseFloat(inputs.cost_per_toll || 0);
+
+        const rendUnidad = parseFloat(inputs.unit_mpg || 1);
+        const precioGasolina = parseFloat(inputs.gas_price || 0);
+
+        const factorManiobra = parseFloat(inputs.maneuver_factor || 1.2);
+        const factorTrafico = parseFloat(inputs.traffic_factor || 1.15);
 
         const serviceCosts = parseFloat(inputs.service_costs || 0);
         const serviceTime = parseInt(inputs.service_time || 0); // minutes
 
-        // 2. Calculations
-        // Total Distance & Time
-        const totalDist = oneWayDist * numLegs;
-        const totalTimeBasic = oneWayTime * numLegs;
+        // 2. Calculations (Follow 12 steps)
 
-        // Tolls
-        const totalTollCost = numTolls * costPerToll;
+        // 1) Distancia total = distancia ida * número de trayectos
+        const distanciaTotal = distIda * numTrayectos;
 
-        // Gas
-        const safeUnitMpg = unitMpg <= 0 ? 1 : unitMpg;
-        const gasConsumption = totalDist / safeUnitMpg;
-        const totalGasCost = gasConsumption * gasPrice;
+        // 2) Tiempo total = tiempo ida * número de trayectos
+        const tiempoTotalBase = tiempoIda * numTrayectos;
 
-        // Logistics Cost: (Gas * Factor) + Casetas
-        const rawLogisticsCost = (totalGasCost * maneuverFactor) + totalTollCost;
+        // 3) Costo de casetas = número de casetas * costo por caseta * numTrayectos
+        // Nota: numCasetasIda * costoPorCaseta es por trayecto
+        const costoCasetasTotal = numCasetasIda * costoPorCaseta * numTrayectos;
 
-        // Logistics Cost (rounded UP to nearest 100)
-        const roundedLogisticsCost = Math.ceil(rawLogisticsCost / 100) * 100;
+        // 4) Consumo de gasolina = distancia total / rendimiento real
+        const consumoGasolina = rendUnidad > 0 ? distanciaTotal / rendUnidad : 0;
 
-        // Time with Traffic
-        const timeWithTraffic = totalTimeBasic * trafficFactor;
+        // 5) Costo gasolina = consumo gasolina * precio gasolina
+        const costoGasolina = consumoGasolina * precioGasolina;
 
-        // Total Time with Services
-        const totalTimeWithServices = timeWithTraffic + serviceTime;
+        // 6) Costo logístico sin redondeo = (costo gasolina + costo casetas) * factor maniobra
+        const costoLogisticoSinRedondeo = (costoGasolina + costoCasetasTotal) * factorManiobra;
 
-        // 3. Conditional Expenses (Lodging & Meals)
-        // Lodging tiered by ONE WAY TIME
+        // 7) Redondeo a 100 hacia arriba
+        const costoLogisticoRedondeado = Math.ceil(costoLogisticoSinRedondeo / 100) * 100;
+
+        // 11) Tiempo con tráfico = tiempo total * factor tráfico
+        const tiempoConTrafico = tiempoTotalBase * factorTrafico;
+
+        // 12) Tiempo total con servicios = tiempo con tráfico + tiempo servicio
+        const tiempoTotalConServicios = tiempoConTrafico + serviceTime;
+
+        // 3. Conditional Expenses (Lodging & Meals) - Keep same tiered logic or adjust if needed?
+        // Let's use the tiers as automated for now but based on ONE WAY or TOTAL as previously defined.
         let lodgingCost = 0;
         const oswTier3 = parseInt(inputs.lodging_tier3_hours || 17) * 60;
         const oswTier2 = parseInt(inputs.lodging_tier2_hours || 11) * 60;
         const oswTier1 = parseInt(inputs.lodging_tier1_hours || 6) * 60;
 
-        if (oneWayTime > oswTier3) {
+        if (tiempoIda > oswTier3) {
             lodgingCost = parseFloat(inputs.lodging_tier3_cost || 0);
-        } else if (oneWayTime > oswTier2) {
+        } else if (tiempoIda > oswTier2) {
+            lodgingCost = parseFloat(inputs.lodging_tier3_cost || 0); // Corrected to use tier3 etc as per original logic if requested, or tier 2
             lodgingCost = parseFloat(inputs.lodging_tier2_cost || 0);
-        } else if (oneWayTime > oswTier1) {
+        } else if (tiempoIda > oswTier1) {
             lodgingCost = parseFloat(inputs.lodging_tier1_cost || 0);
         }
 
-        // Meals tiered by TOTAL TIME or LODGING STATUS
         let mealCost = 0;
         const totalTier2 = parseInt(inputs.meal_tier2_hours || 12) * 60;
         const totalTier1 = parseInt(inputs.meal_tier1_hours || 8) * 60;
 
         if (lodgingCost > 0) {
             mealCost = parseFloat(inputs.meal_tier3_cost || 0);
-        } else if (totalTimeWithServices > totalTier2) {
+        } else if (tiempoTotalConServicios > totalTier2) {
             mealCost = parseFloat(inputs.meal_tier2_cost || 0);
-        } else if (totalTimeWithServices > totalTier1) {
+        } else if (tiempoTotalConServicios > totalTier1) {
             mealCost = parseFloat(inputs.meal_tier1_cost || 0);
         }
 
-        // 4. Subtotal & Totals
-        const subtotal = roundedLogisticsCost + serviceCosts + lodgingCost + mealCost;
+        // 8) Subtotal = costo logístico + interconexión + mantenimiento + comida + hospedaje
+        const subtotal = costoLogisticoRedondeado + serviceCosts + lodgingCost + mealCost;
 
-        // IVA (16%)
+        // 9) IVA = Subtotal * 0.16
         const iva = subtotal * 0.16;
 
-        // Total (rounded UP to integer)
+        // 10) Total = Subtotal + IVA (rounded up)
         const total = Math.ceil(subtotal + iva);
 
+        // 11) Return breakdown
         return {
-            distance_total: parseFloat(totalDist.toFixed(2)),
-            gas_consumption: parseFloat(gasConsumption.toFixed(2)),
-            gas_cost: parseFloat(totalGasCost.toFixed(2)),
-            toll_cost: parseFloat(totalTollCost.toFixed(2)),
+            distancia_ida: distIda,
+            distancia_total: parseFloat(distanciaTotal.toFixed(2)),
+            tiempo_ida_min: tiempoIda,
+            tiempo_total_min: tiempoTotalBase,
+            tiempo_con_trafico_min: Math.round(tiempoConTrafico),
+            tiempo_con_servicios_min: Math.round(tiempoTotalConServicios),
+            gasolina_litros: parseFloat(consumoGasolina.toFixed(2)),
+            gas_cost: parseFloat(costoGasolina.toFixed(2)),
+            toll_cost: parseFloat(costoCasetasTotal.toFixed(2)),
             lodging_cost: lodgingCost,
             meal_cost: mealCost,
-            logistics_cost_raw: parseFloat(rawLogisticsCost.toFixed(2)),
-            logistics_cost_rounded: roundedLogisticsCost,
-            subtotal: parseFloat(subtotal.toFixed(2)),
+            logistics_cost_raw: parseFloat(costoLogisticoSinRedondeo.toFixed(2)),
+            logistics_cost_rounded: costoLogisticoRedondeado,
+            subtotal: subtotal,
             iva: parseFloat(iva.toFixed(2)),
             total: total,
-            time_total_minutes: totalTimeWithServices,
-            time_formatted: this.formatMinutes(totalTimeWithServices)
+            time_formatted: this.formatMinutes(tiempoTotalConServicios),
+            tiempo_total_viaje_formatted: this.formatMinutes(tiempoTotalBase * factorTrafico) // For verification with excel
         };
     }
 
