@@ -6,20 +6,20 @@ import { settingsService } from '../services/api';
 const Settings = () => {
     const [settings, setSettings] = useState({
         gasoline_price: '',
-        factor_maniobra: '',
-        factor_trafico: '',
-        eficiencia_base: '',
+        maneuver_factor: '',
+        traffic_factor: '',
+        base_efficiency: '',
         lodging_tier1_cost: '',
         lodging_tier2_cost: '',
         lodging_tier3_cost: '',
         meal_tier1_cost: '',
         meal_tier2_cost: '',
         meal_tier3_cost: '',
-        hospedaje_tier1_hours: '',
-        hospedaje_tier2_hours: '',
-        hospedaje_tier3_hours: '',
-        viaticos_tier1_hours: '',
-        viaticos_tier2_hours: ''
+        lodging_tier1_hours: '',
+        lodging_tier2_hours: '',
+        lodging_tier3_hours: '',
+        meal_tier1_hours: '',
+        meal_tier2_hours: ''
     });
     const { showNotification } = useNotification();
 
@@ -77,7 +77,7 @@ const Settings = () => {
                         <div>
                             <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '12px' }}>FACTOR EFICIENCIA BASE</label>
                             <input
-                                type="number" step="0.1" name="eficiencia_base" value={settings.eficiencia_base} onChange={handleChange}
+                                type="number" step="0.1" name="base_efficiency" value={settings.base_efficiency} onChange={handleChange}
                                 style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}
                                 placeholder="1.0"
                             />
@@ -95,7 +95,7 @@ const Settings = () => {
                         <div>
                             <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '12px' }}>FACTOR MANIOBRA (MULTIPLICADOR)</label>
                             <input
-                                type="number" step="0.1" name="factor_maniobra" value={settings.factor_maniobra} onChange={handleChange}
+                                type="number" step="0.1" name="maneuver_factor" value={settings.maneuver_factor} onChange={handleChange}
                                 style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}
                                 placeholder="1.2"
                             />
@@ -103,7 +103,7 @@ const Settings = () => {
                         <div>
                             <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '12px' }}>FACTOR TRÁFICO (TIEMPO)</label>
                             <input
-                                type="number" step="0.1" name="factor_trafico" value={settings.factor_trafico} onChange={handleChange}
+                                type="number" step="0.1" name="traffic_factor" value={settings.traffic_factor} onChange={handleChange}
                                 style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}
                                 placeholder="1.5"
                             />
@@ -125,7 +125,7 @@ const Settings = () => {
                                 <div>
                                     <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '11px' }}>UMBRAL NIVEL {tier} (HORAS IDA)</label>
                                     <input
-                                        type="number" name={`hospedaje_tier${tier}_hours`} value={settings[`hospedaje_tier${tier}_hours`]} onChange={handleChange}
+                                        type="number" name={`lodging_tier${tier}_hours`} value={settings[`lodging_tier${tier}_hours`]} onChange={handleChange}
                                         style={{ width: '100%', padding: '10px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', color: 'white' }}
                                         placeholder={`${tier === 1 ? '6' : tier === 2 ? '11' : '17'}`}
                                     />
@@ -156,7 +156,7 @@ const Settings = () => {
                             <div>
                                 <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '11px' }}>UMBRAL NIVEL 1 - JORNADA (HORAS)</label>
                                 <input
-                                    type="number" name="viaticos_tier1_hours" value={settings.viaticos_tier1_hours} onChange={handleChange}
+                                    type="number" name="meal_tier1_hours" value={settings.meal_tier1_hours} onChange={handleChange}
                                     style={{ width: '100%', padding: '10px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', color: 'white' }}
                                     placeholder="8"
                                 />
@@ -175,7 +175,7 @@ const Settings = () => {
                             <div>
                                 <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '11px' }}>UMBRAL NIVEL 2 - VIAJE LARGO (HORAS TOTAL)</label>
                                 <input
-                                    type="number" name="viaticos_tier2_hours" value={settings.viaticos_tier2_hours} onChange={handleChange}
+                                    type="number" name="meal_tier2_hours" value={settings.meal_tier2_hours} onChange={handleChange}
                                     style={{ width: '100%', padding: '10px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', color: 'white' }}
                                     placeholder="12"
                                 />

@@ -15,8 +15,8 @@ export class CalculationMotor {
         const unitMpg = parseFloat(inputs.unit_mpg || 1);
         const gasPrice = parseFloat(inputs.gas_price || 0);
 
-        const factorManiobra = parseFloat(inputs.factor_maniobra || 1.2);
-        const factorTrafico = parseFloat(inputs.factor_trafico || 1.5);
+        const maneuverFactor = parseFloat(inputs.maneuver_factor || 1.2);
+        const trafficFactor = parseFloat(inputs.traffic_factor || 1.5);
 
         const serviceCosts = parseFloat(inputs.service_costs || 0);
         const serviceTime = parseInt(inputs.service_time || 0); // minutes
@@ -35,13 +35,13 @@ export class CalculationMotor {
         const totalGasCost = gasConsumption * gasPrice;
 
         // Logistics Cost (raw)
-        const rawLogisticsCost = (totalGasCost + totalTollCost) * factorManiobra;
+        const rawLogisticsCost = (totalGasCost + totalTollCost) * maneuverFactor;
 
         // Logistics Cost (rounded UP to nearest 100)
         const roundedLogisticsCost = Math.ceil(rawLogisticsCost / 100) * 100;
 
         // Time with Traffic
-        const timeWithTraffic = totalTimeBasic * factorTrafico;
+        const timeWithTraffic = totalTimeBasic * trafficFactor;
 
         // Total Time with Services
         const totalTimeWithServices = timeWithTraffic + serviceTime;
@@ -49,9 +49,9 @@ export class CalculationMotor {
         // 3. Conditional Expenses (Lodging & Meals)
         // Lodging tiered by ONE WAY TIME
         let lodgingCost = 0;
-        const oswTier3 = parseInt(inputs.hospedaje_tier3_hours || 17) * 60;
-        const oswTier2 = parseInt(inputs.hospedaje_tier2_hours || 11) * 60;
-        const oswTier1 = parseInt(inputs.hospedaje_tier1_hours || 6) * 60;
+        const oswTier3 = parseInt(inputs.lodging_tier3_hours || 17) * 60;
+        const oswTier2 = parseInt(inputs.lodging_tier2_hours || 11) * 60;
+        const oswTier1 = parseInt(inputs.lodging_tier1_hours || 6) * 60;
 
         if (oneWayTime > oswTier3) {
             lodgingCost = parseFloat(inputs.lodging_tier3_cost || 0);
@@ -63,8 +63,8 @@ export class CalculationMotor {
 
         // Meals tiered by TOTAL TIME or LODGING STATUS
         let mealCost = 0;
-        const totalTier2 = parseInt(inputs.viaticos_tier2_hours || 12) * 60;
-        const totalTier1 = parseInt(inputs.viaticos_tier1_hours || 8) * 60;
+        const totalTier2 = parseInt(inputs.meal_tier2_hours || 12) * 60;
+        const totalTier1 = parseInt(inputs.meal_tier1_hours || 8) * 60;
 
         if (lodgingCost > 0) {
             mealCost = parseFloat(inputs.meal_tier3_cost || 0);
