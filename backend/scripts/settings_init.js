@@ -18,7 +18,11 @@ const defaultSettings = [
     { key: 'lodging_tier2_hours', value: '11' },
     { key: 'lodging_tier3_hours', value: '17' },
     { key: 'meal_tier1_hours', value: '8' },
-    { key: 'meal_tier2_hours', value: '12' }
+    { key: 'meal_tier2_hours', value: '12' },
+    // Default Origin (Linher HQ)
+    { key: 'default_origin_address', value: 'Puebla, Pue., México' },
+    { key: 'default_origin_lat', value: '19.0414' },
+    { key: 'default_origin_lng', value: '-98.2063' }
 ];
 
 async function initSettings() {

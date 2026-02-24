@@ -38,6 +38,20 @@ const NewQuote = () => {
                 setVehicles(vData);
                 setServices(sData);
                 setGlobalSettings(settsData);
+
+                // Set default origin if available
+                if (settsData.default_origin_address && settsData.default_origin_lat && settsData.default_origin_lng) {
+                    setPoints(prev => {
+                        const newPoints = [...prev];
+                        newPoints[0] = {
+                            ...newPoints[0],
+                            address: settsData.default_origin_address,
+                            lat: parseFloat(settsData.default_origin_lat),
+                            lng: parseFloat(settsData.default_origin_lng)
+                        };
+                        return newPoints;
+                    });
+                }
             } catch (err) {
                 console.error('Error fetching metadata:', err);
                 showNotification('Error al cargar datos necesarios', 'error');
