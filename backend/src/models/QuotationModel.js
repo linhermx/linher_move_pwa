@@ -77,9 +77,9 @@ export class QuotationModel extends BaseModel {
         const query = `
             INSERT INTO ${this.tableName} 
             (folio, user_id, vehicle_id, origin_address, destination_address, 
-             google_maps_link, distance_total, time_total, costo_logistico_redondeado, 
+             google_maps_link, distance_total, time_total, toll_cost, costo_logistico_redondeado, 
              subtotal, iva, total, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')
         `;
 
         const params = [
@@ -91,6 +91,7 @@ export class QuotationModel extends BaseModel {
             data.google_maps_link,
             data.distance_total,
             data.time_total,
+            data.toll_cost,
             data.costo_logistico_redondeado,
             data.subtotal,
             data.iva,

@@ -27,6 +27,8 @@ const NewQuote = () => {
     const [selectedServices, setSelectedServices] = useState([]);
     const [breakdown, setBreakdown] = useState(null);
     const [mapsUrl, setMapsUrl] = useState('');
+    const [numTolls, setNumTolls] = useState(0);
+    const [costPerToll, setCostPerToll] = useState(0);
 
     useEffect(() => {
         const fetchMetadata = async () => {
@@ -66,7 +68,7 @@ const NewQuote = () => {
         if (summary.distance > 0) {
             handleCalculate();
         }
-    }, [summary, selectedVehicle, selectedServices, globalSettings]);
+    }, [summary, selectedVehicle, selectedServices, globalSettings, numTolls, costPerToll]);
 
     const handleCalculate = () => {
         if (summary.distance <= 0) return;
@@ -80,8 +82,8 @@ const NewQuote = () => {
             distance: summary.distance,
             time: summary.duration,
             num_legs: 1, // Default to one way for now
-            num_tolls: 0, // Manual input could be added later
-            cost_per_toll: 0,
+            num_tolls: parseInt(numTolls || 0),
+            cost_per_toll: parseFloat(costPerToll || 0),
             unit_mpg: selectedVehicle ? selectedVehicle.rendimiento_real : 1,
             gas_price: globalSettings.gasoline_price || 24.50,
             maneuver_factor: globalSettings.maneuver_factor || 1.2,
@@ -385,6 +387,35 @@ const NewQuote = () => {
                     </select>
                 </div>
 
+                {/* Tolls Selection */}
+                <div className="card">
+                    <h2 style={{ fontSize: '16px', marginBottom: 'var(--spacing-md)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Calculator size={18} className="text-primary" /> Casetas y Peajes
+                    </h2>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div>
+                            <label className="text-muted" style={{ display: 'block', fontSize: '10px', marginBottom: '4px' }}>NÚM. CASETAS</label>
+                            <input
+                                type="number"
+                                value={numTolls || ''}
+                                onChange={(e) => setNumTolls(e.target.value)}
+                                placeholder="0"
+                                style={{ backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '10px', color: 'white', width: '100%', outline: 'none', fontSize: '14px' }}
+                            />
+                        </div>
+                        <div>
+                            <label className="text-muted" style={{ display: 'block', fontSize: '10px', marginBottom: '4px' }}>COSTO C/U ($)</label>
+                            <input
+                                type="number"
+                                value={costPerToll || ''}
+                                onChange={(e) => setCostPerToll(e.target.value)}
+                                placeholder="0.00"
+                                style={{ backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '10px', color: 'white', width: '100%', outline: 'none', fontSize: '14px' }}
+                            />
+                        </div>
+                    </div>
+                </div>
+
                 {/* Services Selection */}
                 <div className="card" style={{ flexGrow: 1, overflowY: 'auto' }}>
                     <h2 style={{ fontSize: '16px', marginBottom: 'var(--spacing-md)', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -448,7 +479,7 @@ const NewQuote = () => {
                         </div>
                         <div>
                             <p className="text-muted" style={{ fontSize: '10px', marginBottom: '4px' }}>TIEMPO EST.</p>
-                            <p style={{ fontWeight: 'bold', fontSize: '18px' }}>{summary.duration} <span style={{ fontSize: '12px', fontWeight: 'normal' }}>min</span></p>
+                            <p style={{ fontWeight: 'bold', fontSize: '18px' }}>{CalculationMotor.formatMinutes(summary.duration)}</p>
                         </div>
                     </div>
 

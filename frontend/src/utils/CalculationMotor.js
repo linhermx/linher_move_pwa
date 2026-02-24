@@ -34,8 +34,8 @@ export class CalculationMotor {
         const gasConsumption = totalDist / safeUnitMpg;
         const totalGasCost = gasConsumption * gasPrice;
 
-        // Logistics Cost (raw)
-        const rawLogisticsCost = (totalGasCost + totalTollCost) * maneuverFactor;
+        // Logistics Cost: (Gas * Factor) + Casetas
+        const rawLogisticsCost = (totalGasCost * maneuverFactor) + totalTollCost;
 
         // Logistics Cost (rounded UP to nearest 100)
         const roundedLogisticsCost = Math.ceil(rawLogisticsCost / 100) * 100;
