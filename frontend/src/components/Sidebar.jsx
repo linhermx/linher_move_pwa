@@ -19,10 +19,13 @@ const Sidebar = () => {
             width: '260px',
             backgroundColor: 'var(--color-surface)',
             height: '100vh',
+            position: 'sticky',
+            top: 0,
             borderRight: '1px solid var(--color-border)',
             padding: 'var(--spacing-md)',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            zIndex: 10
         }}>
             <div style={{ marginBottom: 'var(--spacing-xl)', textAlign: 'center', padding: '10px' }}>
                 <img src={logoHorizontal} alt="LINHER MOVE" style={{ width: '100%', maxWidth: '180px', height: 'auto' }} />
