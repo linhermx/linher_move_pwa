@@ -1,0 +1,14 @@
+{
+  "name": "linher-move-pwa-root",
+  "version": "1.0.0",
+  "description": "Root project for Linher Move PWA",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix frontend\" \"npm run dev --prefix backend\"",
+    "install-all": "npm install --prefix frontend && npm install --prefix backend",
+    "backend": "npm run dev --prefix backend",
+    "frontend": "npm run dev --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
