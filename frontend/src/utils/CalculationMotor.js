@@ -31,9 +31,9 @@ export class CalculationMotor {
         // 2) Tiempo total = tiempo ida * número de trayectos
         const tiempoTotalBase = tiempoIda * numTrayectos;
 
-        // 3) Costo de casetas = número de casetas * costo por caseta * numTrayectos
-        // Nota: numCasetasIda * costoPorCaseta es por trayecto
-        const costoCasetasTotal = numCasetasIda * costoPorCaseta * numTrayectos;
+        // 3) Costo de casetas = número de casetas * costo por caseta
+        // Nota: Se calcula solo de ida según reglas de logística
+        const costoCasetasTotal = numCasetasIda * costoPorCaseta;
 
         // 4) Consumo de gasolina = distancia total / rendimiento real
         const consumoGasolina = rendUnidad > 0 ? distanciaTotal / rendUnidad : 0;

@@ -83,10 +83,14 @@ const NewQuote = () => {
     const handleCalculate = () => {
         if (summary.distance <= 0) return;
 
-        const serviceCosts = selectedServices.reduce((acc, sId) => {
+        const serviceInfo = selectedServices.reduce((acc, sId) => {
             const service = services.find(s => s.id === sId);
-            return acc + (service ? parseFloat(service.cost) : 0);
-        }, 0);
+            if (service) {
+                acc.costs += parseFloat(service.cost || 0);
+                acc.time += parseInt(service.time_minutes || 0);
+            }
+            return acc;
+        }, { costs: 0, time: 0 });
 
         const calculationInputs = {
             distance: summary.distance,
@@ -98,8 +102,8 @@ const NewQuote = () => {
             gas_price: globalSettings.gasoline_price || 24.50,
             maneuver_factor: globalSettings.maneuver_factor || 1.2,
             traffic_factor: globalSettings.traffic_factor || 1.5,
-            service_costs: serviceCosts,
-            service_time: 0, // Placeholder
+            service_costs: serviceInfo.costs,
+            service_time: serviceInfo.time,
             ...globalSettings // Tier thresholds and costs
         };
 
