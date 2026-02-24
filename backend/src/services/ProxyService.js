@@ -39,14 +39,13 @@ export class ProxyService {
             throw new Error("ORS_API_KEY_MISSING");
         }
 
-        const url = `https://api.openrouteservice.org/v2/directions/driving-car/geojson`;
+        const url = `https://api.openrouteservice.org/v2/directions/driving-car/geojson?api_key=${this.apiKey}`;
 
         try {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': this.apiKey
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ coordinates })
             });

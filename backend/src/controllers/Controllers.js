@@ -141,7 +141,16 @@ export const MapsController = () => {
                         message: "Configuración de mapas incompleta (API KEY)."
                     });
                 }
+
                 console.error('Controller Route Error:', err);
+
+                if (err.message.includes("404")) {
+                    return res.status(404).json({ message: "No se encontró una ruta factible entre estos puntos." });
+                }
+                if (err.message.includes("429")) {
+                    return res.status(429).json({ message: "Límite de solicitudes de mapas excedido. Intenta de nuevo en un momento." });
+                }
+
                 res.status(500).json({ message: "Error al calcular la ruta" });
             }
         },
@@ -153,11 +162,12 @@ export const MapsController = () => {
                 if (data.features && data.features.length > 0) {
                     res.json({ label: formatAddress(data.features[0].properties) });
                 } else {
-                    res.json({ label: `${lat}, ${lng}` });
+                    res.json({ label: `${parseFloat(lat).toFixed(6)}, ${parseFloat(lng).toFixed(6)}` });
                 }
             } catch (err) {
                 console.error('Controller Reverse Error:', err);
-                res.status(500).json({ message: "Error in reverse geocoding" });
+                // Graceful failure: return coordinates instead of 500
+                res.json({ label: `${parseFloat(lat).toFixed(6)}, ${parseFloat(lng).toFixed(6)}` });
             }
         }
     };

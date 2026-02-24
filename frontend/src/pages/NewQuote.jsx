@@ -26,6 +26,7 @@ const NewQuote = () => {
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const [selectedServices, setSelectedServices] = useState([]);
     const [breakdown, setBreakdown] = useState(null);
+    const [mapsUrl, setMapsUrl] = useState('');
 
     useEffect(() => {
         const fetchMetadata = async () => {
@@ -116,21 +117,34 @@ const NewQuote = () => {
     };
 
     const updatePoint = async (idx, lat, lng) => {
+        const roundedLat = parseFloat(lat.toFixed(6));
+        const roundedLng = parseFloat(lng.toFixed(6));
+
         setPoints(currentPoints => {
             const updated = [...currentPoints];
-            updated[idx] = { ...updated[idx], lat, lng };
+            updated[idx] = {
+                ...updated[idx],
+                lat: roundedLat,
+                lng: roundedLng,
+                address: 'Buscando dirección...'
+            };
             return updated;
         });
 
         try {
-            const result = await mapsService.reverseGeocode(lat, lng);
+            const result = await mapsService.reverseGeocode(roundedLat, roundedLng);
             setPoints(currentPoints => {
                 const updated = [...currentPoints];
-                updated[idx] = { ...updated[idx], address: result.label, lat, lng };
+                updated[idx] = { ...updated[idx], address: result.label };
                 return updated;
             });
         } catch (err) {
             console.error('Reverse geocode error:', err);
+            setPoints(currentPoints => {
+                const updated = [...currentPoints];
+                updated[idx] = { ...updated[idx], address: `${roundedLat}, ${roundedLng}` };
+                return updated;
+            });
         }
     };
 
@@ -218,19 +232,62 @@ const NewQuote = () => {
             }
         } catch (err) {
             console.error('Routing error:', err);
-            showNotification('Error al calcular la ruta. Verifica las ubicaciones.', 'error');
+            const errorMsg = err.response?.data?.message || 'Error al calcular la ruta. Verifica las ubicaciones.';
+            showNotification(errorMsg, 'error');
             setAlertConfig({
                 isOpen: true,
                 title: 'Error de Ruta',
-                message: 'No se pudo calcular la ruta. Verifica las direcciones e intenta de nuevo.'
+                message: errorMsg
             });
         } finally {
             setLoading(false);
         }
     };
 
+    const toggleConfirm = () => {
+        if (!breakdown || !selectedVehicle) {
+            showNotification('Calcula la ruta y selecciona un vehículo primero', 'info');
+            return;
+        }
+        setAlertConfig({
+            isOpen: true,
+            title: 'Confirmar Cotización',
+            message: `¿Deseas guardar la cotización por un total de $${breakdown.total}?`
+        });
+    };
+
+    const handleConfirmSave = async () => {
+        setLoading(true);
+        try {
+            const quotationData = {
+                user_id: 1, // Mock user ID for now
+                vehicle_id: selectedVehicle ? selectedVehicle.id : null,
+                origin_address: points[0].address,
+                destination_address: points[points.length - 1].address,
+                google_maps_link: mapsUrl,
+                distance_total: summary.distance,
+                time_total: summary.duration,
+                stops: points.length > 2 ? points.slice(1, -1).map(p => p.address) : [],
+                selected_services: selectedServices,
+                gas_price_applied: globalSettings.gasoline_price,
+                factor_maniobra_applied: globalSettings.maneuver_factor,
+                factor_trafico_applied: globalSettings.traffic_factor,
+                ...breakdown
+            };
+
+            const response = await quotationService.create(quotationData);
+            showNotification(`Cotización ${response.folio} guardada exitosamente`, 'success');
+            setAlertConfig({ ...alertConfig, isOpen: false });
+        } catch (err) {
+            console.error('Error saving quote:', err);
+            showNotification('Error al guardar la cotización', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
-        <div style={{ display: 'flex', gap: 'var(--spacing-lg)', height: 'calc(100vh - 100px)' }}>
+        <div style={{ display: 'flex', gap: 'var(--spacing-lg)', height: 'calc(100vh - 80px)' }}>
             <div style={{ width: '400px', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                 <div className="card" style={{ flexGrow: 1, overflowY: 'visible', position: 'relative' }}>
                     <h2 style={{ fontSize: '18px', marginBottom: 'var(--spacing-lg)' }}>Ruta</h2>
@@ -282,6 +339,20 @@ const NewQuote = () => {
                                                 {s.label}
                                             </div>
                                         ))}
+                                    </div>
+                                )}
+                                {idx === points.length - 1 && (
+                                    <div style={{ marginTop: 'var(--spacing-sm)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <label style={{ fontSize: '10px', fontWeight: 'bold' }} className="text-muted">LINK DE GOOGLE MAPS (DESTINO)</label>
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'rgba(255, 72, 72, 0.05)', border: '1px dashed var(--color-primary)', borderRadius: 'var(--radius-sm)', padding: '8px' }}>
+                                            <input
+                                                type="text"
+                                                value={mapsUrl}
+                                                onChange={(e) => setMapsUrl(e.target.value)}
+                                                placeholder="Pega el link de Maps aquí..."
+                                                style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '13px' }}
+                                            />
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -438,11 +509,11 @@ const NewQuote = () => {
             <ConfirmModal
                 isOpen={alertConfig.isOpen}
                 onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+                onConfirm={handleConfirmSave}
                 title={alertConfig.title}
                 message={alertConfig.message}
-                confirmText="Entendido"
-                showCancel={false}
-                type="info"
+                confirmText="Guardar Cotización"
+                isLoading={loading}
             />
         </div>
     );
