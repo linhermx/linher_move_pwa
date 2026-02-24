@@ -40,8 +40,42 @@ export class CalculationMotor {
         // Logistics Cost (rounded UP to nearest 100)
         const roundedLogisticsCost = Math.ceil(rawLogisticsCost / 100) * 100;
 
-        // Subtotal
-        const subtotal = roundedLogisticsCost + serviceCosts;
+        // Time with Traffic
+        const timeWithTraffic = totalTimeBasic * factorTrafico;
+
+        // Total Time with Services
+        const totalTimeWithServices = timeWithTraffic + serviceTime;
+
+        // 3. Conditional Expenses (Lodging & Meals)
+        // Lodging tiered by ONE WAY TIME
+        let lodgingCost = 0;
+        const oswTier3 = parseInt(inputs.hospedaje_tier3_hours || 17) * 60;
+        const oswTier2 = parseInt(inputs.hospedaje_tier2_hours || 11) * 60;
+        const oswTier1 = parseInt(inputs.hospedaje_tier1_hours || 6) * 60;
+
+        if (oneWayTime > oswTier3) {
+            lodgingCost = parseFloat(inputs.lodging_tier3_cost || 0);
+        } else if (oneWayTime > oswTier2) {
+            lodgingCost = parseFloat(inputs.lodging_tier2_cost || 0);
+        } else if (oneWayTime > oswTier1) {
+            lodgingCost = parseFloat(inputs.lodging_tier1_cost || 0);
+        }
+
+        // Meals tiered by TOTAL TIME or LODGING STATUS
+        let mealCost = 0;
+        const totalTier2 = parseInt(inputs.viaticos_tier2_hours || 12) * 60;
+        const totalTier1 = parseInt(inputs.viaticos_tier1_hours || 8) * 60;
+
+        if (lodgingCost > 0) {
+            mealCost = parseFloat(inputs.meal_tier3_cost || 0);
+        } else if (totalTimeWithServices > totalTier2) {
+            mealCost = parseFloat(inputs.meal_tier2_cost || 0);
+        } else if (totalTimeWithServices > totalTier1) {
+            mealCost = parseFloat(inputs.meal_tier1_cost || 0);
+        }
+
+        // 4. Subtotal & Totals
+        const subtotal = roundedLogisticsCost + serviceCosts + lodgingCost + mealCost;
 
         // IVA (16%)
         const iva = subtotal * 0.16;
@@ -49,17 +83,13 @@ export class CalculationMotor {
         // Total (rounded UP to integer)
         const total = Math.ceil(subtotal + iva);
 
-        // Time with Traffic
-        const timeWithTraffic = totalTimeBasic * factorTrafico;
-
-        // Total Time with Services
-        const totalTimeWithServices = timeWithTraffic + serviceTime;
-
         return {
             distance_total: parseFloat(totalDist.toFixed(2)),
             gas_consumption: parseFloat(gasConsumption.toFixed(2)),
             gas_cost: parseFloat(totalGasCost.toFixed(2)),
             toll_cost: parseFloat(totalTollCost.toFixed(2)),
+            lodging_cost: lodgingCost,
+            meal_cost: mealCost,
             logistics_cost_raw: parseFloat(rawLogisticsCost.toFixed(2)),
             logistics_cost_rounded: roundedLogisticsCost,
             subtotal: parseFloat(subtotal.toFixed(2)),

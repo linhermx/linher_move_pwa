@@ -7,7 +7,7 @@ export const VehicleController = (db) => {
     const model = new VehicleModel(db);
     return {
         list: async (req, res) => {
-            const vehicles = await model.getAll();
+            const vehicles = await model.getAll('id DESC');
             res.json(vehicles);
         },
         show: async (req, res) => {
@@ -44,13 +44,34 @@ export const SettingsController = (db) => {
     const model = new SettingsModel(db);
     return {
         index: async (req, res) => {
-            const settings = await model.getAll();
-            res.json(settings);
+            try {
+                const settings = await model.getAll('setting_key ASC');
+                // Convert array to flat object { setting_key: setting_value }
+                const flatSettings = settings.reduce((acc, curr) => {
+                    acc[curr.setting_key] = curr.setting_value;
+                    return acc;
+                }, {});
+                res.json(flatSettings);
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
         },
         update: async (req, res) => {
-            const { key, value } = req.body;
-            await model.updateSetting(key, value);
-            res.json({ message: "Setting updated" });
+            try {
+                const settings = req.body;
+                // Support both single key-value and object bulk update
+                if (settings.key && settings.value !== undefined) {
+                    await model.updateSetting(settings.key, settings.value);
+                } else {
+                    // Bulk update
+                    for (const [key, value] of Object.entries(settings)) {
+                        await model.updateSetting(key, value);
+                    }
+                }
+                res.json({ message: "Settings updated" });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
         }
     };
 };
