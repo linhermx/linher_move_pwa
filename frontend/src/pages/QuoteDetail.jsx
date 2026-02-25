@@ -42,25 +42,26 @@ const QuoteDetail = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [quoteData, vData, settsData, sData] = await Promise.all([
-                    quotationService.get(id),
-                    vehicleService.list(),
-                    settingsService.get(),
-                    serviceService.list()
-                ]);
-
+                // PHASE 1: Fetch main quote data first to show UI immediately
+                const quoteData = await quotationService.get(id);
                 setQuote(quoteData);
-                setVehicles(vData);
-                setGlobalSettings(settsData);
-                setServices(sData);
                 setManualAdjustments({
                     lodging_cost: quoteData.lodging_cost || 0,
                     meal_cost: quoteData.meal_cost || 0
                 });
                 setCurrentBreakdown(quoteData);
+                setLoading(false); // RELEASE UI NOW
 
-                // RELEASE THE UI: Close main loader now
-                setLoading(false);
+                // PHASE 2: Background tasks (don't block the UI)
+                Promise.all([
+                    vehicleService.list(),
+                    settingsService.get(),
+                    serviceService.list()
+                ]).then(([vData, settsData, sData]) => {
+                    setVehicles(vData);
+                    setGlobalSettings(settsData);
+                    setServices(sData);
+                }).catch(err => console.warn('Background data fetch failed:', err));
 
                 // BACKGROUND TASK: Fetch route line if coordinates exist
                 if (quoteData.origin_lat && quoteData.origin_lng) {
@@ -68,11 +69,16 @@ const QuoteDetail = () => {
                         [parseFloat(quoteData.origin_lng), parseFloat(quoteData.origin_lat)],
                         ...(quoteData.stops || []).map(s => [parseFloat(s.lng), parseFloat(s.lat)]),
                         [parseFloat(quoteData.destination_lng), parseFloat(quoteData.destination_lat)]
-                    ].filter(loc => !isNaN(loc[0]) && !isNaN(loc[1]));
+                    ].filter(loc => !isNaN(loc[0]) && !isNaN(loc[1]) && loc[0] !== 0 && loc[1] !== 0);
 
                     if (locations.length >= 2) {
                         mapsService.getRoute(locations)
-                            .then(rData => setRouteData(rData))
+                            .then(rData => {
+                                // ASYNC DRAW: Draw route line in the next tick to avoid blocking price rendering
+                                setTimeout(() => {
+                                    setRouteData(rData);
+                                }, 100);
+                            })
                             .catch(rErr => console.error('Error fetching route in background:', rErr));
                     }
                 }
@@ -233,7 +239,14 @@ const QuoteDetail = () => {
                                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                                     }}
                                 >
-                                    {isActive ? info.text.toUpperCase() : s.charAt(0).toUpperCase()}
+                                    {isActive ? (
+                                        <>
+                                            {React.cloneElement(info.icon, { size: 14 })}
+                                            {info.text.toUpperCase()}
+                                        </>
+                                    ) : (
+                                        React.cloneElement(info.icon, { size: 16 })
+                                    )}
                                 </button>
                             );
                         })}
