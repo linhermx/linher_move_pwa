@@ -3,7 +3,7 @@ import MapComponent from '../components/MapComponent';
 import { mapsService, vehicleService, serviceService, settingsService, quotationService } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { useNotification } from '../context/NotificationContext';
-import { MapPin, Trash2, Plus, Loader2, Calculator, Truck, Package, ChevronRight, ChevronDown, Info } from 'lucide-react';
+import { MapPin, Trash2, Plus, Loader2, Calculator, Truck, Package, ChevronRight, ChevronDown, Info, Clock, Check, Printer, X } from 'lucide-react';
 import { CalculationMotor } from '../utils/CalculationMotor';
 
 const NewQuote = () => {
@@ -18,6 +18,7 @@ const NewQuote = () => {
     const [suggestions, setSuggestions] = useState([]);
     const [summary, setSummary] = useState({ distance: 0, duration: 0 });
     const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: '', message: '' });
+    const [isFabOpen, setIsFabOpen] = useState(false);
 
     // New State for Quotation
     const [vehicles, setVehicles] = useState([]);
@@ -272,7 +273,12 @@ const NewQuote = () => {
         });
     };
 
-    const handleConfirmSave = async () => {
+    const handleSave = async (status = 'pendiente') => {
+        if (!breakdown || !selectedVehicle) {
+            showNotification('Calcula la ruta y selecciona un vehículo primero', 'info');
+            return;
+        }
+
         setLoading(true);
         try {
             const quotationData = {
@@ -290,12 +296,14 @@ const NewQuote = () => {
                 gas_price_applied: globalSettings.gasoline_price,
                 factor_maniobra_applied: globalSettings.maneuver_factor,
                 factor_trafico_applied: globalSettings.traffic_factor,
+                status: status,
                 ...breakdown
             };
 
             const response = await quotationService.create(quotationData);
-            showNotification(`Cotización ${response.folio} guardada exitosamente`, 'success');
-            setAlertConfig({ ...alertConfig, isOpen: false });
+            showNotification(`Cotización ${response.folio} guardada como ${status}`, 'success');
+            setIsFabOpen(false);
+            // Optionally redirect or clear
         } catch (err) {
             console.error('Error saving quote:', err);
             showNotification('Error al guardar la cotización', 'error');
@@ -674,15 +682,37 @@ const NewQuote = () => {
                 </div>
             </div>
 
-            <ConfirmModal
-                isOpen={alertConfig.isOpen}
-                onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
-                onConfirm={handleConfirmSave}
-                title={alertConfig.title}
-                message={alertConfig.message}
-                confirmText="Guardar Cotización"
-                isLoading={loading}
-            />
+            {/* Floating Action Button & Menu */}
+            {breakdown && (
+                <div className="fab-container">
+                    <div className={`fab-menu ${isFabOpen ? 'active' : ''}`}>
+                        <div className="fab-item">
+                            <span className="fab-item-label">Imprimir Cotización</span>
+                            <button className="fab-item-btn" onClick={() => window.print()}>
+                                <Printer size={20} />
+                            </button>
+                        </div>
+                        <div className="fab-item">
+                            <span className="fab-item-label">Guardar y Aprobar</span>
+                            <button className="fab-item-btn" onClick={() => handleSave('aprobada')}>
+                                <Check size={20} color="#28A745" />
+                            </button>
+                        </div>
+                        <div className="fab-item">
+                            <span className="fab-item-label">Guardar como Pendiente</span>
+                            <button className="fab-item-btn" onClick={() => handleSave('pendiente')}>
+                                <Clock size={20} color="#FFD700" />
+                            </button>
+                        </div>
+                    </div>
+                    <button
+                        className={`fab-main ${isFabOpen ? 'active' : 'fab-pulse'}`}
+                        onClick={() => setIsFabOpen(!isFabOpen)}
+                    >
+                        {isFabOpen ? <X size={28} /> : <Plus size={28} />}
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

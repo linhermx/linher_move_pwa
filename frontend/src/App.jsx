@@ -7,6 +7,7 @@ import Services from './pages/Services';
 import Settings from './pages/Settings';
 import NewQuote from './pages/NewQuote';
 import History from './pages/History';
+import QuoteDetail from './pages/QuoteDetail';
 import Dashboard from './pages/Dashboard';
 import { NotificationProvider } from './context/NotificationContext';
 
@@ -23,6 +24,7 @@ function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/new-quote" element={<NewQuote />} />
               <Route path="/history" element={<History />} />
+              <Route path="/history/:id" element={<QuoteDetail />} />
               <Route path="/fleet" element={<Fleet />} />
               <Route path="/services" element={<Services />} />
               <Route path="/settings" element={<Settings />} />

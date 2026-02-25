@@ -212,6 +212,26 @@ export const QuotationController = (db) => {
                 console.error(error);
                 res.status(500).json({ message: "Internal server error" });
             }
+        },
+        show: async (req, res) => {
+            try {
+                const quote = await model.getById(req.params.id);
+                if (!quote) return res.status(404).json({ message: "Quotation not found" });
+                res.json(quote);
+            } catch (error) {
+                console.error(error);
+                res.status(500).json({ message: "Internal server error" });
+            }
+        },
+        update: async (req, res) => {
+            try {
+                const success = await model.updateQuote(req.params.id, req.body);
+                if (!success) return res.status(404).json({ message: "Quotation not found or no changes made" });
+                res.json({ message: "Quotation updated successfully" });
+            } catch (error) {
+                console.error(error);
+                res.status(500).json({ message: "Internal server error" });
+            }
         }
     };
 };

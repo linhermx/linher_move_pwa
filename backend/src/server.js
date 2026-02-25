@@ -80,7 +80,9 @@ v1.post('/maps/route', mapsCtrl.route);
 
 // Quotations
 v1.get('/quotations', quotationCtrl.list);
+v1.get('/quotations/:id', quotationCtrl.show);
 v1.post('/quotations', quotationCtrl.create);
+v1.put('/quotations/:id', quotationCtrl.update);
 
 // Mount
 app.use('/api/v1', v1);

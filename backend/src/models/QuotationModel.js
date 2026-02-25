@@ -40,7 +40,7 @@ export class QuotationModel extends BaseModel {
 
         try {
             const [rows] = await connection.query(
-                "SELECT last_count FROM folio_counters WHERE year_month = ? FOR UPDATE",
+                "SELECT last_count FROM `folio_counters` WHERE `year_month` = ? FOR UPDATE",
                 [yearMonth]
             );
 
@@ -48,13 +48,13 @@ export class QuotationModel extends BaseModel {
             if (rows.length > 0) {
                 newCount = rows[0].last_count + 1;
                 await connection.query(
-                    "UPDATE folio_counters SET last_count = ? WHERE year_month = ?",
+                    "UPDATE `folio_counters` SET last_count = ? WHERE `year_month` = ?",
                     [newCount, yearMonth]
                 );
             } else {
                 newCount = 1;
                 await connection.query(
-                    "INSERT INTO folio_counters (year_month, last_count) VALUES (?, ?)",
+                    "INSERT INTO `folio_counters` (`year_month`, last_count) VALUES (?, ?)",
                     [yearMonth, newCount]
                 );
             }
@@ -77,9 +77,10 @@ export class QuotationModel extends BaseModel {
         const query = `
             INSERT INTO ${this.tableName} 
             (folio, user_id, vehicle_id, origin_address, destination_address, 
-             google_maps_link, distance_total, time_total, toll_cost, costo_logistico_redondeado, 
+             google_maps_link, distance_total, time_total, toll_cost, lodging_cost, 
+             meal_cost, logistics_cost_raw, costo_logistico_redondeado,
              subtotal, iva, total, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')
         `;
 
         const params = [
@@ -91,8 +92,11 @@ export class QuotationModel extends BaseModel {
             data.google_maps_link,
             data.distance_total,
             data.time_total,
-            data.toll_cost,
-            data.costo_logistico_redondeado,
+            data.toll_cost || 0,
+            data.lodging_cost || 0,
+            data.meal_cost || 0,
+            data.logistics_cost_raw || 0,
+            data.logistics_cost_rounded || 0,
             data.subtotal,
             data.iva,
             data.total
@@ -100,6 +104,53 @@ export class QuotationModel extends BaseModel {
 
         const [result] = await this.db.query(query, params);
         return result.insertId;
+    }
+
+    /**
+     * Get a quotation by ID with its stops and services
+     */
+    async getById(id) {
+        const [rows] = await this.db.query(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        if (rows.length === 0) return null;
+
+        const quote = rows[0];
+
+        // Get stops
+        const [stops] = await this.db.query(
+            "SELECT address, order_index FROM quotation_stops WHERE quotation_id = ? ORDER BY order_index ASC",
+            [id]
+        );
+        quote.stops_list = stops;
+
+        return quote;
+    }
+
+    /**
+     * Update quotation fields and recalculate if necessary
+     */
+    async updateQuote(id, data) {
+        const allowedFields = [
+            'status', 'lodging_cost', 'meal_cost', 'subtotal', 'iva', 'total',
+            'vehicle_id', 'distance_total', 'time_total', 'toll_cost',
+            'logistics_cost_raw', 'costo_logistico_redondeado'
+        ];
+
+        const updates = [];
+        const params = [];
+
+        for (const field of allowedFields) {
+            if (data[field] !== undefined) {
+                updates.push(`${field} = ?`);
+                params.push(data[field]);
+            }
+        }
+
+        if (updates.length === 0) return false;
+
+        params.push(id);
+        const query = `UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`;
+        const [result] = await this.db.query(query, params);
+        return result.affectedRows > 0;
     }
 
     /**

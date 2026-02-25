@@ -81,6 +81,10 @@ CREATE TABLE IF NOT EXISTS `quotations` (
   `factor_trafico_applied` DECIMAL(10,2),
   `distance_total` DECIMAL(10,2),
   `time_total` INT, -- in minutes
+  `toll_cost` DECIMAL(10,2) DEFAULT 0,
+  `lodging_cost` DECIMAL(10,2) DEFAULT 0,
+  `meal_cost` DECIMAL(10,2) DEFAULT 0,
+  `logistics_cost_raw` DECIMAL(10,2) DEFAULT 0,
   `costo_logistico_redondeado` DECIMAL(10,2),
   `subtotal` DECIMAL(10,2),
   `iva` DECIMAL(10,2),

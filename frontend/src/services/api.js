@@ -30,8 +30,16 @@ export const quotationService = {
         const response = await apiClient.post('/quotations', data);
         return response.data;
     },
-    list: async () => {
-        const response = await apiClient.get('/quotations');
+    list: async (params) => {
+        const response = await apiClient.get('/quotations', { params });
+        return response.data;
+    },
+    get: async (id) => {
+        const response = await apiClient.get(`/quotations/${id}`);
+        return response.data;
+    },
+    update: async (id, data) => {
+        const response = await apiClient.put(`/quotations/${id}`, data);
         return response.data;
     }
 };
