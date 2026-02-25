@@ -188,26 +188,35 @@ const NewQuote = () => {
         const coordRegex = /^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?),\s*[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$/;
         if (coordRegex.test(text.trim())) {
             const [lat, lng] = text.split(',').map(s => parseFloat(s.trim()));
+            setSearchLoading(idx);
 
-            // Set coordinates immediately so they can be used for calculation
+            // 1. Guardamos la precisión de inmediato para habilitar el cálculo pero mostramos status
             setPoints(currentPoints => {
                 const updated = [...currentPoints];
-                updated[idx] = { ...updated[idx], lat, lng };
+                updated[idx] = { ...updated[idx], lat, lng, address: 'Obteniendo dirección...' };
                 return updated;
             });
 
-            setSearchLoading(null); // Clear loading state immediately for coordinates
-
-            // Fetch human-readable address in background without blocking the UI
+            // 2. Buscamos el nombre de forma asíncrona pero prioritaria
             mapsService.reverseGeocode(lat, lng).then(result => {
                 setPoints(currentPoints => {
                     const updated = [...currentPoints];
-                    updated[idx] = { ...updated[idx], address: result.label || updated[idx].address };
+                    // 3. REEMPLAZO: Aquí es donde las coordenadas o el "Obteniendo..." se convierten en el nombre real
+                    updated[idx] = { ...updated[idx], address: result.label || text.trim() };
                     return updated;
                 });
             }).catch(err => {
                 console.warn('Background reverse geocode failed:', err);
-                // No problem, we already have the lat/lng set
+                // Si falla, dejamos las coordenadas como último recurso
+                setPoints(currentPoints => {
+                    const updated = [...currentPoints];
+                    if (updated[idx].address === 'Obteniendo dirección...') {
+                        updated[idx].address = text.trim();
+                    }
+                    return updated;
+                });
+            }).finally(() => {
+                setSearchLoading(null);
             });
             return;
         }
