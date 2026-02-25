@@ -443,7 +443,7 @@ const QuoteDetail = () => {
                                                 </div>}
                                             </div>
                                             <span style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 'bold', marginTop: '4px' }}>
-                                                ${parseFloat(s.cost).toLocaleString()}
+                                                ${parseFloat(s.cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
 
                                             {/* Subtle background glow for selected */}
@@ -482,7 +482,7 @@ const QuoteDetail = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '25px' }}>
                             <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
                                 <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>DIST. TOTAL</p>
-                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{currentBreakdown.distance_total || quote.distance_total} km</p>
+                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{(currentBreakdown.distance_total || quote.distance_total || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km</p>
                             </div>
                             <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
                                 <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>TIEMPO TOTAL</p>
@@ -500,16 +500,16 @@ const QuoteDetail = () => {
 
                         <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                                <span className="text-muted">Gasolina ({quote.gas_liters || 0}L)</span>
-                                <span>${(quote.gas_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span className="text-muted">Gasolina ({Number(quote.gas_liters || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L)</span>
+                                <span>${Number(quote.gas_cost || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                 <span className="text-muted">Casetas ({quote.num_casetas || 0})</span>
-                                <span>${(quote.toll_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span>${Number(quote.toll_cost || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                 <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>Costo Logístico (Flete)</span>
-                                <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>${(quote.logistics_cost_rounded || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>${Number(quote.logistics_cost_rounded || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
 
@@ -520,20 +520,20 @@ const QuoteDetail = () => {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                     <span className="text-muted">Viáticos Hospedaje</span>
                                     <span className={currentBreakdown.lodging_cost !== quote.lodging_cost ? 'text-primary' : ''}>
-                                        ${currentBreakdown.lodging_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        ${Number(currentBreakdown.lodging_cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </span>
                                 </div>
                             )}
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                 <span className="text-muted">Viáticos Alimentos</span>
                                 <span className={currentBreakdown.meal_cost !== quote.meal_cost ? 'text-primary' : ''}>
-                                    ${currentBreakdown.meal_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    ${Number(currentBreakdown.meal_cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                 <span className="text-muted">Interconexión / Extras</span>
                                 <span className={currentBreakdown.service_costs !== quote.service_costs ? 'text-primary' : ''}>
-                                    ${(currentBreakdown.service_costs || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    ${Number(currentBreakdown.service_costs || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
                         </div>
@@ -542,11 +542,11 @@ const QuoteDetail = () => {
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
                             <span className="text-muted">Subtotal</span>
-                            <span>${currentBreakdown.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>${Number(currentBreakdown.subtotal).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
                             <span className="text-muted">IVA (16%)</span>
-                            <span>${currentBreakdown.iva.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span>${Number(currentBreakdown.iva).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
 
                         <div style={{
@@ -559,7 +559,7 @@ const QuoteDetail = () => {
                         }}>
                             <p className="text-muted" style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px', color: 'rgba(255,255,255,0.6)' }}>TOTAL NETO</p>
                             <p style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--color-primary)', margin: 0 }}>
-                                ${currentBreakdown.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                ${Number(currentBreakdown.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                         </div>
                     </div>
