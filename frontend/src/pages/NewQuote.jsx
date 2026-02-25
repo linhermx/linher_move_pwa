@@ -3,7 +3,7 @@ import MapComponent from '../components/MapComponent';
 import { mapsService, vehicleService, serviceService, settingsService, quotationService } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { useNotification } from '../context/NotificationContext';
-import { MapPin, Trash2, Plus, Loader2, Calculator, Truck, Package, ChevronRight, ChevronDown, Info, Clock, Check, Printer, X } from 'lucide-react';
+import { MapPin, Trash2, Plus, Loader2, Calculator, Truck, Package, ChevronRight, ChevronDown, Info, Clock, Check, Printer, X, Link as LinkIcon } from 'lucide-react';
 import { CalculationMotor } from '../utils/CalculationMotor';
 
 const NewQuote = () => {
@@ -21,6 +21,7 @@ const NewQuote = () => {
     const [isFabOpen, setIsFabOpen] = useState(false);
     const [searchLoading, setSearchLoading] = useState(null); // idx of searching input
     const searchTimeoutRef = useRef(null);
+    const [showMapsUrl, setShowMapsUrl] = useState(false);
 
     // New State for Quotation
     const [vehicles, setVehicles] = useState([]);
@@ -187,21 +188,27 @@ const NewQuote = () => {
         const coordRegex = /^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?),\s*[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$/;
         if (coordRegex.test(text.trim())) {
             const [lat, lng] = text.split(',').map(s => parseFloat(s.trim()));
-            setSearchLoading(idx);
 
-            // Fetch human-readable address immediately for coords
-            try {
-                const result = await mapsService.reverseGeocode(lat, lng);
+            // Set coordinates immediately so they can be used for calculation
+            setPoints(currentPoints => {
+                const updated = [...currentPoints];
+                updated[idx] = { ...updated[idx], lat, lng };
+                return updated;
+            });
+
+            setSearchLoading(null); // Clear loading state immediately for coordinates
+
+            // Fetch human-readable address in background without blocking the UI
+            mapsService.reverseGeocode(lat, lng).then(result => {
                 setPoints(currentPoints => {
                     const updated = [...currentPoints];
-                    updated[idx] = { ...updated[idx], address: result.label, lat, lng };
+                    updated[idx] = { ...updated[idx], address: result.label || updated[idx].address };
                     return updated;
                 });
-            } catch (err) {
-                console.error('Reverse geocode error:', err);
-            } finally {
-                setSearchLoading(null);
-            }
+            }).catch(err => {
+                console.warn('Background reverse geocode failed:', err);
+                // No problem, we already have the lat/lng set
+            });
             return;
         }
 
@@ -441,16 +448,59 @@ const NewQuote = () => {
                                                 </div>
                                             )}
                                             {idx === points.length - 1 && (
-                                                <div style={{ marginTop: 'var(--spacing-sm)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                    <label style={{ fontSize: '10px', fontWeight: 'bold' }} className="text-muted">LINK DE GOOGLE MAPS (DESTINO)</label>
-                                                    <div className="form-field-group" style={{ borderStyle: 'dashed', border: '1px dashed var(--color-primary)', backgroundColor: 'rgba(255, 72, 72, 0.05)' }}>
-                                                        <input
-                                                            type="text"
-                                                            value={mapsUrl}
-                                                            onChange={(e) => setMapsUrl(e.target.value)}
-                                                            placeholder="Pega el link de Maps aquí..."
-                                                        />
-                                                    </div>
+                                                <div style={{ marginTop: 'var(--spacing-sm)' }}>
+                                                    {!showMapsUrl ? (
+                                                        <button
+                                                            onClick={() => setShowMapsUrl(true)}
+                                                            style={{
+                                                                background: 'transparent',
+                                                                border: 'none',
+                                                                color: 'var(--color-primary)',
+                                                                fontSize: '11px',
+                                                                fontWeight: 'bold',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px',
+                                                                cursor: 'pointer',
+                                                                padding: '4px 0',
+                                                                opacity: (p.lat && p.lng) ? 1 : 0.5,
+                                                                pointerEvents: (p.lat && p.lng) ? 'auto' : 'none',
+                                                                transition: 'all 0.2s'
+                                                            }}
+                                                        >
+                                                            <LinkIcon size={12} />
+                                                            + Añadir link de Google Maps (Destino)
+                                                        </button>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', animation: 'fadeIn 0.3s ease-in-out' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <label style={{ fontSize: '10px', fontWeight: 'bold' }} className="text-muted">LINK DE GOOGLE MAPS (DESTINO)</label>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setShowMapsUrl(false);
+                                                                        setMapsUrl('');
+                                                                    }}
+                                                                    style={{ background: 'transparent', border: 'none', color: 'var(--color-text-dim)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                                                                >
+                                                                    <X size={12} />
+                                                                </button>
+                                                            </div>
+                                                            <div className="form-field-group" style={{
+                                                                borderStyle: 'dashed',
+                                                                border: '1px dashed var(--color-primary)',
+                                                                backgroundColor: 'rgba(255, 72, 72, 0.05)',
+                                                                transition: 'all 0.3s'
+                                                            }}>
+                                                                <input
+                                                                    type="text"
+                                                                    value={mapsUrl}
+                                                                    onChange={(e) => setMapsUrl(e.target.value)}
+                                                                    placeholder="Pega el link de Maps aquí..."
+                                                                    autoFocus
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -609,7 +659,7 @@ const NewQuote = () => {
                             width: '100%',
                             boxShadow: '0 4px 12px rgba(255, 72, 72, 0.2)'
                         }}>
-                        {(loading || searchLoading !== null) ? <Loader2 className="animate-spin" size={20} /> : <Calculator size={20} />}
+                        {loading ? <Loader2 className="animate-spin" size={20} /> : <Calculator size={20} />}
                         Calcular Cotización
                     </button>
                 </div>

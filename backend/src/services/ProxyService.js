@@ -18,6 +18,18 @@ export class ProxyService {
         const url = `https://api.openrouteservice.org/geocode/autocomplete?api_key=${this.apiKey}&text=${encodeURIComponent(text)}&boundary.country=MX&lang=es`;
 
         try {
+            // Quick check: If text looks like "lat, lng", don't search, just return it as a single feature
+            const coordRegex = /^-?\d+\.?\d*,\s*-?\d+\.?\d*$/;
+            if (coordRegex.test(text.trim())) {
+                const [lat, lng] = text.split(',').map(s => parseFloat(s.trim()));
+                return {
+                    features: [{
+                        geometry: { coordinates: [lng, lat] },
+                        properties: { label: text.trim() }
+                    }]
+                };
+            }
+
             const response = await fetch(url);
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
@@ -71,7 +83,7 @@ export class ProxyService {
     /**
      * Proxy to OpenRouteService for Reverse Geocoding
      */
-    async reverseGeocode(lat, lng, retries = 2) {
+    async reverseGeocode(lat, lng, retries = 1) {
         if (this.isKeyPlaceholder) {
             throw new Error("ORS_API_KEY_MISSING");
         }
@@ -79,8 +91,12 @@ export class ProxyService {
         const url = `https://api.openrouteservice.org/geocode/reverse?api_key=${this.apiKey}&point.lon=${lng}&point.lat=${lat}&size=1&lang=es`;
         console.log(`[ORS] Reverse Geocode request: ${lat}, ${lng}`);
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
                 console.error(`[ORS] Reverse Geocode Error ${response.status}:`, JSON.stringify(errData));
@@ -88,9 +104,10 @@ export class ProxyService {
             }
             return await response.json();
         } catch (error) {
-            if (retries > 0 && (error.message.includes("fetch failed") || error.name === 'ConnectTimeoutError' || (error.cause && error.cause.code === 'UND_ERR_CONNECT_TIMEOUT'))) {
+            clearTimeout(timeoutId);
+            if (retries > 0 && (error.name === 'AbortError' || error.message.includes("fetch failed") || error.name === 'ConnectTimeoutError' || (error.cause && error.cause.code === 'UND_ERR_CONNECT_TIMEOUT'))) {
                 console.warn(`[ORS] Reverse Geocode failed (timeout/network), retrying... (${retries} left)`);
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 return this.reverseGeocode(lat, lng, retries - 1);
             }
             console.error('[ORS] Fetch Reverse Geocode Error:', error.message);
