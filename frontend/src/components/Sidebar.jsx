@@ -55,14 +55,38 @@ const Sidebar = () => {
                 ))}
             </nav>
 
-            <div style={{ marginTop: 'auto', padding: 'var(--spacing-md)', borderTop: '1px solid var(--color-border)' }}>
+            <div style={{ marginTop: 'auto', padding: 'var(--spacing-md)', borderTop: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <NavLink
                     to="/profile"
                     style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--color-text-muted)', textDecoration: 'none' }}
                 >
                     <User size={20} />
-                    <span>Joel Rosas</span>
+                    <span>{(() => {
+                        try {
+                            const u = JSON.parse(localStorage.getItem('user'));
+                            return u?.name || 'Usuario';
+                        } catch (e) {
+                            return 'Usuario';
+                        }
+                    })()}</span>
                 </NavLink>
+                <button
+                    onClick={() => {
+                        localStorage.removeItem('user');
+                        window.location.href = '/login';
+                    }}
+                    style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--color-primary)',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        padding: '0 0 0 32px'
+                    }}
+                >
+                    Cerrar Sesión
+                </button>
             </div>
         </aside>
     );

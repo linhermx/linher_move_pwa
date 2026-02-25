@@ -11,29 +11,54 @@ import QuoteDetail from './pages/QuoteDetail';
 import Dashboard from './pages/Dashboard';
 import { NotificationProvider } from './context/NotificationContext';
 
-// Placeholder Pages
+import Login from './pages/Login';
 
-function App() {
+const App = () => {
+  const getUser = () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (error) {
+      console.error('Error parsing user from localStorage:', error);
+      localStorage.removeItem('user');
+      return null;
+    }
+  };
+
+  const user = getUser();
+
   return (
     <NotificationProvider>
       <Router>
-        <div className="layout-container">
-          <Sidebar />
-          <main className="main-content">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/new-quote" element={<NewQuote />} />
-              <Route path="/history" element={<History />} />
-              <Route path="/history/:id" element={<QuoteDetail />} />
-              <Route path="/fleet" element={<Fleet />} />
-              <Route path="/services" element={<Services />} />
-              <Route path="/settings" element={<Settings />} />
-            </Routes>
-          </main>
-        </div>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/*"
+            element={
+              user ? (
+                <div className="layout-container">
+                  <Sidebar />
+                  <main className="main-content">
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/new-quote" element={<NewQuote />} />
+                      <Route path="/history" element={<History />} />
+                      <Route path="/history/:id" element={<QuoteDetail />} />
+                      <Route path="/fleet" element={<Fleet />} />
+                      <Route path="/services" element={<Services />} />
+                      <Route path="/settings" element={<Settings />} />
+                    </Routes>
+                  </main>
+                </div>
+              ) : (
+                <Login />
+              )
+            }
+          />
+        </Routes>
       </Router>
     </NotificationProvider>
   );
-}
+};
 
 export default App;

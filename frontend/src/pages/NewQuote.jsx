@@ -281,8 +281,9 @@ const NewQuote = () => {
 
         setLoading(true);
         try {
+            const user = JSON.parse(localStorage.getItem('user'));
             const quotationData = {
-                user_id: 1, // Mock user ID for now
+                user_id: user ? user.id : 1,
                 vehicle_id: selectedVehicle ? selectedVehicle.id : null,
                 origin_address: points[0].address,
                 destination_address: points[points.length - 1].address,
@@ -292,7 +293,10 @@ const NewQuote = () => {
                 num_legs: parseInt(numTrips || 1),
                 toll_cost: breakdown.toll_cost,
                 stops: points.length > 2 ? points.slice(1, -1).map(p => p.address) : [],
-                selected_services: selectedServices,
+                services: selectedServices.map(id => {
+                    const s = services.find(x => x.id === id);
+                    return { id: s.id, cost: s.cost, time_minutes: s.time_minutes };
+                }),
                 gas_price_applied: globalSettings.gasoline_price,
                 factor_maniobra_applied: globalSettings.maneuver_factor,
                 factor_trafico_applied: globalSettings.traffic_factor,

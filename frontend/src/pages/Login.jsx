@@ -1,16 +1,25 @@
 import React, { useState } from 'react';
 import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import logoVertical from '../assets/logo-vertical-negativo.svg';
+import { authService } from '../services/api';
+import { useNotification } from '../context/NotificationContext';
 
 const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const { showNotification } = useNotification();
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Login attempt:', { email, password });
-        // TODO: Implement Auth API
+        try {
+            const data = await authService.login(email, password);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            // Force reload to update sidebar/navigation if needed
+            window.location.href = '/dashboard';
+        } catch (err) {
+            showNotification(err.response?.data?.message || 'Error al iniciar sesión', 'error');
+        }
     };
 
     return (

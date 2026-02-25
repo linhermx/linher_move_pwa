@@ -103,24 +103,62 @@ export class QuotationModel extends BaseModel {
         ];
 
         const [result] = await this.db.query(query, params);
-        return result.insertId;
+        const quoteId = result.insertId;
+
+        if (data.services && Array.isArray(data.services)) {
+            await this.addServices(quoteId, data.services);
+        }
+
+        return quoteId;
+    }
+
+    async addServices(quotationId, services) {
+        const query = `
+            INSERT INTO quotation_services (quotation_id, service_id, cost, time_minutes)
+            VALUES (?, ?, ?, ?)
+        `;
+        for (const service of services) {
+            await this.db.query(query, [
+                quotationId,
+                service.id,
+                service.cost,
+                service.time_minutes || 0
+            ]);
+        }
     }
 
     /**
      * Get a quotation by ID with its stops and services
      */
     async getById(id) {
-        const [rows] = await this.db.query(`SELECT * FROM ${this.tableName} WHERE id = ?`, [id]);
+        const query = `
+            SELECT q.*, v.name as vehicle_name, v.plate as vehicle_plate, u.name as user_name
+            FROM ${this.tableName} q
+            LEFT JOIN vehicles v ON q.vehicle_id = v.id
+            LEFT JOIN users u ON q.user_id = u.id
+            WHERE q.id = ?
+        `;
+        const [rows] = await this.db.query(query, [id]);
         if (rows.length === 0) return null;
 
         const quote = rows[0];
 
-        // Get stops
+        // Fetch stops
         const [stops] = await this.db.query(
             "SELECT address, order_index FROM quotation_stops WHERE quotation_id = ? ORDER BY order_index ASC",
             [id]
         );
-        quote.stops_list = stops;
+        quote.stops = stops;
+
+        // Fetch services
+        const [services] = await this.db.query(
+            `SELECT qs.*, s.name as service_name 
+             FROM quotation_services qs
+             JOIN services s ON qs.service_id = s.id
+             WHERE qs.quotation_id = ?`,
+            [id]
+        );
+        quote.services = services;
 
         return quote;
     }

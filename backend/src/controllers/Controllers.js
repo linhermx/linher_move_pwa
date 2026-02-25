@@ -1,6 +1,7 @@
 import { VehicleModel, SettingsModel, ServiceModel } from '../models/OtherModels.js';
 import { ProxyService } from '../services/ProxyService.js';
 import { QuotationModel } from '../models/QuotationModel.js';
+import { AuthModel } from '../models/AuthModel.js';
 import { CalculationMotor } from '../utils/CalculationMotor.js';
 
 export const VehicleController = (db) => {
@@ -277,6 +278,37 @@ export const ServiceController = (pool) => {
                 res.json({ message: "Service deleted" });
             } catch (error) {
                 res.status(500).json({ message: error.message });
+            }
+        }
+    };
+};
+
+export const AuthController = (db) => {
+    const model = new AuthModel(db);
+    return {
+        login: async (req, res) => {
+            const { email, password } = req.body;
+            try {
+                const user = await model.findByEmail(email);
+                if (!user) {
+                    return res.status(401).json({ message: "Usuario no encontrado o inactivo" });
+                }
+
+                // Simple check for now as requested
+                if (user.password !== password) {
+                    return res.status(401).json({ message: "Contraseña incorrecta" });
+                }
+
+                // Remove sensitive data
+                delete user.password;
+
+                res.json({
+                    user,
+                    message: "Login exitoso"
+                });
+            } catch (error) {
+                console.error(error);
+                res.status(500).json({ message: "Error en el servidor" });
             }
         }
     };

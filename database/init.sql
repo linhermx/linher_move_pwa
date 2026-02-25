@@ -1,5 +1,5 @@
 -- Move Logistics Application - Database Schema
--- Version: 1.0
+-- Version: 1.1 (Unified)
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
@@ -64,7 +64,19 @@ CREATE TABLE IF NOT EXISTS `global_settings` (
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 5. Quotations
+-- 5. Services (Catalog)
+CREATE TABLE IF NOT EXISTS `services` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `name` VARCHAR(100) NOT NULL,
+  `cost` DECIMAL(10,2) NOT NULL DEFAULT 0,
+  `time_minutes` INT NOT NULL DEFAULT 0,
+  `description` TEXT,
+  `status` ENUM('active', 'inactive') DEFAULT 'active',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 6. Quotations
 CREATE TABLE IF NOT EXISTS `quotations` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `folio` VARCHAR(20) NOT NULL UNIQUE,
@@ -107,13 +119,15 @@ CREATE TABLE IF NOT EXISTS `quotation_stops` (
 CREATE TABLE IF NOT EXISTS `quotation_services` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `quotation_id` INT,
-  `service_type` ENUM('interconexion', 'mantenimiento', 'comida', 'hospedaje'),
+  `service_id` INT,
+  `service_type_legacy` ENUM('interconexion', 'mantenimiento', 'comida', 'hospedaje'),
   `cost` DECIMAL(10,2) NOT NULL,
   `time_minutes` INT DEFAULT 0,
-  FOREIGN KEY (`quotation_id`) REFERENCES `quotations`(`id`) ON DELETE CASCADE
+  FOREIGN KEY (`quotation_id`) REFERENCES `quotations`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`service_id`) REFERENCES `services`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 6. Logs & Auditing
+-- 7. Logs & Auditing
 CREATE TABLE IF NOT EXISTS `logs` (
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
   `log_type` ENUM('system', 'config', 'business', 'auth') NOT NULL,
@@ -125,17 +139,18 @@ CREATE TABLE IF NOT EXISTS `logs` (
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Folio Counter Table (to ensure concurrency safety)
+-- 8. Folio Counter Table (to ensure concurrency safety)
 CREATE TABLE IF NOT EXISTS `folio_counters` (
   `year_month` VARCHAR(4) PRIMARY KEY, -- YYMM
   `last_count` INT DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 9. Seed Data
 -- Seed Basic Roles
-INSERT IGNORE INTO `roles` (`name`, `description`) VALUES 
-('admin', 'Control total del sistema'),
-('supervisor', 'Gestión de flota y parámetros globales'),
-('operador', 'Generación de cotizaciones');
+INSERT IGNORE INTO `roles` (`id`, `name`, `description`) VALUES 
+(1, 'admin', 'Control total del sistema'),
+(2, 'supervisor', 'Gestión de flota y parámetros globales'),
+(3, 'operador', 'Generación de cotizaciones');
 
 -- Seed Basic Permissions
 INSERT IGNORE INTO `permissions` (`slug`, `name`) VALUES 
@@ -144,3 +159,16 @@ INSERT IGNORE INTO `permissions` (`slug`, `name`) VALUES
 ('manage_fleet', 'Gestionar Flota'),
 ('edit_settings', 'Editar Parámetros'),
 ('manage_users', 'Gestionar Usuarios');
+
+-- Seed Default Services
+INSERT IGNORE INTO `services` (`id`, `name`, `cost`, `time_minutes`, `description`) VALUES 
+(1, 'Interconexión', 200.00, 30, 'Costo por maniobras de interconexión'),
+(2, 'Mantenimiento', 500.00, 60, 'Mantenimiento preventivo en sitio'),
+(3, 'Comida', 150.00, 45, 'Apoyo para alimentos del operador'),
+(4, 'Hospedaje', 800.00, 480, 'Costo por noche de hospedaje'),
+(5, 'Maniobra Carga/Descarga', 1200.00, 120, 'Servicio profesional de carga y descarga');
+
+-- Seed Default Admin User (Password: admin123)
+-- Note: In a real app, use hashed passwords.
+INSERT IGNORE INTO `users` (`id`, `name`, `email`, `password`, `role_id`, `status`) VALUES 
+(1, 'Administrador Linher', 'admin@linher.com', 'admin123', 1, 'active');

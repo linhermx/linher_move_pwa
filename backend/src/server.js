@@ -7,7 +7,8 @@ import {
     SettingsController,
     MapsController,
     QuotationController,
-    ServiceController
+    ServiceController,
+    AuthController
 } from './controllers/Controllers.js';
 import multer from 'multer';
 import path from 'path';
@@ -54,6 +55,10 @@ const settingsCtrl = SettingsController(pool);
 const mapsCtrl = MapsController();
 const quotationCtrl = QuotationController(pool);
 const serviceCtrl = ServiceController(pool);
+const authCtrl = AuthController(pool);
+
+// Auth
+v1.post('/auth/login', authCtrl.login);
 
 // Vehicles
 v1.get('/vehicles', vehicleCtrl.list);
