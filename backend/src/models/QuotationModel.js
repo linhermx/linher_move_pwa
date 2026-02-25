@@ -81,10 +81,10 @@ export class QuotationModel extends BaseModel {
              google_maps_link, num_trayectos, num_casetas, costo_casetas_unit, 
              gas_price_applied, factor_maniobra_applied, factor_trafico_applied,
              distance_total, time_total, time_traffic_min, time_services_min,
-             toll_cost, lodging_cost, meal_cost, gas_liters,
+             toll_cost, lodging_cost, meal_cost, gas_liters, gas_cost,
              logistics_cost_raw, costo_logistico_redondeado,
              subtotal, iva, total, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')
         `;
 
         const params = [
@@ -112,6 +112,7 @@ export class QuotationModel extends BaseModel {
             data.lodging_cost || 0,
             data.meal_cost || 0,
             data.gas_liters || data.gasolina_litros || 0,
+            data.gas_cost || 0,
             data.logistics_cost_raw || 0,
             data.costo_logistico_redondeado || data.logistics_cost_rounded || 0,
             data.subtotal,
@@ -180,7 +181,12 @@ export class QuotationModel extends BaseModel {
         // Calculate total service costs
         quote.service_costs = services.reduce((acc, s) => acc + parseFloat(s.cost || 0), 0);
 
-        // Ensure consistent field alias for frontend (if it expects camelCase or specific English)
+        // FALLBACK: If gas_cost is 0 but we have liters and price, calculate it
+        if (!quote.gas_cost || parseFloat(quote.gas_cost) === 0) {
+            quote.gas_cost = (parseFloat(quote.gas_liters || 0) * parseFloat(quote.gas_price_applied || 0));
+        }
+
+        // Ensure consistent field alias for frontend
         quote.logistics_cost_rounded = parseFloat(quote.costo_logistico_redondeado || 0);
 
         return quote;
@@ -195,7 +201,7 @@ export class QuotationModel extends BaseModel {
             'vehicle_id', 'distance_total', 'time_total', 'toll_cost',
             'num_trayectos', 'num_casetas', 'costo_casetas_unit',
             'gas_price_applied', 'factor_maniobra_applied', 'factor_trafico_applied',
-            'logistics_cost_raw', 'costo_logistico_redondeado'
+            'logistics_cost_raw', 'costo_logistico_redondeado', 'gas_cost'
         ];
 
         const updates = [];
