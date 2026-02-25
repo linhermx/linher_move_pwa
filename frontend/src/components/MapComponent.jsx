@@ -74,7 +74,7 @@ const MapComponent = ({ points = [], routeData = null, onMarkerDrag, readOnly = 
         // Fit bounds if we have points
         const validPoints = points.filter(p => p.lat && p.lng).map(p => [p.lat, p.lng]);
         if (validPoints.length > 0) {
-            mapInstance.current.fitBounds(validPoints, { padding: [50, 50] });
+            mapInstance.current.fitBounds(validPoints, { padding: [40, 40] });
         }
     }, [points]);
 
