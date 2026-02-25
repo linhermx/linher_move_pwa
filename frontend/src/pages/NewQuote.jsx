@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import MapComponent from '../components/MapComponent';
 import { mapsService, vehicleService, serviceService, settingsService, quotationService } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
@@ -19,6 +19,8 @@ const NewQuote = () => {
     const [summary, setSummary] = useState({ distance: 0, duration: 0 });
     const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: '', message: '' });
     const [isFabOpen, setIsFabOpen] = useState(false);
+    const [searchLoading, setSearchLoading] = useState(null); // idx of searching input
+    const searchTimeoutRef = useRef(null);
 
     // New State for Quotation
     const [vehicles, setVehicles] = useState([]);
@@ -168,18 +170,26 @@ const NewQuote = () => {
     const handleSearch = async (idx, text) => {
         const newPoints = [...points];
         newPoints[idx].address = text;
+        setPoints(newPoints);
+
+        // Clear previous timeout
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+
+        if (!text || text.trim().length <= 3) {
+            setSuggestions([]);
+            setSearchLoading(null);
+            return;
+        }
 
         // Check for coordinates (e.g. 19.4326, -99.1332)
         const coordRegex = /^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?),\s*[-+]?(180(\.0+)?|((1[0-7]\d)|([1-9]?\d))(\.\d+)?)$/;
         if (coordRegex.test(text.trim())) {
             const [lat, lng] = text.split(',').map(s => parseFloat(s.trim()));
-            newPoints[idx].lat = lat;
-            newPoints[idx].lng = lng;
-            setPoints(newPoints);
-            setSuggestions([]);
-            setActiveSearchIdx(null);
+            setSearchLoading(idx);
 
-            // Fetch human-readable address
+            // Fetch human-readable address immediately for coords
             try {
                 const result = await mapsService.reverseGeocode(lat, lng);
                 setPoints(currentPoints => {
@@ -189,23 +199,25 @@ const NewQuote = () => {
                 });
             } catch (err) {
                 console.error('Reverse geocode error:', err);
+            } finally {
+                setSearchLoading(null);
             }
             return;
         }
 
-        setPoints(newPoints);
-
-        if (text.length > 3) {
-            setActiveSearchIdx(idx);
+        // Debounce text search
+        setSearchLoading(idx);
+        searchTimeoutRef.current = setTimeout(async () => {
             try {
+                setActiveSearchIdx(idx);
                 const results = await mapsService.autocomplete(text);
                 setSuggestions(results);
             } catch (err) {
                 console.error('Autocomplete error:', err);
+            } finally {
+                setSearchLoading(null);
             }
-        } else {
-            setSuggestions([]);
-        }
+        }, 400);
     };
 
     const selectSuggestion = (pointIdx, suggestion) => {
@@ -234,11 +246,20 @@ const NewQuote = () => {
 
         setLoading(true);
         try {
-            const locations = validPoints.map(p => [p.lng, p.lat]);
-            const data = await mapsService.getRoute(locations);
-            setRouteData(data);
+            const locations = validPoints.map(p => [
+                parseFloat(p.lng || 0),
+                parseFloat(p.lat || 0)
+            ]).filter(loc => !isNaN(loc[0]) && !isNaN(loc[1]));
 
-            // Extract summary
+            if (locations.length < 2) {
+                setLoading(false);
+                return;
+            }
+
+            console.log('Calculating route with locations:', locations);
+            const data = await mapsService.getRoute(locations);
+
+            // PRIORITIZE DATA: Update summary immediately to trigger CalculationMotor
             if (data.features && data.features[0].properties.summary) {
                 const { distance, duration } = data.features[0].properties.summary;
                 setSummary({
@@ -247,6 +268,15 @@ const NewQuote = () => {
                 });
                 showNotification('Ruta calculada exitosamente', 'success');
             }
+
+            // RELEASE MAIN BUTTON: Stop showing global spinner now that numbers are ready
+            setLoading(false);
+
+            // ASYNC DRAW: Draw route line in the next tick to avoid blocking price rendering
+            setTimeout(() => {
+                setRouteData(data);
+            }, 50);
+
         } catch (err) {
             console.error('Routing error:', err);
             const errorMsg = err.response?.data?.message || 'Error al calcular la ruta. Verifica las ubicaciones.';
@@ -256,7 +286,6 @@ const NewQuote = () => {
                 title: 'Error de Ruta',
                 message: errorMsg
             });
-        } finally {
             setLoading(false);
         }
     };
@@ -371,7 +400,11 @@ const NewQuote = () => {
                                                 )}
                                             </div>
                                             <div className="form-field-group">
-                                                <MapPin size={16} className={idx === 0 ? 'text-primary' : (idx === points.length - 1 ? 'text-primary' : 'text-muted')} />
+                                                {searchLoading === idx ? (
+                                                    <Loader2 size={16} className="animate-spin text-primary" />
+                                                ) : (
+                                                    <MapPin size={16} className={idx === 0 ? 'text-primary' : (idx === points.length - 1 ? 'text-primary' : 'text-muted')} />
+                                                )}
                                                 <input
                                                     type="text"
                                                     value={p.address}
@@ -559,9 +592,9 @@ const NewQuote = () => {
                 <div style={{ paddingTop: '5px' }}>
                     <button
                         onClick={calculateRoute}
-                        disabled={loading}
+                        disabled={loading || searchLoading !== null}
                         style={{
-                            backgroundColor: loading ? 'var(--color-text-dim)' : 'var(--color-primary)',
+                            backgroundColor: (loading || searchLoading !== null) ? 'var(--color-text-dim)' : 'var(--color-primary)',
                             color: 'white',
                             border: 'none',
                             padding: '16px',
@@ -572,11 +605,11 @@ const NewQuote = () => {
                             gap: '10px',
                             fontWeight: 'bold',
                             fontSize: '16px',
-                            cursor: loading ? 'default' : 'pointer',
+                            cursor: (loading || searchLoading !== null) ? 'default' : 'pointer',
                             width: '100%',
                             boxShadow: '0 4px 12px rgba(255, 72, 72, 0.2)'
                         }}>
-                        {loading ? <Loader2 className="animate-spin" size={20} /> : <Calculator size={20} />}
+                        {(loading || searchLoading !== null) ? <Loader2 className="animate-spin" size={20} /> : <Calculator size={20} />}
                         Calcular Cotización
                     </button>
                 </div>

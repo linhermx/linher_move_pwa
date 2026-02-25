@@ -40,7 +40,7 @@ export class ProxyService {
         }
 
         const url = `https://api.openrouteservice.org/v2/directions/driving-car/geojson?api_key=${this.apiKey}`;
-        console.log(`[ORS] Routing request: ${coordinates.length} points`);
+        console.log(`[ORS] Routing request points:`, JSON.stringify(coordinates));
 
         try {
             const response = await fetch(url, {
