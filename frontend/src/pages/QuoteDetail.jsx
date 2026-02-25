@@ -38,6 +38,7 @@ const QuoteDetail = () => {
     const [globalSettings, setGlobalSettings] = useState({});
     const [services, setServices] = useState([]);
     const [routeData, setRouteData] = useState(null);
+    const [selectedServiceIds, setSelectedServiceIds] = useState([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -49,6 +50,7 @@ const QuoteDetail = () => {
                     lodging_cost: quoteData.lodging_cost || 0,
                     meal_cost: quoteData.meal_cost || 0
                 });
+                setSelectedServiceIds((quoteData.services || []).map(s => s.service_id));
                 setCurrentBreakdown(quoteData);
                 setLoading(false); // RELEASE UI NOW
 
@@ -61,6 +63,13 @@ const QuoteDetail = () => {
                     setVehicles(vData);
                     setGlobalSettings(settsData);
                     setServices(sData);
+
+                    // Sync initial breakdown with full service info once loaded
+                    const initialIds = (quoteData.services || []).map(s => s.service_id);
+                    recalculateBreakdown({
+                        lodging_cost: quoteData.lodging_cost || 0,
+                        meal_cost: quoteData.meal_cost || 0
+                    }, initialIds, sData);
                 }).catch(err => console.warn('Background data fetch failed:', err));
 
                 // BACKGROUND TASK: Fetch route line if coordinates exist
@@ -92,30 +101,49 @@ const QuoteDetail = () => {
         fetchData();
     }, [id]);
 
+    const recalculateBreakdown = (adjustments, selectedIds, availableServices = services) => {
+        if (!quote) return;
+
+        const selectedServicesData = availableServices.filter(s => selectedIds.includes(s.id));
+        const serviceCosts = selectedServicesData.reduce((acc, s) => acc + parseFloat(s.cost || 0), 0);
+        const serviceTime = selectedServicesData.reduce((acc, s) => acc + parseInt(s.time_minutes || 0), 0);
+
+        const subtotal = parseFloat(quote.logistics_cost_rounded || 0) +
+            parseFloat(serviceCosts || 0) +
+            parseFloat(adjustments.lodging_cost || 0) +
+            parseFloat(adjustments.meal_cost || 0);
+        const iva = subtotal * 0.16;
+        const total = Math.ceil(subtotal + iva);
+
+        const timeTraffic = currentBreakdown?.time_traffic_min || quote.time_traffic_min || (quote.time_total * 1.15);
+
+        setCurrentBreakdown({
+            ...currentBreakdown,
+            service_costs: serviceCosts,
+            service_time: serviceTime,
+            time_services_min: timeTraffic + serviceTime,
+            lodging_cost: adjustments.lodging_cost,
+            meal_cost: adjustments.meal_cost,
+            subtotal,
+            iva,
+            total
+        });
+    };
+
     const handleAdjustmentChange = (field, value) => {
         const newValue = parseFloat(value) || 0;
         const newAdjustments = { ...manualAdjustments, [field]: newValue };
         setManualAdjustments(newAdjustments);
+        recalculateBreakdown(newAdjustments, selectedServiceIds);
+    };
 
-        // Recalculate based on new manual inputs
-        if (quote) {
-            // We use the same breakdown but override the manual parts
-            const subtotal = (quote.logistics_cost_rounded || 0) +
-                (quote.service_costs || 0) +
-                newAdjustments.lodging_cost +
-                newAdjustments.meal_cost;
-            const iva = subtotal * 0.16;
-            const total = Math.ceil(subtotal + iva);
+    const handleServiceToggle = (serviceId) => {
+        const newSelection = selectedServiceIds.includes(serviceId)
+            ? selectedServiceIds.filter(id => id !== serviceId)
+            : [...selectedServiceIds, serviceId];
 
-            setCurrentBreakdown({
-                ...currentBreakdown,
-                lodging_cost: newAdjustments.lodging_cost,
-                meal_cost: newAdjustments.meal_cost,
-                subtotal,
-                iva,
-                total
-            });
-        }
+        setSelectedServiceIds(newSelection);
+        recalculateBreakdown(manualAdjustments, newSelection);
     };
 
     const handleSaveUpdates = async () => {
@@ -124,9 +152,11 @@ const QuoteDetail = () => {
             await quotationService.update(id, {
                 lodging_cost: currentBreakdown.lodging_cost,
                 meal_cost: currentBreakdown.meal_cost,
+                service_costs: currentBreakdown.service_costs,
                 subtotal: currentBreakdown.subtotal,
                 iva: currentBreakdown.iva,
-                total: currentBreakdown.total
+                total: currentBreakdown.total,
+                services: services.filter(s => selectedServiceIds.includes(s.id))
             });
             showNotification('Cotización actualizada correctamente', 'success');
             setQuote({ ...quote, ...currentBreakdown });
@@ -386,26 +416,46 @@ const QuoteDetail = () => {
                             <h3 style={{ fontSize: '14px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <Calculator size={16} className="text-primary" /> Servicios Extra
                             </h3>
-                            {quote.services && quote.services.length > 0 ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                    {quote.services.map((srv, idx) => (
-                                        <div key={idx} style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            backgroundColor: 'rgba(255,255,255,0.03)',
-                                            padding: '10px',
-                                            borderRadius: '8px'
-                                        }}>
-                                            <span style={{ fontSize: '13px' }}>{srv.service_name}</span>
-                                            <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
-                                                ${parseFloat(srv.cost).toLocaleString()}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '10px' }}>
+                                {services.map((s) => {
+                                    const isSelected = selectedServiceIds.includes(s.id);
+                                    return (
+                                        <div
+                                            key={s.id}
+                                            onClick={() => handleServiceToggle(s.id)}
+                                            style={{
+                                                padding: '12px 10px',
+                                                backgroundColor: isSelected ? 'rgba(255, 72, 72, 0.1)' : 'rgba(255,255,255,0.02)',
+                                                borderRadius: '10px',
+                                                border: `1px solid ${isSelected ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)'}`,
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                position: 'relative',
+                                                overflow: 'hidden'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '4px' }}>
+                                                <span style={{ fontSize: '11px', fontWeight: 'bold', lineHeight: '1.2' }}>{s.name}</span>
+                                                {isSelected && <div style={{ minWidth: '12px', height: '12px', borderRadius: '50%', backgroundColor: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <CheckCircle size={8} color="white" />
+                                                </div>}
+                                            </div>
+                                            <span style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 'bold', marginTop: '4px' }}>
+                                                ${parseFloat(s.cost).toLocaleString()}
                                             </span>
+
+                                            {/* Subtle background glow for selected */}
+                                            {isSelected && (
+                                                <div style={{ position: 'absolute', top: '-10px', right: '-10px', width: '30px', height: '30px', backgroundColor: 'var(--color-primary)', opacity: 0.1, filter: 'blur(10px)', borderRadius: '50%' }} />
+                                            )}
                                         </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-muted" style={{ fontSize: '13px', textAlign: 'center', marginTop: '20px' }}>Sin servicios adicionales</p>
+                                    );
+                                })}
+                            </div>
+                            {services.length === 0 && (
+                                <p className="text-muted" style={{ fontSize: '13px', textAlign: 'center', marginTop: '20px' }}>Cargando servicios...</p>
                             )}
                         </div>
                     </div>
@@ -432,19 +482,19 @@ const QuoteDetail = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '25px' }}>
                             <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
                                 <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>DIST. TOTAL</p>
-                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{quote.distance_total} km</p>
+                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{currentBreakdown.distance_total || quote.distance_total} km</p>
                             </div>
                             <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
                                 <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>TIEMPO TOTAL</p>
-                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{CalculationMotor.formatMinutes(quote.time_total)}</p>
+                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{CalculationMotor.formatMinutes(currentBreakdown.time_total || quote.time_total)}</p>
                             </div>
                             <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
                                 <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>C/ TRÁFICO</p>
-                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{CalculationMotor.formatMinutes(quote.time_traffic_min || quote.time_total * 1.15)}</p>
+                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{CalculationMotor.formatMinutes(currentBreakdown.time_traffic_min || quote.time_traffic_min || (quote.time_total * 1.15))}</p>
                             </div>
                             <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
                                 <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>C/ SERVICIOS</p>
-                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{CalculationMotor.formatMinutes(quote.time_services_min || quote.time_total + (quote.service_time || 0))}</p>
+                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{CalculationMotor.formatMinutes(currentBreakdown.time_services_min || quote.time_services_min || (quote.time_total + (quote.service_time || 0)))}</p>
                             </div>
                         </div>
 
@@ -466,6 +516,14 @@ const QuoteDetail = () => {
                         <div style={{ height: '1px', backgroundColor: 'var(--color-border)', margin: '15px 0' }} />
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {currentBreakdown.lodging_cost > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                                    <span className="text-muted">Viáticos Hospedaje</span>
+                                    <span className={currentBreakdown.lodging_cost !== quote.lodging_cost ? 'text-primary' : ''}>
+                                        ${currentBreakdown.lodging_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            )}
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                 <span className="text-muted">Viáticos Alimentos</span>
                                 <span className={currentBreakdown.meal_cost !== quote.meal_cost ? 'text-primary' : ''}>
@@ -474,7 +532,9 @@ const QuoteDetail = () => {
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                 <span className="text-muted">Interconexión / Extras</span>
-                                <span>${(quote.service_costs || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span className={currentBreakdown.service_costs !== quote.service_costs ? 'text-primary' : ''}>
+                                    ${(currentBreakdown.service_costs || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
                             </div>
                         </div>
 

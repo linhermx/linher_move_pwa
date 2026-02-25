@@ -201,7 +201,8 @@ export class QuotationModel extends BaseModel {
             'vehicle_id', 'distance_total', 'time_total', 'toll_cost',
             'num_trayectos', 'num_casetas', 'costo_casetas_unit',
             'gas_price_applied', 'factor_maniobra_applied', 'factor_trafico_applied',
-            'logistics_cost_raw', 'costo_logistico_redondeado', 'gas_cost'
+            'logistics_cost_raw', 'costo_logistico_redondeado', 'gas_cost',
+            'service_costs'
         ];
 
         const updates = [];
@@ -214,12 +215,23 @@ export class QuotationModel extends BaseModel {
             }
         }
 
-        if (updates.length === 0) return false;
+        if (updates.length > 0) {
+            params.push(id);
+            const query = `UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`;
+            await this.db.query(query, params);
+        }
 
-        params.push(id);
-        const query = `UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`;
-        const [result] = await this.db.query(query, params);
-        return result.affectedRows > 0;
+        // Synchronize services if provided
+        if (data.services && Array.isArray(data.services)) {
+            // Remove existing services
+            await this.db.query("DELETE FROM quotation_services WHERE quotation_id = ?", [id]);
+            // Add new ones
+            if (data.services.length > 0) {
+                await this.addServices(id, data.services);
+            }
+        }
+
+        return true;
     }
 
     /**
