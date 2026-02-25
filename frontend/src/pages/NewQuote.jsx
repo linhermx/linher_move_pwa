@@ -478,17 +478,14 @@ const NewQuote = () => {
                                                             }}
                                                         >
                                                             <LinkIcon size={12} />
-                                                            + Añadir link de Google Maps (Destino)
+                                                            {mapsUrl ? '+ Ver link de Google Maps (Destino)' : '+ Añadir link de Google Maps (Destino)'}
                                                         </button>
                                                     ) : (
                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', animation: 'fadeIn 0.3s ease-in-out' }}>
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                                 <label style={{ fontSize: '10px', fontWeight: 'bold' }} className="text-muted">LINK DE GOOGLE MAPS (DESTINO)</label>
                                                                 <button
-                                                                    onClick={() => {
-                                                                        setShowMapsUrl(false);
-                                                                        setMapsUrl('');
-                                                                    }}
+                                                                    onClick={() => setShowMapsUrl(false)}
                                                                     style={{ background: 'transparent', border: 'none', color: 'var(--color-text-dim)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                                                                 >
                                                                     <X size={12} />
