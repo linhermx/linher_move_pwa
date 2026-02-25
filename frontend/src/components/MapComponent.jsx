@@ -14,7 +14,7 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const MapComponent = ({ points = [], routeData = null, onMarkerDrag }) => {
+const MapComponent = ({ points = [], routeData = null, onMarkerDrag, readOnly = false }) => {
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
     const routeLayer = useRef(null);
@@ -58,7 +58,7 @@ const MapComponent = ({ points = [], routeData = null, onMarkerDrag }) => {
                 const colorClass = isOrigin ? 'green' : (isDestination ? 'red' : 'blue');
 
                 const marker = L.marker([p.lat, p.lng], {
-                    draggable: true,
+                    draggable: !readOnly,
                     icon: createCustomIcon(colorClass)
                 })
                     .addTo(mapInstance.current)

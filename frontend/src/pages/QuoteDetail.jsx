@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { quotationService, vehicleService, settingsService, serviceService } from '../services/api';
+import { quotationService, vehicleService, settingsService, serviceService, mapsService } from '../services/api';
 import MapComponent from '../components/MapComponent';
 import { CalculationMotor } from '../utils/CalculationMotor';
 import { useNotification } from '../context/NotificationContext';
@@ -37,6 +37,7 @@ const QuoteDetail = () => {
     const [vehicles, setVehicles] = useState([]);
     const [globalSettings, setGlobalSettings] = useState({});
     const [services, setServices] = useState([]);
+    const [routeData, setRouteData] = useState(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -57,11 +58,28 @@ const QuoteDetail = () => {
                     meal_cost: quoteData.meal_cost || 0
                 });
                 setCurrentBreakdown(quoteData);
+
+                // RELEASE THE UI: Close main loader now
+                setLoading(false);
+
+                // BACKGROUND TASK: Fetch route line if coordinates exist
+                if (quoteData.origin_lat && quoteData.origin_lng) {
+                    const locations = [
+                        [parseFloat(quoteData.origin_lng), parseFloat(quoteData.origin_lat)],
+                        ...(quoteData.stops || []).map(s => [parseFloat(s.lng), parseFloat(s.lat)]),
+                        [parseFloat(quoteData.destination_lng), parseFloat(quoteData.destination_lat)]
+                    ].filter(loc => !isNaN(loc[0]) && !isNaN(loc[1]));
+
+                    if (locations.length >= 2) {
+                        mapsService.getRoute(locations)
+                            .then(rData => setRouteData(rData))
+                            .catch(rErr => console.error('Error fetching route in background:', rErr));
+                    }
+                }
             } catch (err) {
                 console.error('Error fetching quote detail:', err);
                 showNotification('Error al cargar la cotización', 'error');
                 navigate('/history');
-            } finally {
                 setLoading(false);
             }
         };
@@ -269,6 +287,7 @@ const QuoteDetail = () => {
                                 ... (quote.stops || []).map(s => ({ address: s.address, lat: s.lat, lng: s.lng })),
                                 { address: quote.destination_address, lat: quote.destination_lat, lng: quote.destination_lng }
                             ]}
+                            routeData={routeData}
                             readOnly={true}
                         />
                     </div>
