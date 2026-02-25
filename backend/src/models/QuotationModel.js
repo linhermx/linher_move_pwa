@@ -77,12 +77,14 @@ export class QuotationModel extends BaseModel {
         const query = `
             INSERT INTO ${this.tableName} 
             (folio, user_id, vehicle_id, origin_address, destination_address, 
+             origin_lat, origin_lng, destination_lat, destination_lng,
              google_maps_link, num_trayectos, num_casetas, costo_casetas_unit, 
              gas_price_applied, factor_maniobra_applied, factor_trafico_applied,
-             distance_total, time_total, toll_cost, lodging_cost, meal_cost, 
+             distance_total, time_total, time_traffic_min, time_services_min,
+             toll_cost, lodging_cost, meal_cost, gas_liters,
              logistics_cost_raw, costo_logistico_redondeado,
              subtotal, iva, total, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')
         `;
 
         const params = [
@@ -91,6 +93,10 @@ export class QuotationModel extends BaseModel {
             data.vehicle_id,
             data.origin_address,
             data.destination_address,
+            data.origin_lat || null,
+            data.origin_lng || null,
+            data.destination_lat || null,
+            data.destination_lng || null,
             data.google_maps_link,
             data.num_trayectos || data.num_legs || 1,
             data.num_casetas || data.num_tolls || 0,
@@ -100,9 +106,12 @@ export class QuotationModel extends BaseModel {
             data.factor_trafico_applied || data.traffic_factor || 1,
             data.distance_total || data.distancia_total || 0,
             data.time_total || data.tiempo_total_min || 0,
+            data.time_traffic_min || data.tiempo_con_trafico_min || 0,
+            data.time_services_min || data.tiempo_con_servicios_min || 0,
             data.toll_cost || 0,
             data.lodging_cost || 0,
             data.meal_cost || 0,
+            data.gas_liters || data.gasolina_litros || 0,
             data.logistics_cost_raw || 0,
             data.costo_logistico_redondeado || data.logistics_cost_rounded || 0,
             data.subtotal,
@@ -153,7 +162,7 @@ export class QuotationModel extends BaseModel {
 
         // Fetch stops
         const [stops] = await this.db.query(
-            "SELECT address, order_index FROM quotation_stops WHERE quotation_id = ? ORDER BY order_index ASC",
+            "SELECT address, lat, lng, order_index FROM quotation_stops WHERE quotation_id = ? ORDER BY order_index ASC",
             [id]
         );
         quote.stops = stops;
@@ -211,9 +220,13 @@ export class QuotationModel extends BaseModel {
      * Add stops to a quote
      */
     async addStops(quoteId, stops) {
-        const query = "INSERT INTO quotation_stops (quotation_id, address, order_index) VALUES (?, ?, ?)";
+        const query = "INSERT INTO quotation_stops (quotation_id, address, lat, lng, order_index) VALUES (?, ?, ?, ?, ?)";
         for (let i = 0; i < stops.length; i++) {
-            await this.db.query(query, [quoteId, stops[i], i]);
+            const stop = stops[i];
+            const address = typeof stop === 'string' ? stop : stop.address;
+            const lat = typeof stop === 'object' ? stop.lat : null;
+            const lng = typeof stop === 'object' ? stop.lng : null;
+            await this.db.query(query, [quoteId, address, lat, lng, i]);
         }
     }
 }

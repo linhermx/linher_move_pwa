@@ -286,7 +286,11 @@ const NewQuote = () => {
                 user_id: user ? user.id : 1,
                 vehicle_id: selectedVehicle ? selectedVehicle.id : null,
                 origin_address: points[0].address,
+                origin_lat: points[0].lat,
+                origin_lng: points[0].lng,
                 destination_address: points[points.length - 1].address,
+                destination_lat: points[points.length - 1].lat,
+                destination_lng: points[points.length - 1].lng,
                 google_maps_link: mapsUrl,
                 num_legs: parseInt(numTrips || 1),
                 num_tolls: breakdown.num_tolls,
@@ -296,8 +300,15 @@ const NewQuote = () => {
                 factor_trafico_applied: breakdown.traffic_factor,
                 distance_total: breakdown.distancia_total,
                 time_total: breakdown.tiempo_total_min,
+                time_traffic_min: breakdown.tiempo_con_trafico_min,
+                time_services_min: breakdown.tiempo_con_servicios_min,
+                gas_liters: breakdown.gasolina_litros,
                 toll_cost: breakdown.toll_cost,
-                stops: points.length > 2 ? points.slice(1, -1).map(p => p.address) : [],
+                stops: points.length > 2 ? points.slice(1, -1).map(p => ({
+                    address: p.address,
+                    lat: p.lat,
+                    lng: p.lng
+                })) : [],
                 services: selectedServices.map(id => {
                     const s = services.find(x => x.id === id);
                     return { id: s.id, cost: s.cost, time_minutes: s.time_minutes };
