@@ -188,14 +188,11 @@ export const QuotationController = (db) => {
         },
         create: async (req, res) => {
             try {
-                // Calculation handled via utility
-                const breakdown = CalculationMotor.calculate(req.body);
                 const folio = await model.generateFolio(req.body.user_id);
 
                 const quoteData = {
                     ...req.body,
-                    folio,
-                    ...breakdown
+                    folio
                 };
 
                 const quoteId = await model.createQuote(quoteData);
@@ -206,8 +203,7 @@ export const QuotationController = (db) => {
                 res.status(201).json({
                     id: quoteId,
                     folio,
-                    message: "Quotation created successfully",
-                    breakdown
+                    message: "Quotation created successfully"
                 });
             } catch (error) {
                 console.error(error);

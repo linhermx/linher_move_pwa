@@ -77,10 +77,12 @@ export class QuotationModel extends BaseModel {
         const query = `
             INSERT INTO ${this.tableName} 
             (folio, user_id, vehicle_id, origin_address, destination_address, 
-             google_maps_link, distance_total, time_total, toll_cost, lodging_cost, 
-             meal_cost, logistics_cost_raw, costo_logistico_redondeado,
+             google_maps_link, num_trayectos, num_casetas, costo_casetas_unit, 
+             gas_price_applied, factor_maniobra_applied, factor_trafico_applied,
+             distance_total, time_total, toll_cost, lodging_cost, meal_cost, 
+             logistics_cost_raw, costo_logistico_redondeado,
              subtotal, iva, total, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')
         `;
 
         const params = [
@@ -90,13 +92,19 @@ export class QuotationModel extends BaseModel {
             data.origin_address,
             data.destination_address,
             data.google_maps_link,
-            data.distance_total,
-            data.time_total,
+            data.num_trayectos || data.num_legs || 1,
+            data.num_casetas || data.num_tolls || 0,
+            data.costo_casetas_unit || data.cost_per_toll || 0,
+            data.gas_price_applied || data.gas_price || 0,
+            data.factor_maniobra_applied || data.maneuver_factor || 1,
+            data.factor_trafico_applied || data.traffic_factor || 1,
+            data.distance_total || data.distancia_total || 0,
+            data.time_total || data.tiempo_total_min || 0,
             data.toll_cost || 0,
             data.lodging_cost || 0,
             data.meal_cost || 0,
             data.logistics_cost_raw || 0,
-            data.logistics_cost_rounded || 0,
+            data.costo_logistico_redondeado || data.logistics_cost_rounded || 0,
             data.subtotal,
             data.iva,
             data.total
@@ -160,6 +168,12 @@ export class QuotationModel extends BaseModel {
         );
         quote.services = services;
 
+        // Calculate total service costs
+        quote.service_costs = services.reduce((acc, s) => acc + parseFloat(s.cost || 0), 0);
+
+        // Ensure consistent field alias for frontend (if it expects camelCase or specific English)
+        quote.logistics_cost_rounded = parseFloat(quote.costo_logistico_redondeado || 0);
+
         return quote;
     }
 
@@ -170,6 +184,8 @@ export class QuotationModel extends BaseModel {
         const allowedFields = [
             'status', 'lodging_cost', 'meal_cost', 'subtotal', 'iva', 'total',
             'vehicle_id', 'distance_total', 'time_total', 'toll_cost',
+            'num_trayectos', 'num_casetas', 'costo_casetas_unit',
+            'gas_price_applied', 'factor_maniobra_applied', 'factor_trafico_applied',
             'logistics_cost_raw', 'costo_logistico_redondeado'
         ];
 

@@ -288,18 +288,20 @@ const NewQuote = () => {
                 origin_address: points[0].address,
                 destination_address: points[points.length - 1].address,
                 google_maps_link: mapsUrl,
+                num_legs: parseInt(numTrips || 1),
+                num_tolls: breakdown.num_tolls,
+                cost_per_toll: breakdown.cost_per_toll,
+                gas_price_applied: breakdown.gas_price,
+                factor_maniobra_applied: breakdown.maneuver_factor,
+                factor_trafico_applied: breakdown.traffic_factor,
                 distance_total: breakdown.distancia_total,
                 time_total: breakdown.tiempo_total_min,
-                num_legs: parseInt(numTrips || 1),
                 toll_cost: breakdown.toll_cost,
                 stops: points.length > 2 ? points.slice(1, -1).map(p => p.address) : [],
                 services: selectedServices.map(id => {
                     const s = services.find(x => x.id === id);
                     return { id: s.id, cost: s.cost, time_minutes: s.time_minutes };
                 }),
-                gas_price_applied: globalSettings.gasoline_price,
-                factor_maniobra_applied: globalSettings.maneuver_factor,
-                factor_trafico_applied: globalSettings.traffic_factor,
                 status: status,
                 ...breakdown
             };

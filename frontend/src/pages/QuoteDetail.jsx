@@ -181,14 +181,52 @@ const QuoteDetail = () => {
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    {/* Status Selector */}
+                    <div style={{
+                        display: 'flex',
+                        backgroundColor: 'var(--color-bg)',
+                        padding: '4px',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--color-border)',
+                        marginRight: '10px'
+                    }}>
+                        {['pendiente', 'en_proceso', 'completada', 'cancelada'].map((s) => {
+                            const info = getStatusInfo(s);
+                            const isActive = quote.status === s;
+                            return (
+                                <button
+                                    key={s}
+                                    onClick={() => handleStatusChange(s)}
+                                    title={info.text}
+                                    style={{
+                                        border: 'none',
+                                        background: isActive ? info.color : 'transparent',
+                                        color: isActive ? 'white' : 'var(--color-text-muted)',
+                                        padding: '6px 12px',
+                                        borderRadius: 'var(--radius-sm)',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        fontSize: '11px',
+                                        fontWeight: 'bold',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {isActive && info.icon}
+                                    {isActive ? info.text.toUpperCase() : s.charAt(0).toUpperCase()}
+                                </button>
+                            );
+                        })}
+                    </div>
+
                     <button
                         onClick={handleSaveUpdates}
                         disabled={saving}
-                        className="btn-primary" // Assuming standard primary button style might be needed or inline
                         style={{
-                            backgroundColor: 'var(--color-primary)',
-                            color: 'white',
+                            backgroundColor: 'white',
+                            color: 'var(--color-bg)',
                             border: 'none',
                             padding: '10px 20px',
                             borderRadius: 'var(--radius-md)',
@@ -207,9 +245,9 @@ const QuoteDetail = () => {
                     <button
                         onClick={() => PDFService.generateQuotationPDF(quote)}
                         style={{
-                            backgroundColor: 'white',
-                            color: 'var(--color-bg)',
-                            border: 'none',
+                            backgroundColor: 'var(--color-surface)',
+                            color: 'white',
+                            border: '1px solid var(--color-border)',
                             padding: '10px 20px',
                             borderRadius: 'var(--radius-md)',
                             display: 'flex',
@@ -220,27 +258,8 @@ const QuoteDetail = () => {
                         }}
                     >
                         <Download size={18} />
-                        Descargar PDF
+                        PDF
                     </button>
-
-                    {quote.status === 'pendiente' && (
-                        <button
-                            onClick={() => handleStatusChange('en_proceso')}
-                            style={{
-                                backgroundColor: 'var(--color-surface)',
-                                border: '1px solid var(--color-border)',
-                                color: 'white',
-                                padding: '10px 20px',
-                                borderRadius: 'var(--radius-md)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            <CheckCircle size={18} color="#28A745" /> Aprobar Revisión
-                        </button>
-                    )}
                 </div>
             </div>
 
@@ -251,8 +270,8 @@ const QuoteDetail = () => {
                     <div className="card" style={{ height: '400px', padding: 0, position: 'relative', overflow: 'hidden' }}>
                         <MapComponent
                             points={[
-                                { address: quote.origin_address, lat: 0, lng: 0 }, // Placeholder for lat/lng if not in record
-                                ... (quote.stops_list || []).map(s => ({ address: s.address, lat: 0, lng: 0 })),
+                                { address: quote.origin_address, lat: 0, lng: 0 },
+                                ... (quote.stops || []).map(s => ({ address: s.address, lat: 0, lng: 0 })),
                                 { address: quote.destination_address, lat: 0, lng: 0 }
                             ]}
                             readOnly={true}
@@ -276,11 +295,11 @@ const QuoteDetail = () => {
                                 </div>
                             </div>
 
-                            {quote.stops_list && quote.stops_list.length > 0 && (
+                            {quote.stops && quote.stops.length > 0 && (
                                 <div>
                                     <p className="text-muted" style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '8px' }}>PARADAS INTERMEDIAS</p>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                        {quote.stops_list.map((stop, idx) => (
+                                        {quote.stops.map((stop, idx) => (
                                             <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', backgroundColor: 'rgba(255,255,255,0.02)', padding: '8px', borderRadius: '4px' }}>
                                                 <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>
                                                     {idx + 1}
@@ -303,15 +322,45 @@ const QuoteDetail = () => {
                                 </div>
                                 <div style={{ backgroundColor: 'var(--color-bg)', padding: '10px', borderRadius: '8px' }}>
                                     <p className="text-muted" style={{ fontSize: '9px' }}>TRAYECTOS</p>
-                                    <p style={{ fontWeight: 'bold' }}>{quote.num_legs || 1}</p>
+                                    <p style={{ fontWeight: 'bold' }}>{quote.num_trayectos || 1}</p>
                                 </div>
                                 <div style={{ backgroundColor: 'var(--color-bg)', padding: '10px', borderRadius: '8px' }}>
                                     <p className="text-muted" style={{ fontSize: '9px' }}>CASETAS</p>
-                                    <p style={{ fontWeight: 'bold' }}>${quote.toll_cost?.toLocaleString()}</p>
+                                    <p style={{ fontWeight: 'bold' }}>{quote.num_casetas || 0} (${quote.toll_cost?.toLocaleString()})</p>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    {/* Extra Services List */}
+                    {quote.services && quote.services.length > 0 && (
+                        <div className="card">
+                            <h3 style={{ fontSize: '16px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Calculator size={18} className="text-primary" /> Servicios Extra Detallados
+                            </h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {quote.services.map((srv, idx) => (
+                                    <div key={idx} style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        backgroundColor: 'rgba(255,255,255,0.02)',
+                                        padding: '10px',
+                                        borderRadius: '8px',
+                                        border: '1px solid var(--color-border)'
+                                    }}>
+                                        <div>
+                                            <p style={{ fontSize: '14px', fontWeight: 'bold', margin: 0 }}>{srv.service_name}</p>
+                                            <p className="text-muted" style={{ fontSize: '11px', margin: 0 }}>{srv.time_minutes} min aprox.</p>
+                                        </div>
+                                        <p style={{ fontSize: '14px', fontWeight: 'bold', margin: 0, color: 'var(--color-primary)' }}>
+                                            ${parseFloat(srv.cost).toLocaleString()}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Column: Breakdown and Adjustments */}
@@ -352,7 +401,7 @@ const QuoteDetail = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                                 <span className="text-muted">Flete (Logístico)</span>
-                                <span>${(quote.costo_logistico_redondeado || 0).toLocaleString()}</span>
+                                <span>${(quote.logistics_cost_rounded || 0).toLocaleString()}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                                 <span className="text-muted">Servicios Extras</span>
