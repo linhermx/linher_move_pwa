@@ -410,15 +410,15 @@ const QuoteDetail = () => {
                         <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                 <span className="text-muted">Gasolina ({quote.gas_liters || 0}L)</span>
-                                <span>${(quote.gas_cost || 0).toLocaleString()}</span>
+                                <span>${(quote.gas_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                                <span className="text-muted">Casetas (Total)</span>
-                                <span>${(quote.toll_cost || 0).toLocaleString()}</span>
+                                <span className="text-muted">Casetas ({quote.num_casetas || 0})</span>
+                                <span>${(quote.toll_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                 <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>Costo Logístico (Flete)</span>
-                                <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>${(quote.logistics_cost_rounded || 0).toLocaleString()}</span>
+                                <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>${(quote.logistics_cost_rounded || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
 
@@ -428,12 +428,12 @@ const QuoteDetail = () => {
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                 <span className="text-muted">Viáticos Alimentos</span>
                                 <span className={currentBreakdown.meal_cost !== quote.meal_cost ? 'text-primary' : ''}>
-                                    ${currentBreakdown.meal_cost.toLocaleString()}
+                                    ${currentBreakdown.meal_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                 <span className="text-muted">Interconexión / Extras</span>
-                                <span>${(quote.service_costs || 0).toLocaleString()}</span>
+                                <span>${(quote.service_costs || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                         </div>
 
@@ -441,11 +441,11 @@ const QuoteDetail = () => {
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
                             <span className="text-muted">Subtotal</span>
-                            <span>${currentBreakdown.subtotal.toLocaleString()}</span>
+                            <span>${currentBreakdown.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
                             <span className="text-muted">IVA (16%)</span>
-                            <span>${currentBreakdown.iva.toLocaleString()}</span>
+                            <span>${currentBreakdown.iva.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
 
                         <div style={{
@@ -458,7 +458,7 @@ const QuoteDetail = () => {
                         }}>
                             <p className="text-muted" style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px', color: 'rgba(255,255,255,0.6)' }}>TOTAL NETO</p>
                             <p style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--color-primary)', margin: 0 }}>
-                                ${currentBreakdown.total.toLocaleString()}
+                                ${currentBreakdown.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
                         </div>
                     </div>

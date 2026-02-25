@@ -718,18 +718,18 @@ const NewQuote = () => {
                                 {/* Logistics Breakdown */}
                                 <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
                                     <span className="text-muted">Gasolina ({breakdown.gasolina_litros}L)</span>
-                                    <span>${breakdown.gas_cost.toLocaleString()}</span>
+                                    <span>${breakdown.gas_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
-                                    <span className="text-muted">Casetas (Total)</span>
-                                    <span>${breakdown.toll_cost.toLocaleString()}</span>
+                                    <span className="text-muted">Casetas ({breakdown.num_tolls})</span>
+                                    <span>${breakdown.toll_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between', color: 'var(--color-primary)' }}>
                                     <span style={{ fontWeight: 'bold' }}>Costo Logístico (Flete)</span>
-                                    <span style={{ fontWeight: 'bold' }}>${breakdown.logistics_cost_rounded.toLocaleString()}</span>
+                                    <span style={{ fontWeight: 'bold' }}>${breakdown.logistics_cost_rounded.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <p style={{ fontSize: '9px', color: 'var(--color-text-dim)', textAlign: 'right', marginTop: '-5px' }}>
-                                    Bruto: ${breakdown.logistics_cost_raw.toLocaleString()}
+                                    Bruto: ${breakdown.logistics_cost_raw.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </p>
 
                                 <div style={{ height: '1px', backgroundColor: 'var(--color-border)', margin: '5px 0' }} />
@@ -738,18 +738,18 @@ const NewQuote = () => {
                                 {breakdown.lodging_cost > 0 && (
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                                         <span className="text-muted">Viáticos Hospedaje</span>
-                                        <span>${breakdown.lodging_cost.toLocaleString()}</span>
+                                        <span>${breakdown.lodging_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                                     <span className="text-muted">Viáticos Alimentos</span>
-                                    <span>${breakdown.meal_cost.toLocaleString()}</span>
+                                    <span>${breakdown.meal_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
 
                                 {services.filter(s => selectedServices.includes(s.id)).map(s => (
                                     <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                                         <span className="text-muted">{s.name}</span>
-                                        <span>${parseFloat(s.cost).toLocaleString()}</span>
+                                        <span>${parseFloat(s.cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 ))}
 
@@ -757,11 +757,11 @@ const NewQuote = () => {
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                     <span className="text-muted">Subtotal</span>
-                                    <span style={{ fontWeight: 'bold' }}>${breakdown.subtotal.toLocaleString()}</span>
+                                    <span style={{ fontWeight: 'bold' }}>${breakdown.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                                     <span className="text-muted">IVA (16%)</span>
-                                    <span style={{ fontWeight: 'bold' }}>${breakdown.iva.toLocaleString()}</span>
+                                    <span style={{ fontWeight: 'bold' }}>${breakdown.iva.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
 
                                 <div style={{
@@ -770,14 +770,12 @@ const NewQuote = () => {
                                     borderRadius: '8px',
                                     marginTop: '10px',
                                     border: '1px solid rgba(255, 72, 72, 0.2)',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center'
+                                    textAlign: 'right'
                                 }}>
-                                    <span style={{ fontWeight: 'bold', fontSize: '14px' }}>TOTAL NETO</span>
-                                    <span style={{ fontWeight: 'bold', fontSize: '24px', color: 'var(--color-primary)' }}>
-                                        ${breakdown.total.toLocaleString()}
-                                    </span>
+                                    <p className="text-muted" style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>TOTAL NETO</p>
+                                    <p style={{ fontSize: '28px', fontWeight: 'bold', color: 'var(--color-primary)', margin: 0 }}>
+                                        ${breakdown.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </p>
                                 </div>
                             </div>
                             <p style={{ fontSize: '10px', color: 'var(--color-text-dim)', textAlign: 'center', marginTop: '15px', fontStyle: 'italic' }}>
