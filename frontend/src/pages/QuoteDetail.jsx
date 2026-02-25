@@ -319,15 +319,17 @@ const QuoteDetail = () => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 'var(--spacing-lg)' }}>
-                {/* Left Column: Map and Details */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
-                    {/* Map */}
-                    <div className="card" style={{ height: '450px', padding: 0, position: 'relative', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
+            {/* Main Content Layout */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
+
+                {/* Top Row: Map & Main Breakdown */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: 'var(--spacing-lg)', alignItems: 'stretch' }}>
+                    {/* Map Detail */}
+                    <div className="card" style={{ height: '500px', padding: 0, position: 'relative', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
                         <MapComponent
                             points={[
                                 { address: quote.origin_address, lat: quote.origin_lat, lng: quote.origin_lng },
-                                ... (quote.stops || []).map(s => ({ address: s.address, lat: s.lat, lng: s.lng })),
+                                ...(quote.stops || []).map(s => ({ address: s.address, lat: s.lat, lng: s.lng })),
                                 { address: quote.destination_address, lat: quote.destination_lat, lng: quote.destination_lng }
                             ]}
                             routeData={routeData}
@@ -335,136 +337,8 @@ const QuoteDetail = () => {
                         />
                     </div>
 
-                    {/* Route Detailed Stats */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
-                        <div className="card">
-                            <h3 style={{ fontSize: '14px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <MapPin size={16} className="text-primary" /> Detalles de la Ruta
-                            </h3>
-                            <div style={{ position: 'relative', paddingLeft: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                                {/* Vertical Path Line */}
-                                <div style={{
-                                    position: 'absolute',
-                                    left: '7px',
-                                    top: '10px',
-                                    bottom: '10px',
-                                    width: '2px',
-                                    background: 'linear-gradient(to bottom, #4CAF50, var(--color-primary), #FF4848)',
-                                    opacity: 0.3,
-                                    borderRadius: '1px'
-                                }} />
-
-                                {/* Origin Point */}
-                                <div style={{ position: 'relative' }}>
-                                    <div style={{
-                                        position: 'absolute',
-                                        left: '-22px',
-                                        top: '4px',
-                                        width: '12px',
-                                        height: '12px',
-                                        borderRadius: '50%',
-                                        backgroundColor: '#4CAF50',
-                                        border: '3px solid rgba(76, 175, 80, 0.2)',
-                                        backgroundClip: 'padding-box',
-                                        zIndex: 2
-                                    }} />
-                                    <p className="text-muted" style={{ fontSize: '9px', fontWeight: 'bold', marginBottom: '2px', textTransform: 'uppercase' }}>Origen</p>
-                                    <p style={{ fontSize: '13px', fontWeight: '500', margin: 0, color: '#fff' }}>{quote.origin_address}</p>
-                                </div>
-
-                                {/* Intermediate Stops */}
-                                {quote.stops && quote.stops.length > 0 && quote.stops.map((s, i) => (
-                                    <div key={i} style={{ position: 'relative' }}>
-                                        <div style={{
-                                            position: 'absolute',
-                                            left: '-22px',
-                                            top: '4px',
-                                            width: '12px',
-                                            height: '12px',
-                                            borderRadius: '50%',
-                                            backgroundColor: '#2196F3',
-                                            border: '3px solid rgba(33, 150, 243, 0.2)',
-                                            backgroundClip: 'padding-box',
-                                            zIndex: 2
-                                        }} />
-                                        <p className="text-muted" style={{ fontSize: '9px', fontWeight: 'bold', marginBottom: '2px', textTransform: 'uppercase' }}>Parada {i + 1}</p>
-                                        <p style={{ fontSize: '13px', margin: 0, opacity: 0.9 }}>{s.address}</p>
-                                    </div>
-                                ))}
-
-                                {/* Destination Point */}
-                                <div style={{ position: 'relative' }}>
-                                    <div style={{
-                                        position: 'absolute',
-                                        left: '-22px',
-                                        top: '4px',
-                                        width: '12px',
-                                        height: '12px',
-                                        borderRadius: '50%',
-                                        backgroundColor: '#FF4848',
-                                        border: '3px solid rgba(255, 72, 72, 0.2)',
-                                        backgroundClip: 'padding-box',
-                                        zIndex: 2
-                                    }} />
-                                    <p className="text-muted" style={{ fontSize: '9px', fontWeight: 'bold', marginBottom: '2px', textTransform: 'uppercase' }}>Destino</p>
-                                    <p style={{ fontSize: '13px', fontWeight: '500', margin: 0, color: '#fff' }}>{quote.destination_address}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="card">
-                            <h3 style={{ fontSize: '14px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <Calculator size={16} className="text-primary" /> Servicios Extra
-                            </h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '10px' }}>
-                                {services.map((s) => {
-                                    const isSelected = selectedServiceIds.includes(s.id);
-                                    return (
-                                        <div
-                                            key={s.id}
-                                            onClick={() => handleServiceToggle(s.id)}
-                                            style={{
-                                                padding: '12px 10px',
-                                                backgroundColor: isSelected ? 'rgba(255, 72, 72, 0.1)' : 'rgba(255,255,255,0.02)',
-                                                borderRadius: '10px',
-                                                border: `1px solid ${isSelected ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)'}`,
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                position: 'relative',
-                                                overflow: 'hidden'
-                                            }}
-                                        >
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '4px' }}>
-                                                <span style={{ fontSize: '11px', fontWeight: 'bold', lineHeight: '1.2' }}>{s.name}</span>
-                                                {isSelected && <div style={{ minWidth: '12px', height: '12px', borderRadius: '50%', backgroundColor: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <CheckCircle size={8} color="white" />
-                                                </div>}
-                                            </div>
-                                            <span style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 'bold', marginTop: '4px' }}>
-                                                ${parseFloat(s.cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                            </span>
-
-                                            {/* Subtle background glow for selected */}
-                                            {isSelected && (
-                                                <div style={{ position: 'absolute', top: '-10px', right: '-10px', width: '30px', height: '30px', backgroundColor: 'var(--color-primary)', opacity: 0.1, filter: 'blur(10px)', borderRadius: '50%' }} />
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            {services.length === 0 && (
-                                <p className="text-muted" style={{ fontSize: '13px', textAlign: 'center', marginTop: '20px' }}>Cargando servicios...</p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right Column: Breakdown & Adjustments */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
-                    {/* Detailed Breakdown Mirroring Calculator */}
-                    <div className="card" style={{ position: 'relative' }}>
+                    {/* Detailed Breakdown Card */}
+                    <div className="card" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
                         <div style={{
                             position: 'absolute',
                             top: '15px',
@@ -482,7 +356,7 @@ const QuoteDetail = () => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '25px' }}>
                             <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
                                 <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>DIST. TOTAL</p>
-                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{(currentBreakdown.distance_total || quote.distance_total || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km</p>
+                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{Number(currentBreakdown.distance_total || quote.distance_total || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km</p>
                             </div>
                             <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
                                 <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>TIEMPO TOTAL</p>
@@ -498,75 +372,148 @@ const QuoteDetail = () => {
                             </div>
                         </div>
 
-                        <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                        <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                                 <span className="text-muted">Gasolina ({Number(quote.gas_liters || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L)</span>
                                 <span>${Number(quote.gas_cost || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                                 <span className="text-muted">Casetas ({quote.num_casetas || 0})</span>
                                 <span>${Number(quote.toll_cost || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                                 <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>Costo Logístico (Flete)</span>
                                 <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>${Number(quote.logistics_cost_rounded || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
-                        </div>
-
-                        <div style={{ height: '1px', backgroundColor: 'var(--color-border)', margin: '15px 0' }} />
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ height: '1px', backgroundColor: 'var(--color-border)', margin: '8px 0' }} />
                             {currentBreakdown.lodging_cost > 0 && (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                                    <span className="text-muted">Viáticos Hospedaje</span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                    <span className="text-muted">Hospedaje</span>
                                     <span className={currentBreakdown.lodging_cost !== quote.lodging_cost ? 'text-primary' : ''}>
                                         ${Number(currentBreakdown.lodging_cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </span>
                                 </div>
                             )}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                                <span className="text-muted">Viáticos Alimentos</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                <span className="text-muted">Alimentos</span>
                                 <span className={currentBreakdown.meal_cost !== quote.meal_cost ? 'text-primary' : ''}>
                                     ${Number(currentBreakdown.meal_cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
-                                <span className="text-muted">Interconexión / Extras</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                <span className="text-muted">Servicios Extra</span>
                                 <span className={currentBreakdown.service_costs !== quote.service_costs ? 'text-primary' : ''}>
                                     ${Number(currentBreakdown.service_costs || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
                         </div>
 
-                        <div style={{ height: '1px', backgroundColor: 'var(--color-border)', margin: '15px 0' }} />
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
-                            <span className="text-muted">Subtotal</span>
-                            <span>${Number(currentBreakdown.subtotal).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <div style={{ marginTop: 'auto', paddingTop: '15px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '4px' }}>
+                                <span className="text-muted">Subtotal</span>
+                                <span>${Number(currentBreakdown.subtotal).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '12px' }}>
+                                <span className="text-muted">IVA (16%)</span>
+                                <span>${Number(currentBreakdown.iva).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                            <div style={{
+                                backgroundColor: 'rgba(255, 72, 72, 0.08)',
+                                padding: '15px',
+                                borderRadius: '12px',
+                                border: '1px solid rgba(255, 72, 72, 0.2)',
+                                textAlign: 'right'
+                            }}>
+                                <p className="text-muted" style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px', color: 'rgba(255,255,255,0.6)' }}>TOTAL NETO</p>
+                                <p style={{ fontSize: '28px', fontWeight: 'bold', color: 'var(--color-primary)', margin: 0 }}>
+                                    ${Number(currentBreakdown.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </p>
+                            </div>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px' }}>
-                            <span className="text-muted">IVA (16%)</span>
-                            <span>${Number(currentBreakdown.iva).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        </div>
+                    </div>
+                </div>
 
-                        <div style={{
-                            backgroundColor: 'rgba(255, 72, 72, 0.08)',
-                            padding: '18px',
-                            borderRadius: '12px',
-                            marginTop: '15px',
-                            border: '1px solid rgba(255, 72, 72, 0.3)',
-                            textAlign: 'right'
-                        }}>
-                            <p className="text-muted" style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px', color: 'rgba(255,255,255,0.6)' }}>TOTAL NETO</p>
-                            <p style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--color-primary)', margin: 0 }}>
-                                ${Number(currentBreakdown.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </p>
+                {/* Bottom Row: 3 Symmetric Columns */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 380px', gap: 'var(--spacing-lg)', alignItems: 'stretch' }}>
+                    {/* Column 1: Route Details */}
+                    <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+                        <h3 style={{ fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <MapPin size={16} className="text-primary" /> Detalles de la Ruta
+                        </h3>
+                        <div style={{ position: 'relative', paddingLeft: '24px', display: 'flex', flexDirection: 'column', gap: '25px', flex: 1 }}>
+                            <div style={{
+                                position: 'absolute',
+                                left: '7px',
+                                top: '10px',
+                                bottom: '10px',
+                                width: '2px',
+                                background: 'linear-gradient(to bottom, #4CAF50, var(--color-primary), #FF4848)',
+                                opacity: 0.3,
+                                borderRadius: '1px'
+                            }} />
+
+                            <div style={{ position: 'relative' }}>
+                                <div style={{ position: 'absolute', left: '-22px', top: '4px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#4CAF50', border: '3px solid rgba(76, 175, 80, 0.2)' }} />
+                                <p className="text-muted" style={{ fontSize: '9px', fontWeight: 'bold', marginBottom: '2px' }}>ORIGEN</p>
+                                <p style={{ fontSize: '13px', fontWeight: '500', margin: 0 }}>{quote.origin_address}</p>
+                            </div>
+
+                            {quote.stops?.map((s, i) => (
+                                <div key={i} style={{ position: 'relative' }}>
+                                    <div style={{ position: 'absolute', left: '-22px', top: '4px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#2196F3', border: '3px solid rgba(33, 150, 243, 0.2)' }} />
+                                    <p className="text-muted" style={{ fontSize: '9px', fontWeight: 'bold', marginBottom: '2px' }}>PARADA {i + 1}</p>
+                                    <p style={{ fontSize: '13px', margin: 0 }}>{s.address}</p>
+                                </div>
+                            ))}
+
+                            <div style={{ position: 'relative' }}>
+                                <div style={{ position: 'absolute', left: '-22px', top: '4px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#FF4848', border: '3px solid rgba(255, 72, 72, 0.2)' }} />
+                                <p className="text-muted" style={{ fontSize: '9px', fontWeight: 'bold', marginBottom: '2px' }}>DESTINO</p>
+                                <p style={{ fontSize: '13px', fontWeight: '500', margin: 0 }}>{quote.destination_address}</p>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Review Adjustments */}
-                    <div className="card" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <h3 style={{ fontSize: '14px', marginBottom: '15px', color: 'white' }}>Ajustes de Revisión</h3>
+                    {/* Column 2: Extra Services */}
+                    <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+                        <h3 style={{ fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Calculator size={16} className="text-primary" /> Servicios Extra
+                        </h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '10px' }}>
+                            {services.map((s) => {
+                                const isSelected = selectedServiceIds.includes(s.id);
+                                return (
+                                    <div
+                                        key={s.id}
+                                        onClick={() => handleServiceToggle(s.id)}
+                                        style={{
+                                            padding: '12px 10px',
+                                            backgroundColor: isSelected ? 'rgba(255, 72, 72, 0.1)' : 'rgba(255,255,255,0.02)',
+                                            borderRadius: '10px',
+                                            border: `1px solid ${isSelected ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)'}`,
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            position: 'relative'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '4px' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: 'bold', lineHeight: '1.2' }}>{s.name}</span>
+                                            {isSelected && <CheckCircle size={10} className="text-primary" />}
+                                        </div>
+                                        <span style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 'bold', marginTop: '4px' }}>
+                                            ${Number(s.cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Column 3: Review Adjustments (aligned with breakdown) */}
+                    <div className="card" style={{ border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column' }}>
+                        <h3 style={{ fontSize: '14px', marginBottom: '20px', color: 'white' }}>Ajustes de Revisión</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                             <div>
                                 <label className="text-muted" style={{ fontSize: '10px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>VIÁTICOS HOSPEDAJE ($)</label>

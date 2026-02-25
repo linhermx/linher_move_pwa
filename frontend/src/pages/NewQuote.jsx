@@ -679,7 +679,7 @@ const NewQuote = () => {
                     <div style={{ backgroundColor: 'var(--color-surface)', padding: '15px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-md)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                         <div>
                             <p className="text-muted" style={{ fontSize: '10px', marginBottom: '4px' }}>DISTANCIA</p>
-                            <p style={{ fontWeight: 'bold', fontSize: '18px' }}>{(parseFloat(summary.distance) || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <span style={{ fontSize: '12px', fontWeight: 'normal' }}>km</span></p>
+                            <p style={{ fontWeight: 'bold', fontSize: '18px' }}>{(parseFloat(summary.distance) || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <span style={{ fontSize: '18px', fontWeight: 'bold' }}>km</span></p>
                         </div>
                         <div>
                             <p className="text-muted" style={{ fontSize: '10px', marginBottom: '4px' }}>TIEMPO EST.</p>
