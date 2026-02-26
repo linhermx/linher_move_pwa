@@ -28,8 +28,28 @@ export class QuotationModel extends BaseModel {
     }
 
     async generateFolio(userId) {
-        // 1. Get user initials (Mock for now)
-        const userInitials = "JR";
+        let userInitials = "XX"; // Fallback
+
+        try {
+            // 1. Get user name to extract initials
+            const [users] = await this.db.query(
+                "SELECT name FROM `users` WHERE id = ?",
+                [userId]
+            );
+
+            if (users.length > 0) {
+                const nameParts = users[0].name.trim().split(/\s+/);
+                if (nameParts.length >= 2) {
+                    // First letter of first name and first letter of last name
+                    userInitials = (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+                } else if (nameParts.length === 1) {
+                    // First two letters of the name if only one part
+                    userInitials = nameParts[0].slice(0, 2).toUpperCase();
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching user name for folio:", error);
+        }
 
         const now = new Date();
         const datePart = now.toISOString().slice(2, 10).replace(/-/g, ''); // YYMMDD
@@ -60,8 +80,8 @@ export class QuotationModel extends BaseModel {
             }
 
             await connection.commit();
-            const counterPart = String(newCount).padStart(3, '0');
-            return `LM${userInitials}-${datePart}${counterPart}`;
+            const counterPart = String(newCount).padStart(4, '0');
+            return `LM${userInitials}-${yearMonth}${counterPart}`;
         } catch (error) {
             await connection.rollback();
             throw error;
