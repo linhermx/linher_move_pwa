@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MapComponent from '../components/MapComponent';
 import { mapsService, vehicleService, serviceService, settingsService, quotationService } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
@@ -7,6 +8,7 @@ import { MapPin, Trash2, Plus, Loader2, Calculator, Truck, Package, ChevronRight
 import { CalculationMotor } from '../utils/CalculationMotor';
 
 const NewQuote = () => {
+    const navigate = useNavigate();
     const [points, setPoints] = useState([
         { id: 'origin', label: 'Origen', address: '', lat: null, lng: null },
         { id: 'destination', label: 'Destino', address: '', lat: null, lng: null }
@@ -18,7 +20,6 @@ const NewQuote = () => {
     const [suggestions, setSuggestions] = useState([]);
     const [summary, setSummary] = useState({ distance: 0, duration: 0 });
     const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: '', message: '' });
-    const [isFabOpen, setIsFabOpen] = useState(false);
     const [searchLoading, setSearchLoading] = useState(null); // idx of searching input
     const searchTimeoutRef = useRef(null);
     const [showMapsUrl, setShowMapsUrl] = useState(false);
@@ -295,7 +296,7 @@ const NewQuote = () => {
 
         } catch (err) {
             console.error('Routing error:', err);
-            const errorMsg = err.response?.data?.message || 'Error al calcular la ruta. Verifica las ubicaciones.';
+            const errorMsg = err.response?.data?.message || err.message || 'Error al calcular la ruta. Verifica las ubicaciones.';
             showNotification(errorMsg, 'error');
             setAlertConfig({
                 isOpen: true,
@@ -364,8 +365,7 @@ const NewQuote = () => {
 
             const response = await quotationService.create(quotationData);
             showNotification(`Cotización ${response.folio} guardada como ${status}`, 'success');
-            setIsFabOpen(false);
-            // Optionally redirect or clear
+            setTimeout(() => navigate('/history'), 1500);
         } catch (err) {
             console.error('Error saving quote:', err);
             showNotification('Error al guardar la cotización', 'error');
@@ -786,35 +786,19 @@ const NewQuote = () => {
                 </div>
             </div>
 
-            {/* Floating Action Button & Menu */}
+            {/* Floating Action Button - Direct Save as Pending */}
             {breakdown && (
                 <div className="fab-container">
-                    <div className={`fab-menu ${isFabOpen ? 'active' : ''}`}>
-                        <div className="fab-item">
-                            <span className="fab-item-label">Imprimir Cotización</span>
-                            <button className="fab-item-btn" onClick={() => window.print()}>
-                                <Printer size={20} />
-                            </button>
-                        </div>
-                        <div className="fab-item">
-                            <span className="fab-item-label">Guardar y Aprobar</span>
-                            <button className="fab-item-btn" onClick={() => handleSave('aprobada')}>
-                                <Check size={20} color="#28A745" />
-                            </button>
-                        </div>
-                        <div className="fab-item">
-                            <span className="fab-item-label">Guardar como Pendiente</span>
-                            <button className="fab-item-btn" onClick={() => handleSave('pendiente')}>
-                                <Clock size={20} color="#FFD700" />
-                            </button>
-                        </div>
+                    <div className="fab-item">
+                        <span className="fab-item-label">Guardar como Pendiente</span>
+                        <button
+                            className="fab-main fab-pulse"
+                            onClick={() => handleSave('pendiente')}
+                            title="Guardar como Pendiente"
+                        >
+                            <Clock size={28} />
+                        </button>
                     </div>
-                    <button
-                        className={`fab-main ${isFabOpen ? 'active' : 'fab-pulse'}`}
-                        onClick={() => setIsFabOpen(!isFabOpen)}
-                    >
-                        {isFabOpen ? <X size={28} /> : <Plus size={28} />}
-                    </button>
                 </div>
             )}
         </div>
