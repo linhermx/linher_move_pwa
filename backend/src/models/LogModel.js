@@ -29,7 +29,7 @@ export class LogModel extends BaseModel {
 
     async getRecent(limit = 100) {
         const query = `
-            SELECT l.*, u.name as user_name 
+            SELECT l.*, u.name as user_name, u.photo_path 
             FROM ${this.tableName} l
             LEFT JOIN users u ON l.user_id = u.id
             ORDER BY l.created_at DESC 
@@ -41,7 +41,7 @@ export class LogModel extends BaseModel {
 
     async filterLogs(params) {
         let query = `
-            SELECT l.*, u.name as user_name 
+            SELECT l.*, u.name as user_name, u.photo_path 
             FROM ${this.tableName} l
             LEFT JOIN users u ON l.user_id = u.id
             WHERE 1=1

@@ -257,8 +257,28 @@ const AuditLogs = () => {
                                             </td>
                                             <td style={{ padding: '16px' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                    <div style={{ width: '30px', height: '30px', borderRadius: '50%', backgroundColor: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                                                        {log.user_name ? log.user_name.charAt(0) : 'S'}
+                                                    <div style={{
+                                                        width: '32px',
+                                                        height: '32px',
+                                                        borderRadius: '50%',
+                                                        backgroundColor: 'rgba(255,255,255,0.05)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        overflow: 'hidden',
+                                                        border: '1px solid var(--color-border)'
+                                                    }}>
+                                                        {log.photo_path ? (
+                                                            <img
+                                                                src={`http://localhost:3000/${log.photo_path}`}
+                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                alt={log.user_name}
+                                                            />
+                                                        ) : (
+                                                            <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
+                                                                {log.user_name ? log.user_name.charAt(0) : 'S'}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     <span style={{ fontSize: '14px' }}>{log.user_name || 'Sistema'}</span>
                                                 </div>
