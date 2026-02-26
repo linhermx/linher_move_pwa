@@ -375,9 +375,9 @@ const NewQuote = () => {
     };
 
     return (
-        <div style={{ display: 'flex', gap: 'var(--spacing-lg)', height: 'calc(100vh - 80px)', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', gap: 'var(--spacing-lg)', height: '100%', overflow: 'hidden' }}>
             {/* Sidebar with Fixed Distribution */}
-            <div style={{ width: '400px', display: 'flex', flexDirection: 'column', height: '100%', paddingBottom: 'var(--spacing-md)' }}>
+            <div style={{ width: '400px', display: 'flex', flexDirection: 'column', height: '100%' }}>
                 {/* Scrollable Body area for Accordions - Unified Scrolling */}
                 <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', paddingRight: '4px' }}>
 
