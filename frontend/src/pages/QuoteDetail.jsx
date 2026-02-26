@@ -501,33 +501,47 @@ const QuoteDetail = () => {
                             <MapPin size={16} className="text-primary" /> Detalles de la Ruta
                         </h3>
                         <div style={{ position: 'relative', paddingLeft: '24px', display: 'flex', flexDirection: 'column', gap: '25px', flex: 1 }}>
-                            <div style={{
-                                position: 'absolute',
-                                left: '7px',
-                                top: '10px',
-                                bottom: '10px',
-                                width: '2px',
-                                background: 'linear-gradient(to bottom, #4CAF50, var(--color-primary), #FF4848)',
-                                opacity: 0.3,
-                                borderRadius: '1px'
-                            }} />
-
+                            {/* ORIGEN */}
                             <div style={{ position: 'relative' }}>
-                                <div style={{ position: 'absolute', left: '-22px', top: '4px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#4CAF50', border: '3px solid rgba(76, 175, 80, 0.2)' }} />
+                                <div style={{
+                                    position: 'absolute',
+                                    left: '-17px',
+                                    top: '16px',
+                                    bottom: '-29px',
+                                    width: '2px',
+                                    background: 'linear-gradient(to bottom, #4CAF50, var(--color-primary))',
+                                    opacity: 0.3,
+                                    zIndex: 1,
+                                    borderRadius: '1px'
+                                }} />
+                                <div style={{ position: 'absolute', left: '-22px', top: '4px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#4CAF50', border: '3px solid rgba(76, 175, 80, 0.2)', zIndex: 2 }} />
                                 <p className="text-muted" style={{ fontSize: '9px', fontWeight: 'bold', marginBottom: '2px' }}>ORIGEN</p>
                                 <p style={{ fontSize: '13px', fontWeight: '500', margin: 0 }}>{quote.origin_address}</p>
                             </div>
 
+                            {/* PARADAS */}
                             {quote.stops?.map((s, i) => (
                                 <div key={i} style={{ position: 'relative' }}>
-                                    <div style={{ position: 'absolute', left: '-22px', top: '4px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#2196F3', border: '3px solid rgba(33, 150, 243, 0.2)' }} />
+                                    <div style={{
+                                        position: 'absolute',
+                                        left: '-17px',
+                                        top: '16px',
+                                        bottom: '-29px',
+                                        width: '2px',
+                                        background: 'linear-gradient(to bottom, #2196F3, var(--color-primary))',
+                                        opacity: 0.3,
+                                        zIndex: 1,
+                                        borderRadius: '1px'
+                                    }} />
+                                    <div style={{ position: 'absolute', left: '-22px', top: '4px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#2196F3', border: '3px solid rgba(33, 150, 243, 0.2)', zIndex: 2 }} />
                                     <p className="text-muted" style={{ fontSize: '9px', fontWeight: 'bold', marginBottom: '2px' }}>PARADA {i + 1}</p>
                                     <p style={{ fontSize: '13px', margin: 0 }}>{s.address}</p>
                                 </div>
                             ))}
 
+                            {/* DESTINO */}
                             <div style={{ position: 'relative' }}>
-                                <div style={{ position: 'absolute', left: '-22px', top: '4px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#FF4848', border: '3px solid rgba(255, 72, 72, 0.2)' }} />
+                                <div style={{ position: 'absolute', left: '-22px', top: '4px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#FF4848', border: '3px solid rgba(255, 72, 72, 0.2)', zIndex: 2 }} />
                                 <p className="text-muted" style={{ fontSize: '9px', fontWeight: 'bold', marginBottom: '2px' }}>DESTINO</p>
                                 <p style={{ fontSize: '13px', fontWeight: '500', margin: 0 }}>{quote.destination_address}</p>
                             </div>
