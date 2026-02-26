@@ -202,6 +202,7 @@ const QuoteDetail = () => {
     };
 
     const statusInfo = getStatusInfo(quote.status);
+    const isLocked = ['completada', 'cancelada'].includes(quote.status);
 
     return (
         <div style={{ paddingBottom: '40px' }}>
@@ -252,7 +253,8 @@ const QuoteDetail = () => {
                             return (
                                 <button
                                     key={s}
-                                    onClick={() => handleStatusChange(s)}
+                                    onClick={() => !isLocked && handleStatusChange(s)}
+                                    disabled={isLocked && quote.status !== s}
                                     title={info.text}
                                     style={{
                                         border: 'none',
@@ -260,13 +262,14 @@ const QuoteDetail = () => {
                                         color: isActive ? 'black' : 'var(--color-text-muted)',
                                         padding: '8px 14px',
                                         borderRadius: '8px',
-                                        cursor: 'pointer',
+                                        cursor: isLocked ? 'default' : 'pointer',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '5px',
                                         fontSize: '11px',
                                         fontWeight: 'bold',
-                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        opacity: isLocked && !isActive ? 0.3 : 1,
                                     }}
                                 >
                                     {isActive ? (
@@ -282,21 +285,23 @@ const QuoteDetail = () => {
                         })}
                     </div>
 
-                    <button
-                        onClick={handleSaveUpdates}
-                        disabled={saving}
-                        className="btn-primary"
-                        style={{
-                            padding: '10px 20px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            fontWeight: 'bold',
-                        }}
-                    >
-                        {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                        Guardar Ajustes
-                    </button>
+                    {!isLocked && (
+                        <button
+                            onClick={handleSaveUpdates}
+                            disabled={saving}
+                            className="btn-primary"
+                            style={{
+                                padding: '10px 20px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontWeight: 'bold',
+                            }}
+                        >
+                            {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                            Guardar Ajustes
+                        </button>
+                    )}
 
                     <button
                         onClick={() => PDFService.generateQuotationPDF(quote)}
@@ -485,17 +490,18 @@ const QuoteDetail = () => {
                                 return (
                                     <div
                                         key={s.id}
-                                        onClick={() => handleServiceToggle(s.id)}
+                                        onClick={() => !isLocked && handleServiceToggle(s.id)}
                                         style={{
                                             padding: '12px 10px',
                                             backgroundColor: isSelected ? 'rgba(255, 72, 72, 0.1)' : 'rgba(255,255,255,0.02)',
                                             borderRadius: '10px',
                                             border: `1px solid ${isSelected ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)'}`,
-                                            cursor: 'pointer',
+                                            cursor: isLocked ? 'default' : 'pointer',
                                             transition: 'all 0.2s',
                                             display: 'flex',
                                             flexDirection: 'column',
-                                            position: 'relative'
+                                            position: 'relative',
+                                            opacity: isLocked && !isSelected ? 0.5 : 1
                                         }}
                                     >
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '4px' }}>
@@ -522,7 +528,13 @@ const QuoteDetail = () => {
                                     type="number"
                                     value={manualAdjustments.lodging_cost}
                                     onChange={(e) => handleAdjustmentChange('lodging_cost', e.target.value)}
-                                    style={{ borderRadius: '8px' }}
+                                    readOnly={isLocked}
+                                    style={{
+                                        borderRadius: '8px',
+                                        backgroundColor: isLocked ? 'rgba(255,255,255,0.02)' : undefined,
+                                        borderColor: isLocked ? 'transparent' : undefined,
+                                        color: isLocked ? 'var(--color-text-muted)' : 'white'
+                                    }}
                                 />
                             </div>
                             <div>
@@ -532,7 +544,13 @@ const QuoteDetail = () => {
                                     type="number"
                                     value={manualAdjustments.meal_cost}
                                     onChange={(e) => handleAdjustmentChange('meal_cost', e.target.value)}
-                                    style={{ borderRadius: '8px' }}
+                                    readOnly={isLocked}
+                                    style={{
+                                        borderRadius: '8px',
+                                        backgroundColor: isLocked ? 'rgba(255,255,255,0.02)' : undefined,
+                                        borderColor: isLocked ? 'transparent' : undefined,
+                                        color: isLocked ? 'var(--color-text-muted)' : 'white'
+                                    }}
                                 />
                             </div>
                         </div>

@@ -201,8 +201,7 @@ export class QuotationModel extends BaseModel {
             'vehicle_id', 'distance_total', 'time_total', 'toll_cost',
             'num_trayectos', 'num_casetas', 'costo_casetas_unit',
             'gas_price_applied', 'factor_maniobra_applied', 'factor_trafico_applied',
-            'logistics_cost_raw', 'costo_logistico_redondeado', 'gas_cost',
-            'service_costs'
+            'logistics_cost_raw', 'costo_logistico_redondeado', 'gas_cost'
         ];
 
         const updates = [];
