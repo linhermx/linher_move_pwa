@@ -142,7 +142,7 @@ const History = () => {
                                                 {q.destination_address.split(',')[0]}
                                             </p>
                                         </td>
-                                        <td style={{ padding: '16px', fontWeight: 'bold' }}>${q.total.toLocaleString()}</td>
+                                        <td style={{ padding: '16px', fontWeight: 'bold' }}>${Number(q.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                         <td style={{ padding: '16px' }}>
                                             <span style={{
                                                 fontSize: '11px',
