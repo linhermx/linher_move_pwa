@@ -8,8 +8,10 @@ import {
     MapsController,
     QuotationController,
     ServiceController,
-    AuthController
+    AuthController,
+    UserController
 } from './controllers/Controllers.js';
+import { UserModel } from './models/UserModel.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -26,7 +28,8 @@ const __dirname = path.dirname(__filename);
 // Multer configuration
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const uploadDir = path.join(__dirname, '../uploads/vehicles');
+        const entity = req.body.entity || 'general';
+        const uploadDir = path.join(__dirname, `../uploads/${entity}`);
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
         }
@@ -56,6 +59,7 @@ const mapsCtrl = MapsController();
 const quotationCtrl = QuotationController(pool);
 const serviceCtrl = ServiceController(pool);
 const authCtrl = AuthController(pool);
+const userCtrl = UserController(pool);
 
 // Auth
 v1.post('/auth/login', authCtrl.login);
@@ -88,6 +92,16 @@ v1.get('/quotations', quotationCtrl.list);
 v1.get('/quotations/:id', quotationCtrl.show);
 v1.post('/quotations', quotationCtrl.create);
 v1.put('/quotations/:id', quotationCtrl.update);
+
+// Users & Permissions
+v1.get('/users', userCtrl.list);
+v1.get('/users/roles', userCtrl.listRoles);
+v1.get('/users/permissions', userCtrl.listPermissions);
+v1.get('/users/:id', userCtrl.show);
+v1.post('/users', upload.single('photo'), userCtrl.create);
+v1.put('/users/:id', upload.single('photo'), userCtrl.update);
+v1.delete('/users/:id', userCtrl.delete);
+v1.post('/users/:id/permissions', userCtrl.updatePermissions);
 
 // Mount
 app.use('/api/v1', v1);

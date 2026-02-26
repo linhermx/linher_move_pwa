@@ -11,7 +11,7 @@ const Sidebar = () => {
         { name: 'Flota', path: '/fleet', icon: <Truck size={20} /> },
         { name: 'Servicios', path: '/services', icon: <Package size={20} /> },
         { name: 'Ajustes', path: '/settings', icon: <SettingsIcon size={20} /> },
-        { name: 'Usuarios', path: '/admin/users', icon: <Users size={20} /> },
+        { name: 'Usuarios', path: '/users', icon: <Users size={20} /> },
     ];
 
     return (

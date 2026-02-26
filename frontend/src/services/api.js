@@ -100,4 +100,39 @@ export const authService = {
     }
 };
 
+export const userService = {
+    list: async () => {
+        const response = await apiClient.get('/users');
+        return response.data;
+    },
+    listRoles: async () => {
+        const response = await apiClient.get('/users/roles');
+        return response.data;
+    },
+    listPermissions: async () => {
+        const response = await apiClient.get('/users/permissions');
+        return response.data;
+    },
+    get: async (id) => {
+        const response = await apiClient.get(`/users/${id}`);
+        return response.data;
+    },
+    create: async (data) => {
+        const response = await apiClient.post('/users', data);
+        return response.data;
+    },
+    update: async (id, data) => {
+        const response = await apiClient.put(`/users/${id}`, data);
+        return response.data;
+    },
+    delete: async (id) => {
+        const response = await apiClient.delete(`/users/${id}`);
+        return response.data;
+    },
+    updatePermissions: async (id, permissions) => {
+        const response = await apiClient.post(`/users/${id}/permissions`, { permissions });
+        return response.data;
+    }
+};
+
 export default apiClient;

@@ -1,4 +1,5 @@
 import { VehicleModel, SettingsModel, ServiceModel } from '../models/OtherModels.js';
+import { UserModel } from '../models/UserModel.js';
 import { ProxyService } from '../services/ProxyService.js';
 import { QuotationModel } from '../models/QuotationModel.js';
 import { AuthModel } from '../models/AuthModel.js';
@@ -295,16 +296,84 @@ export const AuthController = (db) => {
                     return res.status(401).json({ message: "Contraseña incorrecta" });
                 }
 
-                // Remove sensitive data
-                delete user.password;
+                // consolidated perms = Role Perms (TBD) + Individual Perms
+                // For now, let's fetch individual perms
+                const userModel = new UserModel(db);
+                const fullUser = await userModel.getByIdWithPermissions(user.id);
 
                 res.json({
-                    user,
+                    user: fullUser,
                     message: "Login exitoso"
                 });
             } catch (error) {
                 console.error(error);
                 res.status(500).json({ message: "Error en el servidor" });
+            }
+        }
+    };
+};
+
+export const UserController = (db) => {
+    const model = new UserModel(db);
+    return {
+        list: async (req, res) => {
+            const users = await model.getAllWithRoles();
+            res.json(users);
+        },
+        listRoles: async (req, res) => {
+            const roles = await model.getAllRoles();
+            res.json(roles);
+        },
+        listPermissions: async (req, res) => {
+            const perms = await model.getAllPermissions();
+            res.json(perms);
+        },
+        show: async (req, res) => {
+            const user = await model.getByIdWithPermissions(req.params.id);
+            if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+            res.json(user);
+        },
+        create: async (req, res) => {
+            try {
+                const userData = {
+                    ...req.body,
+                    photo_path: req.file ? `uploads/users/${req.file.filename}` : null
+                };
+                const id = await model.create(userData);
+                res.status(201).json({ id, message: "Usuario creado" });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        },
+        update: async (req, res) => {
+            try {
+                const userData = {
+                    ...req.body,
+                    photo_path: req.file ? `uploads/users/${req.file.filename}` : undefined
+                };
+                const success = await model.update(req.params.id, userData);
+                if (!success) return res.status(404).json({ message: "Usuario no encontrado" });
+                res.json({ message: "Usuario actualizado" });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        },
+        delete: async (req, res) => {
+            try {
+                const success = await model.delete(req.params.id);
+                if (!success) return res.status(404).json({ message: "Usuario eliminado" });
+                res.json({ message: "Usuario eliminado" });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        },
+        updatePermissions: async (req, res) => {
+            try {
+                const { permissions } = req.body; // array of slugs
+                await model.setPermissions(req.params.id, permissions);
+                res.json({ message: "Permisos actualizados" });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
             }
         }
     };
