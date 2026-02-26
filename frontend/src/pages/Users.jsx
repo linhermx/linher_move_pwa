@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Search, Shield, Edit2, Trash2, Key, Check, X, Camera } from 'lucide-react';
+import { UserPlus, Search, Shield, Edit2, Trash2, Key, Check, X, Camera, MoreVertical } from 'lucide-react';
 import { userService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import ConfirmModal from '../components/ConfirmModal';
 import UserModal from '../components/UserModal';
 import { formatDate } from '../utils/formatters';
+import CustomMenu from '../components/CustomMenu';
 
 const Users = () => {
     const [users, setUsers] = useState([]);
@@ -202,27 +203,26 @@ const Users = () => {
                                         {formatDate(u.created_at)}
                                     </td>
                                     <td style={{ padding: '16px', textAlign: 'right' }}>
-                                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                                            <button
-                                                title="Permisos Especiales"
-                                                onClick={() => handleEditPermissions(u)}
-                                                style={{ background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', padding: '5px' }}
-                                            >
-                                                <Shield size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => { setEditingUser(u); setIsModalOpen(true); }}
-                                                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: '5px' }}
-                                            >
-                                                <Edit2 size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteClick(u)}
-                                                style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: '5px' }}
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
+                                        <CustomMenu
+                                            options={[
+                                                {
+                                                    label: 'Permisos',
+                                                    icon: <Shield />,
+                                                    onClick: () => handleEditPermissions(u)
+                                                },
+                                                {
+                                                    label: 'Editar Usuario',
+                                                    icon: <Edit2 />,
+                                                    onClick: () => { setEditingUser(u); setIsModalOpen(true); }
+                                                },
+                                                {
+                                                    label: 'Eliminar',
+                                                    icon: <Trash2 />,
+                                                    variant: 'danger',
+                                                    onClick: () => handleDeleteClick(u)
+                                                }
+                                            ]}
+                                        />
                                     </td>
                                 </tr>
                             ))

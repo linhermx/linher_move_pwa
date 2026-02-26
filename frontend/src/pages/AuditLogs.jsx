@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDate, formatTime, formatDateTime } from '../utils/formatters';
+import CustomSelect from '../components/CustomSelect';
 
 const AuditLogs = () => {
     const navigate = useNavigate();
@@ -141,33 +142,31 @@ const AuditLogs = () => {
                     <div style={{ display: 'flex', flex: '3', gap: '12px', flexWrap: 'wrap' }}>
                         {/* Type */}
                         <div style={{ flex: 1, minWidth: '140px', display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '0 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', height: '42px' }}>
-                            <Filter size={16} className="text-muted" />
-                            <select
-                                style={{ backgroundColor: 'transparent', border: 'none', color: 'white', width: '100%', outline: 'none', fontSize: '13px', cursor: 'pointer' }}
+                            <CustomSelect
+                                icon={Filter}
                                 value={filters.log_type}
                                 onChange={(e) => setFilters(prev => ({ ...prev, log_type: e.target.value, offset: 0 }))}
-                            >
-                                <option value="" style={{ backgroundColor: 'var(--color-surface)' }}>Todos los tipos</option>
-                                <option value="auth" style={{ backgroundColor: 'var(--color-surface)' }}>Seguridad</option>
-                                <option value="business" style={{ backgroundColor: 'var(--color-surface)' }}>Negocio</option>
-                                <option value="config" style={{ backgroundColor: 'var(--color-surface)' }}>Ajustes</option>
-                                <option value="system" style={{ backgroundColor: 'var(--color-surface)' }}>Sistema</option>
-                            </select>
+                                options={[
+                                    { value: '', label: 'Todos los tipos' },
+                                    { value: 'auth', label: 'Seguridad' },
+                                    { value: 'business', label: 'Negocio' },
+                                    { value: 'config', label: 'Ajustes' },
+                                    { value: 'system', label: 'Sistema' }
+                                ]}
+                            />
                         </div>
 
                         {/* User */}
                         <div style={{ flex: 1, minWidth: '140px', display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '0 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', height: '42px' }}>
-                            <User size={16} className="text-muted" />
-                            <select
-                                style={{ backgroundColor: 'transparent', border: 'none', color: 'white', width: '100%', outline: 'none', fontSize: '13px', cursor: 'pointer' }}
+                            <CustomSelect
+                                icon={User}
                                 value={filters.user_id}
                                 onChange={(e) => setFilters(prev => ({ ...prev, user_id: e.target.value, offset: 0 }))}
-                            >
-                                <option value="" style={{ backgroundColor: 'var(--color-surface)' }}>Cualquier usuario</option>
-                                {users.map(u => (
-                                    <option key={u.id} value={u.id} style={{ backgroundColor: 'var(--color-surface)' }}>{u.name}</option>
-                                ))}
-                            </select>
+                                options={[
+                                    { value: '', label: 'Cualquier usuario' },
+                                    ...users.map(u => ({ value: u.id, label: u.name }))
+                                ]}
+                            />
                         </div>
 
                         {/* Dates */}

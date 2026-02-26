@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, AlertCircle, User, Shield, Camera } from 'lucide-react';
 import { userService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
+import CustomSelect from './CustomSelect';
 
 const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }) => {
     const isEdit = !!editData;
@@ -217,41 +218,29 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                             <label style={{ display: 'block', fontSize: '11px', marginBottom: '8px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>
                                 ROL DEL SISTEMA
                             </label>
-                            <select
-                                name="role_id"
-                                value={formData.role_id}
-                                onChange={handleChange}
-                                style={{
-                                    width: '100%', padding: '12px', backgroundColor: 'var(--color-surface)',
-                                    border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
-                                    color: 'white', outline: 'none'
-                                }}
-                            >
-                                <option value="">Seleccionar rol</option>
-                                {roles.map(role => (
-                                    <option key={role.id} value={role.id}>
-                                        {role.name.toUpperCase()}
-                                    </option>
-                                ))}
-                            </select>
+                            <div style={{ padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+                                <CustomSelect
+                                    placeholder="Seleccionar rol"
+                                    value={formData.role_id}
+                                    onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
+                                    options={roles.map(role => ({ value: role.id, label: role.name.toUpperCase() }))}
+                                />
+                            </div>
                         </div>
                         <div>
                             <label style={{ display: 'block', fontSize: '11px', marginBottom: '8px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>
                                 ESTATUS
                             </label>
-                            <select
-                                name="status"
-                                value={formData.status}
-                                onChange={handleChange}
-                                style={{
-                                    width: '100%', padding: '12px', backgroundColor: 'var(--color-surface)',
-                                    border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
-                                    color: 'white', outline: 'none'
-                                }}
-                            >
-                                <option value="active">Activo</option>
-                                <option value="inactive">Inactivo</option>
-                            </select>
+                            <div style={{ padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+                                <CustomSelect
+                                    value={formData.status}
+                                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                    options={[
+                                        { value: 'active', label: 'ACTIVO' },
+                                        { value: 'inactive', label: 'INACTIVO' }
+                                    ]}
+                                />
+                            </div>
                         </div>
                     </div>
 

@@ -5,6 +5,7 @@ import ServiceModal from '../components/ServiceModal';
 import ConfirmModal from '../components/ConfirmModal';
 import StatusView from '../components/StatusView';
 import { useNotification } from '../context/NotificationContext';
+import CustomMenu from '../components/CustomMenu';
 
 const Services = () => {
     const [services, setServices] = useState([]);
@@ -105,35 +106,21 @@ const Services = () => {
                                 }}>
                                     <Clock size={24} />
                                 </div>
-                                <div style={{ position: 'relative' }}>
-                                    <button
-                                        onClick={() => setActiveMenu(activeMenu === service.id ? null : service.id)}
-                                        style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: '4px' }}
-                                    >
-                                        <MoreVertical size={20} />
-                                    </button>
-                                    {activeMenu === service.id && (
-                                        <div style={{
-                                            position: 'absolute', top: '100%', right: 0,
-                                            backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)',
-                                            borderRadius: 'var(--radius-md)', zIndex: 10, minWidth: '150px',
-                                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)', overflow: 'hidden'
-                                        }}>
-                                            <button
-                                                onClick={() => { setEditingService(service); setIsModalOpen(true); setActiveMenu(null); }}
-                                                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: 'none', border: 'none', color: 'white', cursor: 'pointer', textAlign: 'left' }}
-                                            >
-                                                <Edit2 size={16} /> Editar
-                                            </button>
-                                            <button
-                                                onClick={() => { setServiceToDelete(service.id); setIsConfirmOpen(true); setActiveMenu(null); }}
-                                                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', textAlign: 'left' }}
-                                            >
-                                                <Trash2 size={16} /> Eliminar
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
+                                <CustomMenu
+                                    options={[
+                                        {
+                                            label: 'Editar',
+                                            icon: <Edit2 />,
+                                            onClick: () => { setEditingService(service); setIsModalOpen(true); }
+                                        },
+                                        {
+                                            label: 'Eliminar',
+                                            icon: <Trash2 />,
+                                            variant: 'danger',
+                                            onClick: () => { setServiceToDelete(service.id); setIsConfirmOpen(true); }
+                                        }
+                                    ]}
+                                />
                             </div>
 
                             <h3 style={{ fontSize: '18px', marginBottom: '4px' }}>{service.name}</h3>

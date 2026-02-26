@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Save, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { vehicleService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
+import CustomSelect from './CustomSelect';
 
 const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) => {
     const isEdit = !!editData;
@@ -297,24 +298,17 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                         <label style={{ display: 'block', fontSize: '12px', marginBottom: '8px', color: 'var(--color-text-muted)' }}>
                             ESTATUS INICIAL
                         </label>
-                        <select
-                            name="status"
-                            value={formData.status}
-                            onChange={handleChange}
-                            style={{
-                                width: '100%',
-                                padding: '12px',
-                                backgroundColor: 'var(--color-surface)',
-                                border: '1px solid var(--color-border)',
-                                borderRadius: 'var(--radius-md)',
-                                color: 'white',
-                                outline: 'none'
-                            }}
-                        >
-                            <option value="available">Disponible</option>
-                            <option value="in_route">En Ruta</option>
-                            <option value="maintenance">Mantenimiento</option>
-                        </select>
+                        <div style={{ padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+                            <CustomSelect
+                                value={formData.status}
+                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                options={[
+                                    { value: 'available', label: 'Disponible' },
+                                    { value: 'in_route', label: 'En Ruta' },
+                                    { value: 'maintenance', label: 'Mantenimiento' }
+                                ]}
+                            />
+                        </div>
                     </div>
 
                     <div style={{ marginTop: 'var(--spacing-md)', display: 'flex', gap: 'var(--spacing-md)' }}>

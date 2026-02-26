@@ -4,6 +4,7 @@ import MapComponent from '../components/MapComponent';
 import { mapsService, vehicleService, serviceService, settingsService, quotationService } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { useNotification } from '../context/NotificationContext';
+import CustomSelect from '../components/CustomSelect';
 import { MapPin, Trash2, Plus, Loader2, Calculator, Truck, Package, ChevronRight, ChevronDown, Info, Clock, Check, Printer, X, Link as LinkIcon } from 'lucide-react';
 import { CalculationMotor } from '../utils/CalculationMotor';
 
@@ -546,16 +547,17 @@ const NewQuote = () => {
                             <div style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                                 <div>
                                     <label className="text-muted" style={{ display: 'block', fontSize: '10px', fontWeight: 'bold', marginBottom: '6px' }}>VEHÍCULO</label>
-                                    <select
-                                        className="form-field"
-                                        onChange={(e) => setSelectedVehicle(vehicles.find(v => v.id === parseInt(e.target.value)))}
-                                        value={selectedVehicle?.id || ''}
-                                    >
-                                        <option value="">Seleccionar vehículo...</option>
-                                        {vehicles.map(v => (
-                                            <option key={v.id} value={v.id}>{v.name} ({v.plate})</option>
-                                        ))}
-                                    </select>
+                                    <div style={{ padding: '12px', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+                                        <CustomSelect
+                                            placeholder="Seleccionar vehículo..."
+                                            value={selectedVehicle?.id || ''}
+                                            onChange={(e) => {
+                                                const vehicle = vehicles.find(v => v.id === parseInt(e.target.value));
+                                                setSelectedVehicle(vehicle);
+                                            }}
+                                            options={vehicles.map(v => ({ value: v.id, label: `${v.name} (${v.plate})` }))}
+                                        />
+                                    </div>
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>

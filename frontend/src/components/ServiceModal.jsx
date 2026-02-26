@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, AlertCircle } from 'lucide-react';
 import { serviceService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
+import CustomSelect from './CustomSelect';
 
 const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
     const isEdit = !!editData;
@@ -146,13 +147,16 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
 
                     <div>
                         <label className="text-muted" style={{ display: 'block', fontSize: '12px', marginBottom: '8px' }}>ESTADO</label>
-                        <select
-                            name="status" value={formData.status} onChange={handleChange}
-                            style={{ width: '100%', padding: '12px', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}
-                        >
-                            <option value="active">Activo</option>
-                            <option value="inactive">Inactivo</option>
-                        </select>
+                        <div style={{ padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+                            <CustomSelect
+                                value={formData.status}
+                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                options={[
+                                    { value: 'active', label: 'Activo' },
+                                    { value: 'inactive', label: 'Inactivo' }
+                                ]}
+                            />
+                        </div>
                     </div>
 
                     <div style={{ marginTop: 'var(--spacing-md)', display: 'flex', gap: 'var(--spacing-md)' }}>

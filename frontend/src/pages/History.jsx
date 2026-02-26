@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Eye, FileText, Calendar, RotateCcw } from 'lucide-react';
+import { Search, Filter, Eye, FileText, Calendar, RotateCcw, MoreVertical } from 'lucide-react';
 import { quotationService } from '../services/api';
 import { PDFService } from '../services/PDFService';
 import { formatDate } from '../utils/formatters';
+import CustomSelect from '../components/CustomSelect';
+import CustomMenu from '../components/CustomMenu';
 
 const History = () => {
     const navigate = useNavigate();
@@ -108,19 +110,19 @@ const History = () => {
 
                     {/* Period Selector */}
                     <div style={{ flex: '1', minWidth: '150px', display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '0 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', height: '42px' }}>
-                        <Calendar size={16} className="text-muted" />
-                        <select
-                            style={{ backgroundColor: 'transparent', border: 'none', color: 'white', width: '100%', outline: 'none', fontSize: '13px', cursor: 'pointer' }}
+                        <CustomSelect
+                            icon={Calendar}
                             value={period}
                             onChange={(e) => setPeriod(e.target.value)}
-                        >
-                            <option value="" style={{ backgroundColor: 'var(--color-surface)' }}>Cualquier fecha</option>
-                            <option value="today" style={{ backgroundColor: 'var(--color-surface)' }}>Hoy</option>
-                            <option value="week" style={{ backgroundColor: 'var(--color-surface)' }}>Esta semana</option>
-                            <option value="month" style={{ backgroundColor: 'var(--color-surface)' }}>Este mes</option>
-                            <option value="year" style={{ backgroundColor: 'var(--color-surface)' }}>Este año</option>
-                            <option value="custom" style={{ backgroundColor: 'var(--color-surface)' }}>Personalizado...</option>
-                        </select>
+                            options={[
+                                { value: '', label: 'Cualquier fecha' },
+                                { value: 'today', label: 'Hoy' },
+                                { value: 'week', label: 'Esta semana' },
+                                { value: 'month', label: 'Este mes' },
+                                { value: 'year', label: 'Este año' },
+                                { value: 'custom', label: 'Personalizado...' }
+                            ]}
+                        />
                     </div>
 
                     {/* Custom Range (Inline) */}
@@ -144,18 +146,18 @@ const History = () => {
 
                     {/* Status */}
                     <div style={{ flex: '1', minWidth: '150px', display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '0 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', height: '42px' }}>
-                        <Filter size={16} className="text-muted" />
-                        <select
-                            style={{ backgroundColor: 'transparent', border: 'none', color: 'white', width: '100%', outline: 'none', fontSize: '13px', cursor: 'pointer' }}
+                        <CustomSelect
+                            icon={Filter}
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                        >
-                            <option value="" style={{ backgroundColor: 'var(--color-surface)' }}>Todos los estatus</option>
-                            <option value="pendiente" style={{ backgroundColor: 'var(--color-surface)' }}>Pendiente</option>
-                            <option value="en_proceso" style={{ backgroundColor: 'var(--color-surface)' }}>En Proceso</option>
-                            <option value="completada" style={{ backgroundColor: 'var(--color-surface)' }}>Completada</option>
-                            <option value="cancelada" style={{ backgroundColor: 'var(--color-surface)' }}>Cancelada</option>
-                        </select>
+                            options={[
+                                { value: '', label: 'Todos los estatus' },
+                                { value: 'pendiente', label: 'Pendiente' },
+                                { value: 'en_proceso', label: 'En Proceso' },
+                                { value: 'completada', label: 'Completada' },
+                                { value: 'cancelada', label: 'Cancelada' }
+                            ]}
+                        />
                     </div>
 
                     {/* Clear Button */}
@@ -228,10 +230,20 @@ const History = () => {
                                             <span style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '12px', backgroundColor: status.bg, color: status.color, textTransform: 'uppercase', fontWeight: 'bold' }}>{status.text}</span>
                                         </td>
                                         <td style={{ padding: '16px', textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                                                <Eye size={18} className="text-muted" cursor="pointer" onClick={() => navigate(`/history/${q.id}`)} />
-                                                <FileText size={18} className="text-muted" cursor="pointer" title="Generar PDF" onClick={() => PDFService.generateQuotationPDF(q)} />
-                                            </div>
+                                            <CustomMenu
+                                                options={[
+                                                    {
+                                                        label: 'Ver Detalles',
+                                                        icon: <Eye />,
+                                                        onClick: () => navigate(`/history/${q.id}`)
+                                                    },
+                                                    {
+                                                        label: 'Generar PDF',
+                                                        icon: <FileText />,
+                                                        onClick: () => PDFService.generateQuotationPDF(q)
+                                                    }
+                                                ]}
+                                            />
                                         </td>
                                     </tr>
                                 );

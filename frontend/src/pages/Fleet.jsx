@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Truck, Plus, MoreVertical } from 'lucide-react';
+import { Truck, Plus, Edit2, Trash2 } from 'lucide-react';
 import { vehicleService } from '../services/api';
 import VehicleModal from '../components/VehicleModal';
 import ConfirmModal from '../components/ConfirmModal';
 import StatusView from '../components/StatusView';
 import { useNotification } from '../context/NotificationContext';
+import CustomMenu from '../components/CustomMenu';
 
 const Fleet = () => {
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [activeMenu, setActiveMenu] = useState(null);
     const [editingVehicle, setEditingVehicle] = useState(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [vehicleToDelete, setVehicleToDelete] = useState(null);
@@ -46,13 +46,11 @@ const Fleet = () => {
     const handleEdit = (vehicle) => {
         setEditingVehicle(vehicle);
         setIsModalOpen(true);
-        setActiveMenu(null);
     };
 
     const handleDeleteClick = (id) => {
         setVehicleToDelete(id);
         setIsConfirmOpen(true);
-        setActiveMenu(null);
     };
 
     const confirmDelete = async () => {
@@ -69,17 +67,7 @@ const Fleet = () => {
         }
     };
 
-    const toggleMenu = (e, id) => {
-        e.stopPropagation();
-        setActiveMenu(activeMenu === id ? null : id);
-    };
 
-    // Close menu when clicking outside
-    useEffect(() => {
-        const closeMenu = () => setActiveMenu(null);
-        window.addEventListener('click', closeMenu);
-        return () => window.removeEventListener('click', closeMenu);
-    }, []);
 
     return (
         <div>
@@ -165,45 +153,21 @@ const Fleet = () => {
                                         <p className="text-muted" style={{ fontSize: '12px' }}>Placas: {v.plate}</p>
                                     </div>
                                 </div>
-                                <div style={{ position: 'relative' }}>
-                                    <div
-                                        onClick={(e) => toggleMenu(e, v.id)}
-                                        style={{ cursor: 'pointer', padding: '4px', borderRadius: '4px', backgroundColor: activeMenu === v.id ? 'rgba(255, 255, 255, 0.05)' : 'transparent' }}
-                                    >
-                                        <MoreVertical size={18} className="text-muted" />
-                                    </div>
-
-                                    {activeMenu === v.id && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            top: '100%',
-                                            right: 0,
-                                            backgroundColor: 'var(--color-surface)',
-                                            border: '1px solid var(--color-border)',
-                                            borderRadius: 'var(--radius-sm)',
-                                            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                                            zIndex: 100,
-                                            minWidth: '120px',
-                                            padding: '4px 0',
-                                            animation: 'fade-in 0.2s ease-out'
-                                        }}>
-                                            <div
-                                                onClick={() => handleEdit(v)}
-                                                style={{ padding: '8px 16px', fontSize: '12px', cursor: 'pointer', hover: { backgroundColor: 'rgba(255,255,255,0.05)' } }}
-                                                className="menu-item"
-                                            >
-                                                Editar
-                                            </div>
-                                            <div
-                                                onClick={() => handleDeleteClick(v.id)}
-                                                style={{ padding: '8px 16px', fontSize: '12px', cursor: 'pointer', color: 'var(--color-primary)' }}
-                                                className="menu-item"
-                                            >
-                                                Eliminar
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
+                                <CustomMenu
+                                    options={[
+                                        {
+                                            label: 'Editar',
+                                            icon: <Edit2 />,
+                                            onClick: () => handleEdit(v)
+                                        },
+                                        {
+                                            label: 'Eliminar',
+                                            icon: <Trash2 />,
+                                            variant: 'danger',
+                                            onClick: () => handleDeleteClick(v.id)
+                                        }
+                                    ]}
+                                />
                             </div>
 
                             <div style={{ display: 'flex', gap: '20px', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-md)' }}>
