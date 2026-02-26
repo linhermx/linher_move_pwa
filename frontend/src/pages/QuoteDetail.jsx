@@ -15,7 +15,8 @@ import {
     CheckCircle,
     XCircle,
     Loader2,
-    Download
+    Download,
+    Fuel
 } from 'lucide-react';
 import { PDFService } from '../services/PDFService';
 
@@ -205,7 +206,7 @@ const QuoteDetail = () => {
     const isLocked = ['completada', 'cancelada'].includes(quote.status);
 
     return (
-        <div style={{ paddingBottom: '40px' }}>
+        <div>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-xl)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -325,12 +326,12 @@ const QuoteDetail = () => {
             </div>
 
             {/* Main Content Layout */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
 
                 {/* Top Row: Map & Main Breakdown */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: 'var(--spacing-lg)', alignItems: 'stretch' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: 'var(--spacing-md)', alignItems: 'stretch' }}>
                     {/* Map Detail */}
-                    <div className="card" style={{ height: '500px', padding: 0, position: 'relative', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
+                    <div className="card" style={{ height: '100%', padding: 0, position: 'relative', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
                         <MapComponent
                             points={[
                                 { address: quote.origin_address, lat: quote.origin_lat, lng: quote.origin_lng },
@@ -342,104 +343,158 @@ const QuoteDetail = () => {
                         />
                     </div>
 
-                    {/* Detailed Breakdown Card */}
-                    <div className="card" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                        <div style={{
-                            position: 'absolute',
-                            top: '15px',
-                            right: '20px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            fontSize: '10px',
-                            color: 'var(--color-primary)',
-                            fontWeight: 'bold'
-                        }}>
-                            <Calculator size={12} /> DESGLOSE DETALLADO
-                        </div>
+                    {/* Right Column: Vehicle & Breakdown */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                        {/* Vehicle Assigned Card */}
+                        {(() => {
+                            const assignedVehicle = vehicles.find(v => v.id === quote.vehicle_id);
+                            if (!assignedVehicle) return null;
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '25px' }}>
-                            <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
-                                <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>DIST. TOTAL</p>
-                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{Number(currentBreakdown.distance_total || quote.distance_total || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km</p>
-                            </div>
-                            <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
-                                <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>TIEMPO TOTAL</p>
-                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{CalculationMotor.formatMinutes(currentBreakdown.time_total || quote.time_total)}</p>
-                            </div>
-                            <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
-                                <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>C/ TRÁFICO</p>
-                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{CalculationMotor.formatMinutes(currentBreakdown.time_traffic_min || quote.time_traffic_min || (quote.time_total * 1.15))}</p>
-                            </div>
-                            <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
-                                <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>C/ SERVICIOS</p>
-                                <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{CalculationMotor.formatMinutes(currentBreakdown.time_services_min || quote.time_services_min || (quote.time_total + (quote.service_time || 0)))}</p>
-                            </div>
-                        </div>
+                            return (
+                                <div className="card" style={{ padding: '10px 15px', position: 'relative', overflow: 'hidden' }}>
+                                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                        {/* Vehicle Photo (Smaller) */}
+                                        <div style={{
+                                            width: '45px',
+                                            height: '45px',
+                                            borderRadius: '8px',
+                                            backgroundColor: 'rgba(255,255,255,0.05)',
+                                            border: '1px solid var(--color-border)',
+                                            overflow: 'hidden',
+                                            display: 'flex',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            flexShrink: 0
+                                        }}>
+                                            {assignedVehicle.photo_path ? (
+                                                <img src={`http://localhost:3000/${assignedVehicle.photo_path}`} alt={assignedVehicle.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <Truck size={20} className="text-muted" />
+                                            )}
+                                        </div>
 
-                        <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                <span className="text-muted">Gasolina ({Number(quote.gas_liters || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L)</span>
-                                <span>${Number(quote.gas_cost || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        {/* Vehicle Info (Compacted) */}
+                                        <div style={{ flex: 1 }}>
+                                            <p style={{ fontSize: '10px', color: 'var(--color-primary)', fontWeight: 'bold', margin: '0 0 1px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Unidad Asignada</p>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 'bold' }}>{assignedVehicle.name}</h4>
+                                                <span style={{
+                                                    backgroundColor: 'rgba(255,255,255,0.05)',
+                                                    padding: '1px 6px',
+                                                    borderRadius: '4px',
+                                                    fontSize: '10px',
+                                                    fontWeight: 'bold',
+                                                    border: '1px solid var(--color-border)',
+                                                    color: 'var(--color-text-muted)'
+                                                }}>
+                                                    {assignedVehicle.plate}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* Detailed Breakdown Card */}
+                        <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                            <div style={{
+                                position: 'absolute',
+                                top: '15px',
+                                right: '20px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                fontSize: '10px',
+                                color: 'var(--color-primary)',
+                                fontWeight: 'bold'
+                            }}>
+                                <Calculator size={12} /> DESGLOSE DETALLADO
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                <span className="text-muted">Casetas ({quote.num_casetas || 0})</span>
-                                <span>${Number(quote.toll_cost || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '25px' }}>
+                                <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
+                                    <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>DIST. TOTAL</p>
+                                    <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{Number(currentBreakdown.distance_total || quote.distance_total || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km</p>
+                                </div>
+                                <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
+                                    <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>TIEMPO TOTAL</p>
+                                    <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{CalculationMotor.formatMinutes(currentBreakdown.time_total || quote.time_total)}</p>
+                                </div>
+                                <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
+                                    <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>C/ TRÁFICO</p>
+                                    <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{CalculationMotor.formatMinutes(currentBreakdown.time_traffic_min || quote.time_traffic_min || (quote.time_total * 1.15))}</p>
+                                </div>
+                                <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
+                                    <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>C/ SERVICIOS</p>
+                                    <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{CalculationMotor.formatMinutes(currentBreakdown.time_services_min || quote.time_services_min || (quote.time_total + (quote.service_time || 0)))}</p>
+                                </div>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>Costo Logístico (Flete)</span>
-                                <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>${Number(quote.logistics_cost_rounded || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                            </div>
-                            <div style={{ height: '1px', backgroundColor: 'var(--color-border)', margin: '8px 0' }} />
-                            {currentBreakdown.lodging_cost > 0 && (
+
+                            <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                    <span className="text-muted">Hospedaje</span>
-                                    <span className={currentBreakdown.lodging_cost !== quote.lodging_cost ? 'text-primary' : ''}>
-                                        ${Number(currentBreakdown.lodging_cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    <span className="text-muted">Gasolina ({Number(quote.gas_liters || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L)</span>
+                                    <span>${Number(quote.gas_cost || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                    <span className="text-muted">Casetas ({quote.num_casetas || 0})</span>
+                                    <span>${Number(quote.toll_cost || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                    <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>Costo Logístico (Flete)</span>
+                                    <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>${Number(quote.logistics_cost_rounded || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div style={{ height: '1px', backgroundColor: 'var(--color-border)', margin: '8px 0' }} />
+                                {currentBreakdown.lodging_cost > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                        <span className="text-muted">Hospedaje</span>
+                                        <span className={currentBreakdown.lodging_cost !== quote.lodging_cost ? 'text-primary' : ''}>
+                                            ${Number(currentBreakdown.lodging_cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                )}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                    <span className="text-muted">Alimentos</span>
+                                    <span className={currentBreakdown.meal_cost !== quote.meal_cost ? 'text-primary' : ''}>
+                                        ${Number(currentBreakdown.meal_cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </span>
                                 </div>
-                            )}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                <span className="text-muted">Alimentos</span>
-                                <span className={currentBreakdown.meal_cost !== quote.meal_cost ? 'text-primary' : ''}>
-                                    ${Number(currentBreakdown.meal_cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                    <span className="text-muted">Servicios Extra</span>
+                                    <span className={currentBreakdown.service_costs !== quote.service_costs ? 'text-primary' : ''}>
+                                        ${Number(currentBreakdown.service_costs || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                <span className="text-muted">Servicios Extra</span>
-                                <span className={currentBreakdown.service_costs !== quote.service_costs ? 'text-primary' : ''}>
-                                    ${Number(currentBreakdown.service_costs || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </span>
-                            </div>
-                        </div>
 
-                        <div style={{ marginTop: 'auto', paddingTop: '15px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '4px' }}>
-                                <span className="text-muted">Subtotal</span>
-                                <span>${Number(currentBreakdown.subtotal).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '12px' }}>
-                                <span className="text-muted">IVA (16%)</span>
-                                <span>${Number(currentBreakdown.iva).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                            </div>
-                            <div style={{
-                                backgroundColor: 'rgba(255, 72, 72, 0.08)',
-                                padding: '15px',
-                                borderRadius: '12px',
-                                border: '1px solid rgba(255, 72, 72, 0.2)',
-                                textAlign: 'right'
-                            }}>
-                                <p className="text-muted" style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px', color: 'rgba(255,255,255,0.6)' }}>TOTAL NETO</p>
-                                <p style={{ fontSize: '28px', fontWeight: 'bold', color: 'var(--color-primary)', margin: 0 }}>
-                                    ${Number(currentBreakdown.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </p>
+                            <div style={{ marginTop: 'auto', paddingTop: '15px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '4px' }}>
+                                    <span className="text-muted">Subtotal</span>
+                                    <span>${Number(currentBreakdown.subtotal).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '12px' }}>
+                                    <span className="text-muted">IVA (16%)</span>
+                                    <span>${Number(currentBreakdown.iva).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div style={{
+                                    backgroundColor: 'rgba(255, 72, 72, 0.08)',
+                                    padding: '15px',
+                                    borderRadius: '12px',
+                                    border: '1px solid rgba(255, 72, 72, 0.2)',
+                                    textAlign: 'right'
+                                }}>
+                                    <p className="text-muted" style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px', color: 'rgba(255,255,255,0.6)' }}>TOTAL NETO</p>
+                                    <p style={{ fontSize: '28px', fontWeight: 'bold', color: 'var(--color-primary)', margin: 0 }}>
+                                        ${Number(currentBreakdown.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Bottom Row: 3 Symmetric Columns */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 380px', gap: 'var(--spacing-lg)', alignItems: 'stretch' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 380px', gap: 'var(--spacing-md)', alignItems: 'stretch' }}>
                     {/* Column 1: Route Details */}
                     <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
                         <h3 style={{ fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
