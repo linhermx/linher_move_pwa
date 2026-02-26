@@ -3,11 +3,12 @@ import { MoreVertical } from 'lucide-react';
 
 const CustomMenu = ({ options, icon: Icon = MoreVertical }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const menuRef = useRef(null);
+    const [openUpward, setOpenUpward] = useState(false);
+    const containerRef = useRef(null);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (menuRef.current && !menuRef.current.contains(event.target)) {
+            if (containerRef.current && !containerRef.current.contains(event.target)) {
                 setIsOpen(false);
             }
         };
@@ -15,10 +16,21 @@ const CustomMenu = ({ options, icon: Icon = MoreVertical }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    const handleToggle = (e) => {
+        e.stopPropagation();
+        if (!isOpen) {
+            const rect = containerRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const menuHeight = options.length * 40 + 20;
+            setOpenUpward(spaceBelow < menuHeight && rect.top > menuHeight);
+        }
+        setIsOpen(!isOpen);
+    };
+
     return (
-        <div ref={menuRef} style={{ position: 'relative', display: 'inline-block' }}>
+        <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
             <button
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={handleToggle}
                 style={{
                     background: 'none',
                     border: 'none',
@@ -40,17 +52,17 @@ const CustomMenu = ({ options, icon: Icon = MoreVertical }) => {
             {isOpen && (
                 <div style={{
                     position: 'absolute',
-                    top: '100%',
+                    [openUpward ? 'bottom' : 'top']: '100%',
                     right: 0,
                     backgroundColor: '#161616',
                     border: '1px solid var(--color-border)',
                     borderRadius: 'var(--radius-md)',
-                    zIndex: 1000,
+                    zIndex: 9999,
                     boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
                     padding: '6px',
                     minWidth: '160px',
                     animation: 'fade-in 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    marginTop: '8px'
+                    [openUpward ? 'marginBottom' : 'marginTop']: '8px'
                 }}>
                     {options.map((option, index) => (
                         <button

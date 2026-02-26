@@ -189,7 +189,7 @@ const History = () => {
             </div>
 
             {/* Table */}
-            <div className="card" style={{ padding: 0, overflow: 'hidden', minHeight: '200px', position: 'relative' }}>
+            <div className="card" style={{ padding: 0, overflow: 'visible', minHeight: '200px', position: 'relative' }}>
                 {loading && (
                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
                         <div className="spinner" style={{ width: '30px', height: '30px', border: '3px solid var(--color-primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>

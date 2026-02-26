@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react';
 
 const CustomSelect = ({ options, value, onChange, placeholder = 'Seleccionar...', icon: Icon }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [openUpward, setOpenUpward] = useState(false);
     const containerRef = useRef(null);
 
     const selectedOption = options.find(opt => opt.value === value) || null;
@@ -17,6 +18,17 @@ const CustomSelect = ({ options, value, onChange, placeholder = 'Seleccionar...'
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    const handleToggle = () => {
+        if (!isOpen) {
+            const rect = containerRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            // Expected height max 250px or less if fewer options
+            const expectedHeight = Math.min(options.length * 40 + 20, 250);
+            setOpenUpward(spaceBelow < expectedHeight && rect.top > expectedHeight);
+        }
+        setIsOpen(!isOpen);
+    };
+
     const handleSelect = (val) => {
         onChange({ target: { value: val } });
         setIsOpen(false);
@@ -25,7 +37,7 @@ const CustomSelect = ({ options, value, onChange, placeholder = 'Seleccionar...'
     return (
         <div ref={containerRef} style={{ position: 'relative', width: '100%', userSelect: 'none' }}>
             <div
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={handleToggle}
                 style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -56,18 +68,20 @@ const CustomSelect = ({ options, value, onChange, placeholder = 'Seleccionar...'
             {isOpen && (
                 <div style={{
                     position: 'absolute',
-                    top: 'calc(100% + 10px)',
+                    [openUpward ? 'bottom' : 'top']: 'calc(100% + 10px)',
                     left: 0,
                     right: 0,
                     backgroundColor: '#161616',
                     border: '1px solid var(--color-border)',
                     borderRadius: 'var(--radius-md)',
-                    zIndex: 1000,
+                    zIndex: 9999,
                     boxShadow: '0 8px 16px rgba(0,0,0,0.5)',
                     padding: '6px',
                     animation: 'fade-in 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    minWidth: '200px'
-                }}>
+                    minWidth: '200px',
+                    maxHeight: '250px',
+                    overflowY: 'auto'
+                }} className="custom-scrollbar">
                     {options.map((opt) => (
                         <div
                             key={opt.value}
