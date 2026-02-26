@@ -4,6 +4,7 @@ import { userService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import ConfirmModal from '../components/ConfirmModal';
 import UserModal from '../components/UserModal';
+import { formatDate } from '../utils/formatters';
 
 const Users = () => {
     const [users, setUsers] = useState([]);
@@ -198,7 +199,7 @@ const Users = () => {
                                         </span>
                                     </td>
                                     <td style={{ padding: '16px', fontSize: '13px' }} className="text-muted">
-                                        {new Date(u.created_at).toLocaleDateString()}
+                                        {formatDate(u.created_at)}
                                     </td>
                                     <td style={{ padding: '16px', textAlign: 'right' }}>
                                         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>

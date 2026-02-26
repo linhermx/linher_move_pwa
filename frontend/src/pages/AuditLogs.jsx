@@ -14,6 +14,7 @@ import {
     RotateCcw
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { formatDate, formatTime } from '../utils/formatters';
 
 const AuditLogs = () => {
     const navigate = useNavigate();
@@ -238,8 +239,8 @@ const AuditLogs = () => {
                                     return (
                                         <tr key={log.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                                             <td style={{ padding: '16px' }}>
-                                                <div style={{ fontSize: '14px' }}>{new Date(log.created_at).toLocaleDateString()}</div>
-                                                <div className="text-muted" style={{ fontSize: '12px' }}>{new Date(log.created_at).toLocaleTimeString()}</div>
+                                                <div style={{ fontSize: '14px' }}>{formatDate(log.created_at)}</div>
+                                                <div className="text-muted" style={{ fontSize: '12px' }}>{formatTime(log.created_at)}</div>
                                             </td>
                                             <td style={{ padding: '16px' }}>
                                                 <span style={{

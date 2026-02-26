@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Eye, FileText, Calendar, RotateCcw } from 'lucide-react';
 import { quotationService } from '../services/api';
 import { PDFService } from '../services/PDFService';
+import { formatDate } from '../utils/formatters';
 
 const History = () => {
     const navigate = useNavigate();
@@ -215,7 +216,7 @@ const History = () => {
                                         <td style={{ padding: '16px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
                                                 <Calendar size={14} className="text-muted" />
-                                                {new Date(q.created_at).toLocaleDateString()}
+                                                {formatDate(q.created_at)}
                                             </div>
                                         </td>
                                         <td style={{ padding: '16px' }}>

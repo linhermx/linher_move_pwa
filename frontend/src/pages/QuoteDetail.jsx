@@ -19,6 +19,7 @@ import {
     Fuel
 } from 'lucide-react';
 import { PDFService } from '../services/PDFService';
+import { formatDate } from '../utils/formatters';
 
 const QuoteDetail = () => {
     const { id } = useParams();
@@ -235,7 +236,7 @@ const QuoteDetail = () => {
                                 {statusInfo.text.toUpperCase()}
                             </div>
                         </div>
-                        <p className="text-muted" style={{ margin: '4px 0 0 0' }}>Creada el {new Date(quote.created_at).toLocaleDateString()}</p>
+                        <p className="text-muted" style={{ margin: '4px 0 0 0' }}>Creada el {formatDate(quote.created_at)}</p>
                     </div>
                 </div>
 
