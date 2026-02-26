@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Truck, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Truck, Plus, Edit2, Trash2, Search, Gauge } from 'lucide-react';
 import { vehicleService } from '../services/api';
 import VehicleModal from '../components/VehicleModal';
 import ConfirmModal from '../components/ConfirmModal';
@@ -11,6 +11,7 @@ import CustomMenu from '../components/CustomMenu';
 const Fleet = () => {
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingVehicle, setEditingVehicle] = useState(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -65,10 +66,10 @@ const Fleet = () => {
         } finally {
             setVehicleToDelete(null);
         }
-    };
-
-
-
+    }; const filteredVehicles = vehicles.filter(v =>
+        v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.plate.toLowerCase().includes(searchTerm.toLowerCase())
+    );
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-xl)' }}>
@@ -119,39 +120,42 @@ const Fleet = () => {
                 type="danger"
             />
 
+            <div className="card" style={{ marginBottom: 'var(--spacing-lg)', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px' }}>
+                <Search size={20} className="text-muted" />
+                <input
+                    type="text"
+                    placeholder="Buscar vehículos por nombre o placas..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{ background: 'none', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '16px' }}
+                />
+            </div>
+
             {loading ? (
-                <p>Cargando flota...</p>
+                <div style={{ textAlign: 'center', padding: '40px' }} className="text-muted">Cargando flota...</div>
+            ) : filteredVehicles.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px' }} className="text-muted">No se encontraron vehículos.</div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--spacing-md)' }}>
-                    {vehicles.map(v => (
-                        <div key={v.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <div style={{
-                                        width: '44px',
-                                        height: '44px',
-                                        backgroundColor: 'rgba(255, 72, 72, 0.1)',
-                                        borderRadius: 'var(--radius-md)',
-                                        color: 'var(--color-primary)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        overflow: 'hidden'
-                                    }}>
-                                        {v.photo_path ? (
-                                            <img
-                                                src={`http://localhost:3000/${v.photo_path}`}
-                                                alt={v.name}
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                            />
-                                        ) : (
-                                            <Truck size={24} />
-                                        )}
-                                    </div>
-                                    <div>
-                                        <h3 style={{ fontSize: '16px' }}>{v.name}</h3>
-                                        <p className="text-muted" style={{ fontSize: '12px' }}>Placas: {v.plate}</p>
-                                    </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--spacing-lg)' }}>
+                    {filteredVehicles.map(v => (
+                        <div key={v.id} className="card" style={{ position: 'relative', overflow: 'visible' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-md)' }}>
+                                <div style={{
+                                    width: '40px', height: '40px', borderRadius: '10px',
+                                    backgroundColor: 'rgba(255, 72, 72, 0.1)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: 'var(--color-primary)',
+                                    overflow: 'hidden'
+                                }}>
+                                    {v.photo_path ? (
+                                        <img
+                                            src={`http://localhost:3000/${v.photo_path}`}
+                                            alt={v.name}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                    ) : (
+                                        <Truck size={24} />
+                                    )}
                                 </div>
                                 <CustomMenu
                                     options={[
@@ -170,23 +174,35 @@ const Fleet = () => {
                                 />
                             </div>
 
-                            <div style={{ display: 'flex', gap: '20px', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-md)' }}>
-                                <div>
-                                    <p className="text-muted" style={{ fontSize: '10px' }}>RENDIMIENTO REAL</p>
-                                    <p style={{ fontWeight: 'bold' }}>{v.rendimiento_real} km/L</p>
+                            <h3 style={{ fontSize: '18px', marginBottom: '4px' }}>{v.name}</h3>
+                            <p className="text-muted" style={{ fontSize: '13px', marginBottom: 'var(--spacing-md)' }}>
+                                Placas: <strong>{v.plate}</strong>
+                            </p>
+
+                            <div style={{ display: 'flex', gap: 'var(--spacing-md)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-md)' }}>
+                                <div style={{ flex: 1 }}>
+                                    <span className="text-muted" style={{ fontSize: '10px', display: 'block' }}>RENDIMIENTO REAL</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
+                                        <Gauge size={14} />
+                                        <span>{v.rendimiento_real} km/L</span>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-muted" style={{ fontSize: '10px' }}>ESTATUS</p>
-                                    <span style={{
-                                        fontSize: '10px',
-                                        padding: '2px 8px',
-                                        borderRadius: '10px',
-                                        backgroundColor: v.status === 'available' ? 'rgba(40, 167, 69, 0.1)' : 'rgba(0, 123, 255, 0.1)',
-                                        color: v.status === 'available' ? '#28A745' : '#007BFF'
-                                    }}>
-                                        {v.status === 'available' ? 'Disponible' : 'En Ruta'}
-                                    </span>
+                                <div style={{ flex: 1 }}>
+                                    <span className="text-muted" style={{ fontSize: '10px', display: 'block' }}>EFICIENCIA</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
+                                        <Truck size={14} />
+                                        <span>{v.status === 'available' ? 'Óptima' : 'En uso'}</span>
+                                    </div>
                                 </div>
+                            </div>
+
+                            <div style={{
+                                marginTop: '12px', fontSize: '11px',
+                                display: 'inline-block', padding: '2px 8px', borderRadius: '10px',
+                                backgroundColor: v.status === 'available' ? 'rgba(40, 167, 69, 0.1)' : 'rgba(0, 123, 255, 0.1)',
+                                color: v.status === 'available' ? '#28A745' : '#007BFF'
+                            }}>
+                                {v.status === 'available' ? '● Disponible' : '● En Ruta'}
                             </div>
                         </div>
                     ))}
