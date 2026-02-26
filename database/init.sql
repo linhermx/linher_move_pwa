@@ -120,7 +120,6 @@ CREATE TABLE IF NOT EXISTS `quotation_services` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `quotation_id` INT,
   `service_id` INT,
-  `service_type_legacy` ENUM('interconexion', 'mantenimiento', 'comida', 'hospedaje'),
   `cost` DECIMAL(10,2) NOT NULL,
   `time_minutes` INT DEFAULT 0,
   FOREIGN KEY (`quotation_id`) REFERENCES `quotations`(`id`) ON DELETE CASCADE,

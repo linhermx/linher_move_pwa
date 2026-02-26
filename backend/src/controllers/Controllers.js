@@ -4,9 +4,12 @@ import { ProxyService } from '../services/ProxyService.js';
 import { QuotationModel } from '../models/QuotationModel.js';
 import { AuthModel } from '../models/AuthModel.js';
 import { CalculationMotor } from '../utils/CalculationMotor.js';
+import { LogModel } from '../models/LogModel.js';
+import { SystemLogger } from '../utils/Logger.js';
 
 export const VehicleController = (db) => {
     const model = new VehicleModel(db);
+    const logger = new SystemLogger(db);
     return {
         list: async (req, res) => {
             const vehicles = await model.getAll('id DESC');
@@ -23,6 +26,10 @@ export const VehicleController = (db) => {
                 photo_path: req.file ? `uploads/vehicles/${req.file.filename}` : null
             };
             const id = await model.create(vehicleData);
+
+            // Log action
+            await logger.business(req.body.user_id, 'CREATE_VEHICLE', { vehicle_id: id, name: vehicleData.name });
+
             res.status(201).json({ id, message: "Vehicle created" });
         },
         update: async (req, res) => {
@@ -32,11 +39,19 @@ export const VehicleController = (db) => {
             };
             const success = await model.update(req.params.id, vehicleData);
             if (!success) return res.status(404).json({ message: "Vehicle not found" });
+
+            // Log action
+            await logger.business(req.body.user_id, 'UPDATE_VEHICLE', { vehicle_id: req.params.id, name: vehicleData.name });
+
             res.json({ message: "Vehicle updated" });
         },
         delete: async (req, res) => {
             const success = await model.delete(req.params.id);
             if (!success) return res.status(404).json({ message: "Vehicle not found" });
+
+            // Log action
+            await logger.business(req.query.user_id, 'DELETE_VEHICLE', { vehicle_id: req.params.id });
+
             res.json({ message: "Vehicle deleted" });
         }
     };
@@ -44,6 +59,7 @@ export const VehicleController = (db) => {
 
 export const SettingsController = (db) => {
     const model = new SettingsModel(db);
+    const logger = new SystemLogger(db);
     return {
         index: async (req, res) => {
             try {
@@ -71,6 +87,9 @@ export const SettingsController = (db) => {
                     }
                 }
                 res.json({ message: "Settings updated" });
+
+                // Log action
+                await logger.config(req.body.user_id, 'UPDATE_SETTINGS', { keys: Object.keys(settings) });
             } catch (error) {
                 res.status(500).json({ message: error.message });
             }
@@ -182,6 +201,7 @@ export const MapsController = () => {
 
 export const QuotationController = (db) => {
     const model = new QuotationModel(db);
+    const logger = new SystemLogger(db);
     return {
         list: async (req, res) => {
             const quotes = await model.filterQuotes(req.query);
@@ -206,6 +226,9 @@ export const QuotationController = (db) => {
                     folio,
                     message: "Quotation created successfully"
                 });
+
+                // Log action
+                await logger.business(req.body.user_id, 'CREATE_QUOTATION', { quote_id: quoteId, folio, total: req.body.total });
             } catch (error) {
                 console.error(error);
                 res.status(500).json({ message: "Internal server error" });
@@ -226,6 +249,13 @@ export const QuotationController = (db) => {
                 const success = await model.updateQuote(req.params.id, req.body);
                 if (!success) return res.status(404).json({ message: "Quotation not found or no changes made" });
                 res.json({ message: "Quotation updated successfully" });
+
+                // Log action
+                await logger.business(req.body.user_id, 'UPDATE_QUOTATION', {
+                    quote_id: req.params.id,
+                    status: req.body.status,
+                    total: req.body.total
+                });
             } catch (error) {
                 console.error(error);
                 res.status(500).json({ message: "Internal server error" });
@@ -236,6 +266,7 @@ export const QuotationController = (db) => {
 
 export const ServiceController = (pool) => {
     const model = new ServiceModel(pool);
+    const logger = new SystemLogger(pool);
 
     return {
         list: async (req, res) => {
@@ -254,6 +285,10 @@ export const ServiceController = (pool) => {
         create: async (req, res) => {
             try {
                 const id = await model.create(req.body);
+
+                // Log
+                await logger.business(req.body.user_id, 'CREATE_SERVICE', { service_id: id, name: req.body.name });
+
                 res.status(201).json({ id, message: "Service created" });
             } catch (error) {
                 res.status(500).json({ message: error.message });
@@ -263,6 +298,10 @@ export const ServiceController = (pool) => {
             try {
                 const success = await model.update(req.params.id, req.body);
                 if (!success) return res.status(404).json({ message: "Service not found" });
+
+                // Log
+                await logger.business(req.body.user_id, 'UPDATE_SERVICE', { service_id: req.params.id, name: req.body.name });
+
                 res.json({ message: "Service updated" });
             } catch (error) {
                 res.status(500).json({ message: error.message });
@@ -272,6 +311,10 @@ export const ServiceController = (pool) => {
             try {
                 const success = await model.delete(req.params.id);
                 if (!success) return res.status(404).json({ message: "Service not found" });
+
+                // Log
+                await logger.business(req.query.user_id, 'DELETE_SERVICE', { service_id: req.params.id });
+
                 res.json({ message: "Service deleted" });
             } catch (error) {
                 res.status(500).json({ message: error.message });
@@ -282,6 +325,7 @@ export const ServiceController = (pool) => {
 
 export const AuthController = (db) => {
     const model = new AuthModel(db);
+    const logger = new SystemLogger(db);
     return {
         login: async (req, res) => {
             const { email, password } = req.body;
@@ -305,6 +349,9 @@ export const AuthController = (db) => {
                     user: fullUser,
                     message: "Login exitoso"
                 });
+
+                // Log action
+                await logger.auth(fullUser.id, 'LOGIN', { email: fullUser.email }, req.ip);
             } catch (error) {
                 console.error(error);
                 res.status(500).json({ message: "Error en el servidor" });
@@ -315,6 +362,7 @@ export const AuthController = (db) => {
 
 export const UserController = (db) => {
     const model = new UserModel(db);
+    const logger = new SystemLogger(db);
     return {
         list: async (req, res) => {
             const users = await model.getAllWithRoles();
@@ -340,6 +388,10 @@ export const UserController = (db) => {
                     photo_path: req.file ? `uploads/users/${req.file.filename}` : null
                 };
                 const id = await model.create(userData);
+
+                // Log
+                await logger.system(req.body.admin_id, 'CREATE_USER', { user_id: id, email: userData.email });
+
                 res.status(201).json({ id, message: "Usuario creado" });
             } catch (error) {
                 res.status(500).json({ message: error.message });
@@ -353,6 +405,10 @@ export const UserController = (db) => {
                 };
                 const success = await model.update(req.params.id, userData);
                 if (!success) return res.status(404).json({ message: "Usuario no encontrado" });
+
+                // Log
+                await logger.system(req.body.admin_id, 'UPDATE_USER', { user_id: req.params.id, email: userData.email });
+
                 res.json({ message: "Usuario actualizado" });
             } catch (error) {
                 res.status(500).json({ message: error.message });
@@ -362,6 +418,10 @@ export const UserController = (db) => {
             try {
                 const success = await model.delete(req.params.id);
                 if (!success) return res.status(404).json({ message: "Usuario eliminado" });
+
+                // Log
+                await logger.system(req.query.admin_id, 'DELETE_USER', { user_id: req.params.id });
+
                 res.json({ message: "Usuario eliminado" });
             } catch (error) {
                 res.status(500).json({ message: error.message });
@@ -371,7 +431,36 @@ export const UserController = (db) => {
             try {
                 const { permissions } = req.body; // array of slugs
                 await model.setPermissions(req.params.id, permissions);
+
+                // Log
+                await logger.system(req.body.admin_id, 'UPDATE_USER_PERMISSIONS', { user_id: req.params.id, permissions });
+
                 res.json({ message: "Permisos actualizados" });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        }
+    };
+};
+
+export const LogController = (pool) => {
+    const model = new LogModel(pool);
+    return {
+        list: async (req, res) => {
+            try {
+                const logs = await model.filterLogs(req.query);
+                const total = await model.countLogs(req.query);
+                const limit = parseInt(req.query.limit) || 50;
+
+                res.json({
+                    data: logs,
+                    pagination: {
+                        total,
+                        limit,
+                        pages: Math.ceil(total / limit),
+                        current_page: Math.floor((parseInt(req.query.offset) || 0) / limit) + 1
+                    }
+                });
             } catch (error) {
                 res.status(500).json({ message: error.message });
             }

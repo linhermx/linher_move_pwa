@@ -9,7 +9,8 @@ import {
     QuotationController,
     ServiceController,
     AuthController,
-    UserController
+    UserController,
+    LogController
 } from './controllers/Controllers.js';
 import { UserModel } from './models/UserModel.js';
 import multer from 'multer';
@@ -60,6 +61,7 @@ const quotationCtrl = QuotationController(pool);
 const serviceCtrl = ServiceController(pool);
 const authCtrl = AuthController(pool);
 const userCtrl = UserController(pool);
+const logCtrl = LogController(pool);
 
 // Auth
 v1.post('/auth/login', authCtrl.login);
@@ -102,6 +104,9 @@ v1.post('/users', upload.single('photo'), userCtrl.create);
 v1.put('/users/:id', upload.single('photo'), userCtrl.update);
 v1.delete('/users/:id', userCtrl.delete);
 v1.post('/users/:id/permissions', userCtrl.updatePermissions);
+
+// Logs
+v1.get('/logs', logCtrl.list);
 
 // Mount
 app.use('/api/v1', v1);

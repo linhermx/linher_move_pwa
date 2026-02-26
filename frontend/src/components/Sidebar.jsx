@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Route, History, Truck, Settings as SettingsIcon, Users, User, Package } from 'lucide-react';
+import { LayoutDashboard, Route, History, Truck, Settings as SettingsIcon, Users, User, Package, ShieldCheck } from 'lucide-react';
 import logoHorizontal from '../assets/logo-horizontal-negativo.svg';
 
 const Sidebar = () => {
@@ -15,6 +15,7 @@ const Sidebar = () => {
         { name: 'Servicios', path: '/services', icon: <Package size={20} />, permission: 'manage_services' },
         { name: 'Ajustes', path: '/settings', icon: <SettingsIcon size={20} />, permission: 'edit_settings' },
         { name: 'Usuarios', path: '/users', icon: <Users size={20} />, permission: 'manage_users' },
+        { name: 'Auditoría', path: '/audit', icon: <ShieldCheck size={20} />, permission: 'manage_users' },
     ];
 
     const filteredItems = menuItems.filter(item =>

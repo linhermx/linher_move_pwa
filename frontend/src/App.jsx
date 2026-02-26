@@ -10,6 +10,7 @@ import History from './pages/History';
 import QuoteDetail from './pages/QuoteDetail';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
+import AuditLogs from './pages/AuditLogs';
 import { NotificationProvider } from './context/NotificationContext';
 
 import Login from './pages/Login';
@@ -48,6 +49,7 @@ const App = () => {
                       <Route path="/fleet" element={<Fleet />} />
                       <Route path="/services" element={<Services />} />
                       <Route path="/users" element={<Users />} />
+                      <Route path="/audit" element={<AuditLogs />} />
                       <Route path="/settings" element={<Settings />} />
                     </Routes>
                   </main>
