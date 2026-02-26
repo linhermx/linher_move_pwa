@@ -96,7 +96,7 @@ const Users = () => {
     );
 
     return (
-        <div style={{ padding: 'var(--spacing-md)' }}>
+        <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-xl)' }}>
                 <div>
                     <h1 style={{ fontSize: '24px' }}>Gestión de Usuarios</h1>

@@ -117,15 +117,15 @@ const Settings = () => {
     };
 
     return (
-        <div style={{ maxWidth: '900px', paddingBottom: 'var(--spacing-xxl)' }} className="fade-in">
+        <div style={{ maxWidth: '100%', paddingBottom: 'var(--spacing-xxl)' }} className="fade-in">
             <div style={{ marginBottom: 'var(--spacing-xl)' }}>
                 <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Parámetros Globales</h1>
                 <p className="text-muted">Configura los valores base y reglas de negocio para las cotizaciones</p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--spacing-lg)' }}>
-                {/* SECCIÓN 1: UBICACIÓN POR DEFECTO */}
-                <div className="card">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--spacing-lg)' }}>
+                {/* SECCIÓN 1: UBICACIÓN POR DEFECTO - OCUPA TODO EL ANCHO */}
+                <div className="card" style={{ gridColumn: 'span 2' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 'var(--spacing-lg)', borderBottom: '1px solid var(--color-border)', paddingBottom: '10px' }}>
                         <div style={{ color: 'var(--color-primary)' }}><MapPin size={20} /></div>
                         <h3 style={{ fontSize: '18px' }}>Ubicación de Origen Predefinida</h3>
@@ -216,7 +216,7 @@ const Settings = () => {
                         <div style={{ color: 'var(--color-primary)' }}><Info size={20} /></div>
                         <h3 style={{ fontSize: '18px' }}>Combustible y Eficiencia</h3>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                         <div>
                             <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '12px' }}>PRECIO GASOLINA ($/L)</label>
                             <input
@@ -242,7 +242,7 @@ const Settings = () => {
                         <div style={{ color: 'var(--color-primary)' }}><Info size={20} /></div>
                         <h3 style={{ fontSize: '18px' }}>Ajustes de Ruta</h3>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                         <div>
                             <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '12px' }}>FACTOR MANIOBRA (MULTIPLICADOR)</label>
                             <input
@@ -270,7 +270,7 @@ const Settings = () => {
                     </div>
                     <p className="text-muted" style={{ fontSize: '12px', marginBottom: 'var(--spacing-md)' }}>Define las horas de trayecto de ida y el costo por noche según la duración.</p>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--spacing-md)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                         {[1, 2, 3].map(tier => (
                             <div key={`lodging-tier-${tier}`} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-md)' }}>
                                 <div>
@@ -302,7 +302,7 @@ const Settings = () => {
                     </div>
                     <p className="text-muted" style={{ fontSize: '12px', marginBottom: 'var(--spacing-md)' }}>Configura los viáticos según la jornada laboral total o si hay pernocta.</p>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'var(--spacing-md)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-md)' }}>
                             <div>
                                 <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '11px' }}>UMBRAL NIVEL 1 - JORNADA (HORAS)</label>
