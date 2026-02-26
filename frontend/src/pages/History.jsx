@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Eye, FileText, Calendar } from 'lucide-react';
+import { Search, Filter, Eye, FileText, Calendar, RotateCcw } from 'lucide-react';
 import { quotationService } from '../services/api';
 import { PDFService } from '../services/PDFService';
 
@@ -10,6 +10,9 @@ const History = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const [period, setPeriod] = useState(''); // '', 'today', 'week', 'month', 'year', 'custom'
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
 
     const fetchQuotes = async () => {
         setLoading(true);
@@ -18,11 +21,34 @@ const History = () => {
             if (search) params.folio = search;
             if (statusFilter) params.status = statusFilter;
 
+            let finalFrom = dateFrom;
+            let finalTo = dateTo;
+
+            if (period && period !== 'custom') {
+                const now = new Date();
+                const start = new Date();
+
+                if (period === 'today') {
+                } else if (period === 'week') {
+                    const day = now.getDay() || 7;
+                    if (day !== 1) start.setDate(now.getDate() - (day - 1));
+                } else if (period === 'month') {
+                    start.setDate(1);
+                } else if (period === 'year') {
+                    start.setMonth(0, 1);
+                }
+
+                finalFrom = start.toISOString().split('T')[0];
+                finalTo = now.toISOString().split('T')[0];
+            }
+
+            if (finalFrom) params.date_from = finalFrom;
+            if (finalTo) params.date_to = finalTo;
+
             const data = await quotationService.list(params);
             setQuotes(data);
         } catch (err) {
             console.error('Error fetching quotes:', err);
-            // Optional: Show notification error
         } finally {
             setLoading(false);
         }
@@ -31,10 +57,9 @@ const History = () => {
     useEffect(() => {
         const timer = setTimeout(() => {
             fetchQuotes();
-        }, 300); // Small debounce
-
+        }, 300);
         return () => clearTimeout(timer);
-    }, [search, statusFilter]);
+    }, [search, statusFilter, period, dateFrom, dateTo]);
 
     const getStatusStyle = (status) => {
         switch (status) {
@@ -46,135 +71,165 @@ const History = () => {
         }
     };
 
+    const clearFilters = () => {
+        setSearch('');
+        setStatusFilter('');
+        setPeriod('');
+        setDateFrom('');
+        setDateTo('');
+    };
+
     return (
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-xl)' }}>
-                <div>
-                    <h1 style={{ fontSize: '24px' }}>Historial de Cotizaciones</h1>
-                    <p className="text-muted">Consulta y gestiona todos los registros previos</p>
+        <div className="fade-in">
+            {/* Header */}
+            <div style={{ marginBottom: 'var(--spacing-xl)' }}>
+                <h1 style={{ fontSize: '24px' }}>Historial de Cotizaciones</h1>
+                <p className="text-muted">Consulta y gestiona todos los registros previos</p>
+            </div>
+
+            {/* Filters Bar */}
+            <div className="card" style={{ marginBottom: 'var(--spacing-lg)', padding: '15px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+
+                    {/* Search */}
+                    <div style={{ flex: '2', minWidth: '220px' }}>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '10px 15px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                            <Search size={18} className="text-muted" />
+                            <input
+                                type="text"
+                                placeholder="Buscar por folio..."
+                                style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '14px' }}
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Period Selector */}
+                    <div style={{ flex: '1', minWidth: '150px', display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '0 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', height: '42px' }}>
+                        <Calendar size={16} className="text-muted" />
+                        <select
+                            style={{ backgroundColor: 'transparent', border: 'none', color: 'white', width: '100%', outline: 'none', fontSize: '13px', cursor: 'pointer' }}
+                            value={period}
+                            onChange={(e) => setPeriod(e.target.value)}
+                        >
+                            <option value="" style={{ backgroundColor: 'var(--color-surface)' }}>Cualquier fecha</option>
+                            <option value="today" style={{ backgroundColor: 'var(--color-surface)' }}>Hoy</option>
+                            <option value="week" style={{ backgroundColor: 'var(--color-surface)' }}>Esta semana</option>
+                            <option value="month" style={{ backgroundColor: 'var(--color-surface)' }}>Este mes</option>
+                            <option value="year" style={{ backgroundColor: 'var(--color-surface)' }}>Este año</option>
+                            <option value="custom" style={{ backgroundColor: 'var(--color-surface)' }}>Personalizado...</option>
+                        </select>
+                    </div>
+
+                    {/* Custom Range (Inline) */}
+                    {period === 'custom' && (
+                        <div className="fade-in" style={{ display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '0 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', height: '42px' }}>
+                            <input
+                                type="date"
+                                value={dateFrom}
+                                onChange={(e) => setDateFrom(e.target.value)}
+                                style={{ backgroundColor: 'transparent', border: 'none', color: 'white', fontSize: '12px', outline: 'none', width: '110px' }}
+                            />
+                            <span style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>-</span>
+                            <input
+                                type="date"
+                                value={dateTo}
+                                onChange={(e) => setDateTo(e.target.value)}
+                                style={{ backgroundColor: 'transparent', border: 'none', color: 'white', fontSize: '12px', outline: 'none', width: '110px' }}
+                            />
+                        </div>
+                    )}
+
+                    {/* Status */}
+                    <div style={{ flex: '1', minWidth: '150px', display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '0 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', height: '42px' }}>
+                        <Filter size={16} className="text-muted" />
+                        <select
+                            style={{ backgroundColor: 'transparent', border: 'none', color: 'white', width: '100%', outline: 'none', fontSize: '13px', cursor: 'pointer' }}
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                        >
+                            <option value="" style={{ backgroundColor: 'var(--color-surface)' }}>Todos los estatus</option>
+                            <option value="pendiente" style={{ backgroundColor: 'var(--color-surface)' }}>Pendiente</option>
+                            <option value="en_proceso" style={{ backgroundColor: 'var(--color-surface)' }}>En Proceso</option>
+                            <option value="completada" style={{ backgroundColor: 'var(--color-surface)' }}>Completada</option>
+                            <option value="cancelada" style={{ backgroundColor: 'var(--color-surface)' }}>Cancelada</option>
+                        </select>
+                    </div>
+
+                    {/* Clear Button */}
+                    {(search || statusFilter || period || dateFrom || dateTo) && (
+                        <button
+                            onClick={clearFilters}
+                            title="Restablecer filtros"
+                            style={{
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px solid var(--color-border)',
+                                color: 'var(--color-primary)',
+                                padding: '8px 12px',
+                                borderRadius: 'var(--radius-sm)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                transition: 'all 0.2s',
+                                height: '42px'
+                            }}
+                            onMouseOver={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
+                            onMouseOut={(e) => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                        >
+                            <RotateCcw size={14} />
+                            <span style={{ fontSize: '11px', fontWeight: 'bold' }}>LIMPIAR</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
-            <div className="card" style={{ marginBottom: 'var(--spacing-lg)', display: 'flex', gap: 'var(--spacing-md)', alignItems: 'center' }}>
-                <div style={{ flexGrow: 1, display: 'flex', gap: '10px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-                    <Search size={18} className="text-muted" />
-                    <input
-                        type="text"
-                        placeholder="Buscar por folio..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%' }}
-                    />
-                </div>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <Filter size={18} className="text-muted" />
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        style={{
-                            backgroundColor: 'var(--color-surface)',
-                            border: '1px solid var(--color-border)',
-                            color: 'white',
-                            padding: '10px 15px',
-                            borderRadius: 'var(--radius-md)',
-                            outline: 'none',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        <option value="">Todos los estatus</option>
-                        <option value="pendiente">Pendiente</option>
-                        <option value="en_proceso">En Proceso</option>
-                        <option value="completada">Completada</option>
-                        <option value="cancelada">Cancelada</option>
-                    </select>
-                </div>
-            </div>
-
+            {/* Table */}
             <div className="card" style={{ padding: 0, overflow: 'hidden', minHeight: '200px', position: 'relative' }}>
                 {loading && (
-                    <div style={{
-                        position: 'absolute',
-                        top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundColor: 'rgba(0,0,0,0.3)',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        zIndex: 10
-                    }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
                         <div className="spinner" style={{ width: '30px', height: '30px', border: '3px solid var(--color-primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
                     </div>
                 )}
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead>
                         <tr style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--color-border)' }}>
-                            <th style={{ padding: '16px' }}>FOLIO</th>
-                            <th style={{ padding: '16px' }}>FECHA</th>
-                            <th style={{ padding: '16px' }}>RUTA</th>
-                            <th style={{ padding: '16px' }}>TOTAL</th>
-                            <th style={{ padding: '16px' }}>ESTATUS</th>
-                            <th style={{ padding: '16px' }}>ACCIONES</th>
+                            <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>FOLIO</th>
+                            <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>FECHA</th>
+                            <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>RUTA</th>
+                            <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>TOTAL</th>
+                            <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>ESTATUS</th>
+                            <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 'bold', textAlign: 'right' }}>ACCIONES</th>
                         </tr>
                     </thead>
                     <tbody>
                         {quotes.length === 0 && !loading ? (
-                            <tr>
-                                <td colSpan="6" style={{ padding: '40px', textAlign: 'center' }} className="text-muted">
-                                    No se encontraron cotizaciones.
-                                </td>
-                            </tr>
+                            <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center' }} className="text-muted">No se encontraron cotizaciones.</td></tr>
                         ) : (
                             quotes.map(q => {
                                 const status = getStatusStyle(q.status);
                                 return (
                                     <tr key={q.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                                        <td style={{ padding: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>{q.folio}</td>
+                                        <td style={{ padding: '16px', fontWeight: 'bold', color: 'var(--color-primary)', fontSize: '14px' }}>{q.folio}</td>
                                         <td style={{ padding: '16px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
                                                 <Calendar size={14} className="text-muted" />
                                                 {new Date(q.created_at).toLocaleDateString()}
                                             </div>
                                         </td>
                                         <td style={{ padding: '16px' }}>
-                                            <p style={{ fontSize: '14px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={q.origin_address}>
-                                                {q.origin_address.split(',')[0]} &rarr;
-                                            </p>
-                                            <p style={{ fontSize: '14px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={q.destination_address}>
-                                                {q.destination_address.split(',')[0]}
-                                            </p>
+                                            <p style={{ fontSize: '13px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.origin_address.split(',')[0]} &rarr;</p>
+                                            <p style={{ fontSize: '13px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.destination_address.split(',')[0]}</p>
                                         </td>
-                                        <td style={{ padding: '16px', fontWeight: 'bold' }}>${Number(q.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                        <td style={{ padding: '16px', fontWeight: 'bold', fontSize: '14px' }}>${Number(q.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                         <td style={{ padding: '16px' }}>
-                                            <span style={{
-                                                fontSize: '11px',
-                                                padding: '4px 10px',
-                                                borderRadius: '12px',
-                                                backgroundColor: status.bg,
-                                                color: status.color,
-                                                textTransform: 'uppercase',
-                                                fontWeight: 'bold'
-                                            }}>
-                                                {status.text}
-                                            </span>
+                                            <span style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '12px', backgroundColor: status.bg, color: status.color, textTransform: 'uppercase', fontWeight: 'bold' }}>{status.text}</span>
                                         </td>
-                                        <td style={{ padding: '16px' }}>
-                                            <div style={{ display: 'flex', gap: '12px' }}>
-                                                <Eye
-                                                    size={18}
-                                                    className="text-muted"
-                                                    cursor="pointer"
-                                                    onClick={() => navigate(`/history/${q.id}`)}
-                                                    onMouseOver={(e) => e.target.style.color = 'var(--color-primary)'}
-                                                    onMouseOut={(e) => e.target.style.color = 'var(--color-text-muted)'}
-                                                />
-                                                <FileText
-                                                    size={18}
-                                                    className="text-muted"
-                                                    cursor="pointer"
-                                                    title="Generar PDF"
-                                                    onClick={() => PDFService.generateQuotationPDF(q)}
-                                                    onMouseOver={(e) => e.target.style.color = 'var(--color-primary)'}
-                                                    onMouseOut={(e) => e.target.style.color = 'var(--color-text-muted)'}
-                                                />
+                                        <td style={{ padding: '16px', textAlign: 'right' }}>
+                                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                                                <Eye size={18} className="text-muted" cursor="pointer" onClick={() => navigate(`/history/${q.id}`)} />
+                                                <FileText size={18} className="text-muted" cursor="pointer" title="Generar PDF" onClick={() => PDFService.generateQuotationPDF(q)} />
                                             </div>
                                         </td>
                                     </tr>

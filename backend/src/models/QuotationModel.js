@@ -22,6 +22,16 @@ export class QuotationModel extends BaseModel {
             params.push(filters.status);
         }
 
+        if (filters.date_from) {
+            query += " AND created_at >= ?";
+            params.push(filters.date_from);
+        }
+
+        if (filters.date_to) {
+            query += " AND created_at <= ?";
+            params.push(`${filters.date_to} 23:59:59`);
+        }
+
         query += " ORDER BY created_at DESC";
         const [rows] = await this.db.query(query, params);
         return rows;
