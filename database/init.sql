@@ -158,7 +158,29 @@ INSERT IGNORE INTO `permissions` (`slug`, `name`) VALUES
 ('view_history', 'Ver Historial'),
 ('manage_fleet', 'Gestionar Flota'),
 ('edit_settings', 'Editar Parámetros'),
-('manage_users', 'Gestionar Usuarios');
+('manage_users', 'Gestionar Usuarios'),
+('manage_services', 'Gestionar Servicios');
+
+CREATE TABLE IF NOT EXISTS `role_permissions` (
+  `role_id` INT,
+  `permission_id` INT,
+  PRIMARY KEY (`role_id`, `permission_id`),
+  FOREIGN KEY (`role_id`) REFERENCES `roles`(`id`),
+  FOREIGN KEY (`permission_id`) REFERENCES `permissions`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Seed Role Permissions
+-- Admin (Everything)
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`) 
+SELECT 1, id FROM `permissions`;
+
+-- Supervisor (Quotes, History, Fleet, Services)
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`) 
+SELECT 2, id FROM `permissions` WHERE slug IN ('create_quotation', 'view_history', 'manage_fleet', 'manage_services');
+
+-- Operador (Quotes, History)
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`) 
+SELECT 3, id FROM `permissions` WHERE slug IN ('create_quotation', 'view_history');
 
 -- Seed Default Services
 INSERT IGNORE INTO `services` (`id`, `name`, `cost`, `time_minutes`, `description`) VALUES 

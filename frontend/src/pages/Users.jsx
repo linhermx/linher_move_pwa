@@ -246,36 +246,50 @@ const Users = () => {
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto', marginBottom: '24px', paddingRight: '10px' }}>
-                            {permissions.map(p => (
-                                <div
-                                    key={p.id}
-                                    onClick={() => togglePermission(p.slug)}
-                                    style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        padding: '12px 16px',
-                                        backgroundColor: 'rgba(255,255,255,0.03)',
-                                        borderRadius: 'var(--radius-md)',
-                                        border: `1px solid ${userIndividualPerms.includes(p.slug) ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                    }}
-                                >
-                                    <div>
-                                        <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{p.name}</p>
-                                        <p className="text-muted" style={{ fontSize: '11px' }}>Slug: {p.slug}</p>
+                            {permissions.map(p => {
+                                const isFromRole = selectedUserForPerms.role_permissions?.includes(p.slug);
+                                const isIndividual = userIndividualPerms.includes(p.slug);
+                                const isActive = isFromRole || isIndividual;
+
+                                return (
+                                    <div
+                                        key={p.id}
+                                        onClick={() => !isFromRole && togglePermission(p.slug)}
+                                        style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            padding: '12px 16px',
+                                            backgroundColor: isFromRole ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)',
+                                            borderRadius: 'var(--radius-md)',
+                                            border: `1px solid ${isActive ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                                            cursor: isFromRole ? 'not-allowed' : 'pointer',
+                                            opacity: isFromRole ? 0.7 : 1,
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{p.name}</p>
+                                                {isFromRole && (
+                                                    <span style={{ fontSize: '9px', backgroundColor: 'var(--color-primary)', color: 'white', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                                        ROL
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-muted" style={{ fontSize: '11px' }}>{isFromRole ? 'Heredado del rol del sistema' : 'Permiso asignable individualmente'}</p>
+                                        </div>
+                                        <div style={{
+                                            width: '20px', height: '20px', borderRadius: '4px',
+                                            border: '1px solid var(--color-border)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            backgroundColor: isActive ? 'var(--color-primary)' : 'transparent'
+                                        }}>
+                                            {isActive && <Check size={14} color="white" />}
+                                        </div>
                                     </div>
-                                    <div style={{
-                                        width: '20px', height: '20px', borderRadius: '4px',
-                                        border: '1px solid var(--color-border)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        backgroundColor: userIndividualPerms.includes(p.slug) ? 'var(--color-primary)' : 'transparent'
-                                    }}>
-                                        {userIndividualPerms.includes(p.slug) && <Check size={14} color="white" />}
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         <div style={{ display: 'flex', gap: '12px' }}>

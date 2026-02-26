@@ -27,18 +27,43 @@ export class UserModel extends BaseModel {
         const [users] = await this.db.query(userQuery, [id]);
         if (users.length === 0) return null;
         const user = users[0];
+        delete user.password; // Segruidad
+
+        // Role permissions
+        const rolePermQuery = `
+            SELECT p.slug
+            FROM role_permissions rp
+            JOIN permissions p ON rp.permission_id = p.id
+            WHERE rp.role_id = ?
+        `;
+        const [rolePerms] = await this.db.query(rolePermQuery, [user.role_id]);
+        user.role_permissions = rolePerms.map(p => p.slug);
 
         // Individual permissions
-        const permQuery = `
+        const userPermQuery = `
             SELECT p.slug
             FROM user_permissions up
             JOIN permissions p ON up.permission_id = p.id
             WHERE up.user_id = ? AND up.granted = 1
         `;
-        const [perms] = await this.db.query(permQuery, [id]);
-        user.individual_permissions = perms.map(p => p.slug);
+        const [userPerms] = await this.db.query(userPermQuery, [id]);
+        user.individual_permissions = userPerms.map(p => p.slug);
+
+        // Consolidated permissions (Role + Individual)
+        user.permissions = Array.from(new Set([...user.role_permissions, ...user.individual_permissions]));
 
         return user;
+    }
+
+    async getPermissionsByRole(roleId) {
+        const query = `
+            SELECT p.slug
+            FROM role_permissions rp
+            JOIN permissions p ON rp.permission_id = p.id
+            WHERE rp.role_id = ?
+        `;
+        const [rows] = await this.db.query(query, [roleId]);
+        return rows.map(r => r.slug);
     }
 
     async create(data) {

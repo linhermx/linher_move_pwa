@@ -4,15 +4,22 @@ import { LayoutDashboard, Route, History, Truck, Settings as SettingsIcon, Users
 import logoHorizontal from '../assets/logo-horizontal-negativo.svg';
 
 const Sidebar = () => {
+    const user = JSON.parse(localStorage.getItem('user')) || {};
+    const userPermissions = user.permissions || [];
+
     const menuItems = [
         { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
-        { name: 'Nueva Cotización', path: '/new-quote', icon: <Route size={20} /> },
-        { name: 'Historial', path: '/history', icon: <History size={20} /> },
-        { name: 'Flota', path: '/fleet', icon: <Truck size={20} /> },
-        { name: 'Servicios', path: '/services', icon: <Package size={20} /> },
-        { name: 'Ajustes', path: '/settings', icon: <SettingsIcon size={20} /> },
-        { name: 'Usuarios', path: '/users', icon: <Users size={20} /> },
+        { name: 'Nueva Cotización', path: '/new-quote', icon: <Route size={20} />, permission: 'create_quotation' },
+        { name: 'Historial', path: '/history', icon: <History size={20} />, permission: 'view_history' },
+        { name: 'Flota', path: '/fleet', icon: <Truck size={20} />, permission: 'manage_fleet' },
+        { name: 'Servicios', path: '/services', icon: <Package size={20} />, permission: 'manage_services' },
+        { name: 'Ajustes', path: '/settings', icon: <SettingsIcon size={20} />, permission: 'edit_settings' },
+        { name: 'Usuarios', path: '/users', icon: <Users size={20} />, permission: 'manage_users' },
     ];
+
+    const filteredItems = menuItems.filter(item =>
+        !item.permission || userPermissions.includes(item.permission)
+    );
 
     return (
         <aside style={{
@@ -32,7 +39,7 @@ const Sidebar = () => {
             </div>
 
             <nav style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {menuItems.map((item) => (
+                {filteredItems.map((item) => (
                     <NavLink
                         key={item.path}
                         to={item.path}
