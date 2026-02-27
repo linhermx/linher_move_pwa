@@ -6,6 +6,7 @@ import { AuthModel } from '../models/AuthModel.js';
 import { CalculationMotor } from '../utils/CalculationMotor.js';
 import { LogModel } from '../models/LogModel.js';
 import { SystemLogger } from '../utils/Logger.js';
+import bcrypt from 'bcryptjs';
 
 export const VehicleController = (db) => {
     const model = new VehicleModel(db);
@@ -356,10 +357,16 @@ export const AuthController = (db) => {
                     return res.status(401).json({ message: "Usuario no encontrado o inactivo" });
                 }
 
-                // Simple check for now as requested
-                if (user.password !== password) {
+                // Compare passwords using bcrypt (fallback to plain text during transition)
+                const isMatch = await bcrypt.compare(password, user.password).catch(() => false);
+                const isPlainMatch = user.password === password;
+
+                if (!isMatch && !isPlainMatch) {
                     return res.status(401).json({ message: "Contraseña incorrecta" });
                 }
+
+                // If it was a plain text match, we could optionally hash it and save it now,
+                // but we are running a migration script anyway.
 
                 // consolidated perms = Role Perms (TBD) + Individual Perms
                 // For now, let's fetch individual perms
@@ -426,8 +433,15 @@ export const UserController = (db) => {
         },
         create: async (req, res) => {
             try {
+                let finalPassword = req.body.password;
+                if (finalPassword) {
+                    const salt = await bcrypt.genSalt(10);
+                    finalPassword = await bcrypt.hash(finalPassword, salt);
+                }
+
                 const userData = {
                     ...req.body,
+                    password: finalPassword,
                     photo_path: req.file ? `uploads/users/${req.file.filename}` : null
                 };
                 const id = await model.create(userData);
@@ -442,10 +456,27 @@ export const UserController = (db) => {
         },
         update: async (req, res) => {
             try {
+                let finalPassword = req.body.password;
+                // If the user sent a new password, hash it.
+                // ProfileModal sends empty password if not changed. We should handle that in frontend,
+                // but if it's sent and not empty, hash it.
+                if (finalPassword && finalPassword.trim() !== '') {
+                    const salt = await bcrypt.genSalt(10);
+                    finalPassword = await bcrypt.hash(finalPassword, salt);
+                }
+
                 const userData = {
                     ...req.body,
                     photo_path: req.file ? `uploads/users/${req.file.filename}` : undefined
                 };
+
+                // Remove password field if it is empty so it won't overwrite the existing one
+                if (!finalPassword || finalPassword.trim() === '') {
+                    delete userData.password;
+                } else {
+                    userData.password = finalPassword;
+                }
+
                 const success = await model.update(req.params.id, userData);
                 if (!success) return res.status(404).json({ message: "Usuario no encontrado" });
 
