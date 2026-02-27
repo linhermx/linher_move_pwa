@@ -204,8 +204,29 @@ export const QuotationController = (db) => {
     const logger = new SystemLogger(db);
     return {
         list: async (req, res) => {
-            const quotes = await model.filterQuotes(req.query);
-            res.json(quotes);
+            try {
+                const total = await model.countQuotes(req.query);
+                const limit = parseInt(req.query.limit) || 20;
+                const offset = parseInt(req.query.offset) || 0;
+
+                const quotations = await model.filterQuotes({
+                    ...req.query,
+                    limit,
+                    offset
+                });
+
+                res.json({
+                    data: quotations,
+                    pagination: {
+                        total,
+                        limit,
+                        pages: Math.ceil(total / limit),
+                        current_page: Math.floor(offset / limit) + 1
+                    }
+                });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
         },
         create: async (req, res) => {
             try {
@@ -365,8 +386,29 @@ export const UserController = (db) => {
     const logger = new SystemLogger(db);
     return {
         list: async (req, res) => {
-            const users = await model.getAllWithRoles();
-            res.json(users);
+            try {
+                const total = await model.countUsers(req.query);
+                const limit = parseInt(req.query.limit) || 50;
+                const offset = parseInt(req.query.offset) || 0;
+
+                const users = await model.getAllWithRoles({
+                    ...req.query,
+                    limit,
+                    offset
+                });
+
+                res.json({
+                    data: users,
+                    pagination: {
+                        total,
+                        limit,
+                        pages: Math.ceil(total / limit),
+                        current_page: Math.floor(offset / limit) + 1
+                    }
+                });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
         },
         listRoles: async (req, res) => {
             const roles = await model.getAllRoles();

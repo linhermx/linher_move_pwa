@@ -6,13 +6,17 @@ import ConfirmModal from '../components/ConfirmModal';
 import UserModal from '../components/UserModal';
 import { formatDate } from '../utils/formatters';
 import CustomMenu from '../components/CustomMenu';
+import Pagination from '../components/Pagination';
 
 const Users = () => {
     const [users, setUsers] = useState([]);
+    const [pagination, setPagination] = useState({ current_page: 1, pages: 1, total: 0, limit: 10 });
     const [roles, setRoles] = useState([]);
     const [permissions, setPermissions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [limit, setLimit] = useState(10);
+    const [offset, setOffset] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -27,12 +31,17 @@ const Users = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [usersData, rolesData, permsData] = await Promise.all([
-                userService.list(),
+            const params = { limit, offset };
+            if (search) params.search = search;
+
+            const [usersRes, rolesData, permsData] = await Promise.all([
+                userService.list(params),
                 userService.listRoles(),
                 userService.listPermissions()
             ]);
-            setUsers(usersData);
+
+            setUsers(usersRes.data || []);
+            setPagination(usersRes.pagination || { current_page: 1, pages: 1, total: 0 });
             setRoles(rolesData);
             setPermissions(permsData);
         } catch (err) {
@@ -44,8 +53,11 @@ const Users = () => {
     };
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        const timer = setTimeout(() => {
+            fetchData();
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [limit, offset, search]);
 
     const handleDeleteClick = (user) => {
         setUserToDelete(user);
@@ -92,10 +104,8 @@ const Users = () => {
         }
     };
 
-    const filteredUsers = users.filter(u =>
-        u.name.toLowerCase().includes(search.toLowerCase()) ||
-        u.email.toLowerCase().includes(search.toLowerCase())
-    );
+    // Modifying the loop to use users directly since they are now filtered on backend
+    const userList = users;
 
     return (
         <div>
@@ -155,10 +165,10 @@ const Users = () => {
                     <tbody>
                         {loading ? (
                             <tr><td colSpan="5" style={{ padding: '40px', textAlign: 'center' }}>Cargando usuarios...</td></tr>
-                        ) : filteredUsers.length === 0 ? (
+                        ) : userList.length === 0 ? (
                             <tr><td colSpan="5" style={{ padding: '40px', textAlign: 'center' }} className="text-muted">No se encontraron usuarios</td></tr>
                         ) : (
-                            filteredUsers.map(u => (
+                            userList.map(u => (
                                 <tr key={u.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                                     <td style={{ padding: '16px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -229,6 +239,14 @@ const Users = () => {
                         )}
                     </tbody>
                 </table>
+                <Pagination
+                    pagination={pagination}
+                    onPageChange={(newPage) => setOffset((newPage - 1) * limit)}
+                    onLimitChange={(newLimit) => {
+                        setLimit(newLimit);
+                        setOffset(0);
+                    }}
+                />
             </div>
 
             {/* Permissions Modal */}

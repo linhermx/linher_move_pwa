@@ -126,8 +126,8 @@ export const authService = {
 };
 
 export const userService = {
-    list: async () => {
-        const response = await apiClient.get('/users');
+    list: async (params) => {
+        const response = await apiClient.get('/users', { params });
         return response.data;
     },
     listRoles: async () => {
@@ -156,6 +156,13 @@ export const userService = {
     },
     updatePermissions: async (id, permissions) => {
         const response = await apiClient.post(`/users/${id}/permissions`, { permissions });
+        return response.data;
+    }
+};
+
+export const logService = {
+    list: async (params) => {
+        const response = await apiClient.get('/logs', { params });
         return response.data;
     }
 };

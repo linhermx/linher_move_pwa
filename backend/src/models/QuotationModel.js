@@ -8,6 +8,9 @@ export class QuotationModel extends BaseModel {
     /**
      * Get all records from the table with filters
      */
+    /**
+     * Get all records from the table with filters
+     */
     async filterQuotes(filters) {
         let query = `SELECT * FROM ${this.tableName} WHERE 1=1`;
         const params = [];
@@ -33,8 +36,46 @@ export class QuotationModel extends BaseModel {
         }
 
         query += " ORDER BY created_at DESC";
+
+        // Pagination
+        if (filters.limit !== undefined && filters.offset !== undefined) {
+            query += " LIMIT ? OFFSET ?";
+            params.push(parseInt(filters.limit), parseInt(filters.offset));
+        }
+
         const [rows] = await this.db.query(query, params);
         return rows;
+    }
+
+    /**
+     * Count total records with filters
+     */
+    async countQuotes(filters) {
+        let query = `SELECT COUNT(*) as total FROM ${this.tableName} WHERE 1=1`;
+        const params = [];
+
+        if (filters.folio) {
+            query += " AND folio LIKE ?";
+            params.push(`%${filters.folio}%`);
+        }
+
+        if (filters.status) {
+            query += " AND status = ?";
+            params.push(filters.status);
+        }
+
+        if (filters.date_from) {
+            query += " AND created_at >= ?";
+            params.push(filters.date_from);
+        }
+
+        if (filters.date_to) {
+            query += " AND created_at <= ?";
+            params.push(`${filters.date_to} 23:59:59`);
+        }
+
+        const [rows] = await this.db.query(query, params);
+        return rows[0].total;
     }
 
     async generateFolio(userId) {

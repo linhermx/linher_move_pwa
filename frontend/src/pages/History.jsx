@@ -6,16 +6,20 @@ import { PDFService } from '../services/PDFService';
 import { formatDate } from '../utils/formatters';
 import CustomSelect from '../components/CustomSelect';
 import CustomMenu from '../components/CustomMenu';
+import Pagination from '../components/Pagination';
 
 const History = () => {
     const navigate = useNavigate();
     const [quotes, setQuotes] = useState([]);
+    const [pagination, setPagination] = useState({ current_page: 1, pages: 1, total: 0, limit: 10 });
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [period, setPeriod] = useState(''); // '', 'today', 'week', 'month', 'year', 'custom'
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
+    const [limit, setLimit] = useState(10);
+    const [offset, setOffset] = useState(0);
 
     const fetchQuotes = async () => {
         setLoading(true);
@@ -48,8 +52,12 @@ const History = () => {
             if (finalFrom) params.date_from = finalFrom;
             if (finalTo) params.date_to = finalTo;
 
-            const data = await quotationService.list(params);
-            setQuotes(data);
+            params.limit = limit;
+            params.offset = offset;
+
+            const res = await quotationService.list(params);
+            setQuotes(res.data);
+            setPagination(res.pagination);
         } catch (err) {
             console.error('Error fetching quotes:', err);
         } finally {
@@ -62,7 +70,7 @@ const History = () => {
             fetchQuotes();
         }, 300);
         return () => clearTimeout(timer);
-    }, [search, statusFilter, period, dateFrom, dateTo]);
+    }, [search, statusFilter, period, dateFrom, dateTo, limit, offset]);
 
     const getStatusStyle = (status) => {
         switch (status) {
@@ -80,6 +88,8 @@ const History = () => {
         setPeriod('');
         setDateFrom('');
         setDateTo('');
+        setLimit(20);
+        setOffset(0);
     };
 
     return (
@@ -251,6 +261,14 @@ const History = () => {
                         )}
                     </tbody>
                 </table>
+                <Pagination
+                    pagination={pagination}
+                    onPageChange={(newPage) => setOffset((newPage - 1) * limit)}
+                    onLimitChange={(newLimit) => {
+                        setLimit(newLimit);
+                        setOffset(0);
+                    }}
+                />
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { logService } from '../services/api';
 import {
     Search,
     Filter,
@@ -16,11 +16,12 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { formatDate, formatTime, formatDateTime } from '../utils/formatters';
 import CustomSelect from '../components/CustomSelect';
+import Pagination from '../components/Pagination';
 
 const AuditLogs = () => {
     const navigate = useNavigate();
     const [logs, setLogs] = useState([]);
-    const [pagination, setPagination] = useState({ current_page: 1, pages: 1 });
+    const [pagination, setPagination] = useState({ current_page: 1, pages: 1, total: 0, limit: 10 });
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState([]);
     const [selectedLog, setSelectedLog] = useState(null);
@@ -32,14 +33,14 @@ const AuditLogs = () => {
         user_id: '',
         date_from: '',
         date_to: '',
-        limit: 50,
+        limit: 10,
         offset: 0
     });
 
     useEffect(() => {
         fetchUsers();
         fetchLogs();
-    }, [filters.offset, filters.log_type, filters.user_id, filters.date_from, filters.date_to]);
+    }, [filters.offset, filters.log_type, filters.user_id, filters.date_from, filters.date_to, filters.limit]);
 
     const fetchUsers = async () => {
         try {
@@ -52,15 +53,10 @@ const AuditLogs = () => {
 
     const fetchLogs = async () => {
         setLoading(true);
-        try {
-            const params = new URLSearchParams();
-            Object.entries(filters).forEach(([key, value]) => {
-                if (value) params.append(key, value);
-            });
-
-            const res = await axios.get(`http://localhost:3000/api/v1/logs?${params.toString()}`);
-            setLogs(res.data.data);
-            setPagination(res.data.pagination);
+        try { // Added missing try block
+            const res = await logService.list(filters);
+            setLogs(res.data || []);
+            setPagination(res.pagination || { current_page: 1, pages: 1, total: 0, limit: 10 });
         } catch (err) {
             console.error('Error fetching logs:', err);
         } finally {
@@ -233,7 +229,7 @@ const AuditLogs = () => {
                             {loading ? (
                                 <tr><td colSpan="5" style={{ padding: '40px', textAlign: 'center' }}>Cargando...</td></tr>
                             ) : logs.length > 0 ? (
-                                logs.map((log) => {
+                                (logs || []).map((log) => {
                                     const style = getTypeStyle(log.log_type);
                                     return (
                                         <tr key={log.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -308,30 +304,11 @@ const AuditLogs = () => {
                 </div>
 
                 {/* Pagination */}
-                {!loading && pagination.pages > 1 && (
-                    <div style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', backgroundColor: 'rgba(255,255,255,0.01)' }}>
-                        <span style={{ fontSize: '12px' }} className="text-muted">
-                            Total: <strong>{pagination.total}</strong> registros
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <button
-                                onClick={() => changePage(pagination.current_page - 1)}
-                                disabled={pagination.current_page === 1}
-                                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'white', borderRadius: '5px', padding: '5px', cursor: 'pointer', opacity: pagination.current_page === 1 ? 0.3 : 1 }}
-                            >
-                                <ChevronLeft size={16} />
-                            </button>
-                            <span style={{ fontSize: '13px' }}>{pagination.current_page} / {pagination.pages}</span>
-                            <button
-                                onClick={() => changePage(pagination.current_page + 1)}
-                                disabled={pagination.current_page === pagination.pages}
-                                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'white', borderRadius: '5px', padding: '5px', cursor: 'pointer', opacity: pagination.current_page === pagination.pages ? 0.3 : 1 }}
-                            >
-                                <ChevronRight size={16} />
-                            </button>
-                        </div>
-                    </div>
-                )}
+                <Pagination
+                    pagination={pagination}
+                    onPageChange={changePage}
+                    onLimitChange={(newLimit) => setFilters(prev => ({ ...prev, limit: newLimit, offset: 0 }))}
+                />
             </div>
 
             {/* Modal de Detalles */}

@@ -5,15 +5,46 @@ export class UserModel extends BaseModel {
         super('users', db);
     }
 
-    async getAllWithRoles() {
-        const query = `
+    async getAllWithRoles(filters = {}) {
+        let query = `
             SELECT u.*, r.name as role_name 
             FROM ${this.tableName} u
             LEFT JOIN roles r ON u.role_id = r.id
-            ORDER BY u.created_at DESC
+            WHERE 1=1
         `;
-        const [rows] = await this.db.query(query);
+        const params = [];
+
+        if (filters.search) {
+            query += " AND (u.name LIKE ? OR u.email LIKE ?)";
+            params.push(`%${filters.search}%`, `%${filters.search}%`);
+        }
+
+        query += " ORDER BY u.created_at DESC";
+
+        if (filters.limit !== undefined && filters.offset !== undefined) {
+            query += " LIMIT ? OFFSET ?";
+            params.push(parseInt(filters.limit), parseInt(filters.offset));
+        }
+
+        const [rows] = await this.db.query(query, params);
         return rows;
+    }
+
+    async countUsers(filters = {}) {
+        let query = `
+            SELECT COUNT(*) as total 
+            FROM ${this.tableName} u
+            WHERE 1=1
+        `;
+        const params = [];
+
+        if (filters.search) {
+            query += " AND (u.name LIKE ? OR u.email LIKE ?)";
+            params.push(`%${filters.search}%`, `%${filters.search}%`);
+        }
+
+        const [rows] = await this.db.query(query, params);
+        return rows[0].total;
     }
 
     async getByIdWithPermissions(id) {
