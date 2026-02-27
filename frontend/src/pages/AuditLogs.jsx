@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { logService } from '../services/api';
+import { logService, userService } from '../services/api';
 import {
     Search,
     Filter,
@@ -44,8 +44,8 @@ const AuditLogs = () => {
 
     const fetchUsers = async () => {
         try {
-            const res = await axios.get('http://localhost:3000/api/v1/users');
-            setUsers(res.data);
+            const res = await userService.list({ limit: 1000 });
+            setUsers(res.data || []);
         } catch (err) {
             console.error('Error fetching users:', err);
         }
