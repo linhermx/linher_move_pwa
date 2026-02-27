@@ -28,7 +28,7 @@ export const VehicleController = (db) => {
             const id = await model.create(vehicleData);
 
             // Log action
-            await logger.business(req.body.user_id, 'CREATE_VEHICLE', { vehicle_id: id, name: vehicleData.name });
+            await logger.business(req.body.operator_id, 'CREATE_VEHICLE', { vehicle_id: id, name: vehicleData.name });
 
             res.status(201).json({ id, message: "Vehicle created" });
         },
@@ -41,7 +41,7 @@ export const VehicleController = (db) => {
             if (!success) return res.status(404).json({ message: "Vehicle not found" });
 
             // Log action
-            await logger.business(req.body.user_id, 'UPDATE_VEHICLE', { vehicle_id: req.params.id, name: vehicleData.name });
+            await logger.business(req.body.operator_id, 'UPDATE_VEHICLE', { vehicle_id: req.params.id, name: vehicleData.name });
 
             res.json({ message: "Vehicle updated" });
         },
@@ -50,7 +50,7 @@ export const VehicleController = (db) => {
             if (!success) return res.status(404).json({ message: "Vehicle not found" });
 
             // Log action
-            await logger.business(req.query.user_id, 'DELETE_VEHICLE', { vehicle_id: req.params.id });
+            await logger.business(req.body.operator_id || req.query.operator_id, 'DELETE_VEHICLE', { vehicle_id: req.params.id });
 
             res.json({ message: "Vehicle deleted" });
         }
@@ -89,7 +89,7 @@ export const SettingsController = (db) => {
                 res.json({ message: "Settings updated" });
 
                 // Log action
-                await logger.config(req.body.user_id, 'UPDATE_SETTINGS', { keys: Object.keys(settings) });
+                await logger.config(req.body.operator_id, 'UPDATE_SETTINGS', { keys: Object.keys(settings) });
             } catch (error) {
                 res.status(500).json({ message: error.message });
             }
@@ -228,7 +228,7 @@ export const QuotationController = (db) => {
                 });
 
                 // Log action
-                await logger.business(req.body.user_id, 'CREATE_QUOTATION', { quote_id: quoteId, folio, total: req.body.total });
+                await logger.business(req.body.operator_id, 'CREATE_QUOTATION', { quote_id: quoteId, folio, total: req.body.total });
             } catch (error) {
                 console.error(error);
                 res.status(500).json({ message: "Internal server error" });
@@ -251,7 +251,7 @@ export const QuotationController = (db) => {
                 res.json({ message: "Quotation updated successfully" });
 
                 // Log action
-                await logger.business(req.body.user_id, 'UPDATE_QUOTATION', {
+                await logger.business(req.body.operator_id, 'UPDATE_QUOTATION', {
                     quote_id: req.params.id,
                     status: req.body.status,
                     total: req.body.total
@@ -287,7 +287,7 @@ export const ServiceController = (pool) => {
                 const id = await model.create(req.body);
 
                 // Log
-                await logger.business(req.body.user_id, 'CREATE_SERVICE', { service_id: id, name: req.body.name });
+                await logger.business(req.body.operator_id, 'CREATE_SERVICE', { service_id: id, name: req.body.name });
 
                 res.status(201).json({ id, message: "Service created" });
             } catch (error) {
@@ -300,7 +300,7 @@ export const ServiceController = (pool) => {
                 if (!success) return res.status(404).json({ message: "Service not found" });
 
                 // Log
-                await logger.business(req.body.user_id, 'UPDATE_SERVICE', { service_id: req.params.id, name: req.body.name });
+                await logger.business(req.body.operator_id, 'UPDATE_SERVICE', { service_id: req.params.id, name: req.body.name });
 
                 res.json({ message: "Service updated" });
             } catch (error) {
@@ -313,7 +313,7 @@ export const ServiceController = (pool) => {
                 if (!success) return res.status(404).json({ message: "Service not found" });
 
                 // Log
-                await logger.business(req.query.user_id, 'DELETE_SERVICE', { service_id: req.params.id });
+                await logger.business(req.body.operator_id || req.query.operator_id, 'DELETE_SERVICE', { service_id: req.params.id });
 
                 res.json({ message: "Service deleted" });
             } catch (error) {
@@ -390,7 +390,7 @@ export const UserController = (db) => {
                 const id = await model.create(userData);
 
                 // Log
-                await logger.system(req.body.admin_id, 'CREATE_USER', { user_id: id, email: userData.email });
+                await logger.system(req.body.operator_id, 'CREATE_USER', { user_id: id, email: userData.email });
 
                 res.status(201).json({ id, message: "Usuario creado" });
             } catch (error) {
@@ -407,7 +407,7 @@ export const UserController = (db) => {
                 if (!success) return res.status(404).json({ message: "Usuario no encontrado" });
 
                 // Log
-                await logger.system(req.body.admin_id, 'UPDATE_USER', { user_id: req.params.id, email: userData.email });
+                await logger.system(req.body.operator_id, 'UPDATE_USER', { user_id: req.params.id, email: userData.email });
 
                 res.json({
                     message: "Usuario actualizado",
@@ -423,7 +423,7 @@ export const UserController = (db) => {
                 if (!success) return res.status(404).json({ message: "Usuario eliminado" });
 
                 // Log
-                await logger.system(req.query.admin_id, 'DELETE_USER', { user_id: req.params.id });
+                await logger.system(req.body.operator_id || req.query.operator_id, 'DELETE_USER', { user_id: req.params.id });
 
                 res.json({ message: "Usuario eliminado" });
             } catch (error) {
@@ -436,7 +436,7 @@ export const UserController = (db) => {
                 await model.setPermissions(req.params.id, permissions);
 
                 // Log
-                await logger.system(req.body.admin_id, 'UPDATE_USER_PERMISSIONS', { user_id: req.params.id, permissions });
+                await logger.system(req.body.operator_id, 'UPDATE_USER_PERMISSIONS', { user_id: req.params.id, permissions });
 
                 res.json({ message: "Permisos actualizados" });
             } catch (error) {

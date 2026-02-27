@@ -6,6 +6,31 @@ const apiClient = axios.create({
     baseURL: API_BASE_URL
 });
 
+// Interceptor para inyectar automáticamente el operator_id en peticiones de modificación
+apiClient.interceptors.request.use(config => {
+    const user = JSON.parse(localStorage.getItem('user'));
+
+    if (user && user.id && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+        // Para peticiones multipart/form-data (con archivos)
+        if (config.data instanceof FormData) {
+            if (!config.data.has('operator_id')) {
+                config.data.append('operator_id', user.id);
+            }
+        }
+        // Para peticiones JSON normales
+        else {
+            if (typeof config.data === 'object' && config.data !== null) {
+                config.data.operator_id = user.id;
+            } else if (!config.data) {
+                config.data = { operator_id: user.id };
+            }
+        }
+    }
+    return config;
+}, error => {
+    return Promise.reject(error);
+});
+
 export const mapsService = {
     autocomplete: async (text) => {
         const response = await apiClient.get('/maps/autocomplete', {
