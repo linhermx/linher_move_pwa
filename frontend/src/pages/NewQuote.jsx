@@ -54,8 +54,11 @@ const NewQuote = () => {
                     serviceService.list(),
                     settingsService.get()
                 ]);
-                setVehicles(vData);
-                setServices(sData);
+
+                // Exclude maintenance/inactive vehicles and inactive services
+                setVehicles(vData.filter(v => v.status !== 'maintenance' && v.status !== 'inactive'));
+                setServices(sData.filter(s => s.status === 'active'));
+
                 setGlobalSettings(settsData);
 
                 // Set default origin if available

@@ -64,10 +64,13 @@ const QuoteDetail = () => {
                 ]).then(([vData, settsData, sData]) => {
                     setVehicles(vData);
                     setGlobalSettings(settsData);
-                    setServices(sData);
+
+                    const initialIds = (quoteData.services || []).map(s => s.service_id);
+
+                    // Filter out inactive services (unless they are already part of this quote)
+                    setServices(sData.filter(s => s.status !== 'inactive' || initialIds.includes(s.id)));
 
                     // Sync initial breakdown with full service info once loaded
-                    const initialIds = (quoteData.services || []).map(s => s.service_id);
                     recalculateBreakdown({
                         lodging_cost: quoteData.lodging_cost || 0,
                         meal_cost: quoteData.meal_cost || 0
