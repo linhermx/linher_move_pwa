@@ -10,7 +10,8 @@ import {
     ServiceController,
     AuthController,
     UserController,
-    LogController
+    LogController,
+    DashboardController
 } from './controllers/Controllers.js';
 import { UserModel } from './models/UserModel.js';
 import multer from 'multer';
@@ -62,6 +63,7 @@ const serviceCtrl = ServiceController(pool);
 const authCtrl = AuthController(pool);
 const userCtrl = UserController(pool);
 const logCtrl = LogController(pool);
+const dashCtrl = DashboardController(pool);
 
 // Auth
 v1.post('/auth/login', authCtrl.login);
@@ -107,6 +109,9 @@ v1.post('/users/:id/permissions', userCtrl.updatePermissions);
 
 // Logs
 v1.get('/logs', logCtrl.list);
+
+// Dashboard analytics
+v1.get('/dashboard', dashCtrl.stats);
 
 // Mount
 app.use('/api/v1', v1);

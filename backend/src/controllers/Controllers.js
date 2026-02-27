@@ -512,3 +512,167 @@ export const LogController = (pool) => {
         }
     };
 };
+
+export const DashboardController = (db) => {
+    return {
+        stats: async (req, res) => {
+            try {
+                const { user_id } = req.query;
+                const role = (req.query.role || 'OPERADOR').toUpperCase();
+                const date_from = req.query.date_from || null;  // e.g. '2026-01-01'
+                const date_to = req.query.date_to || null;  // e.g. '2026-01-31'
+
+                // ── Date filter helper ─────────────────────────────────────────────────
+                const dateClause = (alias = '') => {
+                    const col = alias ? `${alias}.created_at` : 'created_at';
+                    let clause = '';
+                    const params = [];
+                    if (date_from) { clause += ` AND ${col} >= ?`; params.push(date_from); }
+                    if (date_to) { clause += ` AND ${col} <= ?`; params.push(`${date_to} 23:59:59`); }
+                    return { clause, params };
+                };
+
+                // ── Shared: quotations by status (with optional filter) ───────────────
+                const { clause: sc, params: sp } = dateClause();
+                const [statusRows] = await db.query(
+                    `SELECT status, COUNT(*) as count FROM quotations WHERE 1=1${sc} GROUP BY status`, sp
+                );
+                const quotations_by_status = statusRows;
+
+                // ── ADMIN ─────────────────────────────────────────────────────────────
+                if (role === 'ADMIN') {
+                    const { clause: dc, params: dp } = dateClause();    // no-join queries
+                    const { clause: dqc, params: dqp } = dateClause('q'); // join queries (alias q)
+
+                    // Revenue: always filtered by period (defaults to current month if no filter)
+                    let revenueQuery, revenueParams;
+                    if (date_from || date_to) {
+                        revenueQuery = `SELECT COALESCE(SUM(total), 0) as revenue FROM quotations WHERE status='completada'${dc}`;
+                        revenueParams = dp;
+                    } else {
+                        revenueQuery = `SELECT COALESCE(SUM(total), 0) as revenue FROM quotations WHERE status='completada' AND MONTH(created_at)=MONTH(NOW()) AND YEAR(created_at)=YEAR(NOW())`;
+                        revenueParams = [];
+                    }
+
+                    const [
+                        [revenueRows],
+                        [totalRows],
+                        [topOperatorsRows],
+                        [byDayRows],
+                        [fleetStatusRows],
+                        [fleetEffRows],
+                        [recentLogsRows],
+                        [activeUsersRows]
+                    ] = await Promise.all([
+                        db.query(revenueQuery, revenueParams),
+                        db.query(`SELECT COUNT(*) as total FROM quotations WHERE 1=1${dc}`, dp),
+                        db.query(`SELECT u.name, COUNT(q.id) as total FROM quotations q JOIN users u ON q.user_id=u.id WHERE q.status='completada'${dqc} GROUP BY u.id, u.name ORDER BY total DESC LIMIT 5`, dqp),
+                        db.query(`SELECT DATE(created_at) as day, COUNT(*) as count FROM quotations WHERE 1=1${dc} GROUP BY DATE(created_at) ORDER BY day ASC`, dp),
+                        // Fleet & users are real-time — not date-filtered
+                        db.query(`SELECT status, COUNT(*) as count FROM vehicles GROUP BY status`),
+                        db.query(`SELECT COALESCE(AVG(rendimiento_real/rendimiento_teorico*100), 0) as fleet_eff FROM vehicles WHERE rendimiento_teorico > 0`),
+                        db.query(`SELECT l.action, l.log_type, l.created_at, u.name as user_name FROM logs l LEFT JOIN users u ON l.user_id=u.id ORDER BY l.created_at DESC LIMIT 5`),
+                        db.query(`SELECT COUNT(*) as count FROM users WHERE status='active'`)
+                    ]);
+
+                    const total = totalRows[0].total;
+                    const completada = quotations_by_status.find(r => r.status === 'completada');
+                    const success_rate = total > 0 ? Math.round((completada?.count || 0) / total * 100) : 0;
+                    const available = fleetStatusRows.find(r => r.status === 'available');
+
+                    return res.json({
+                        role: 'ADMIN',
+                        kpis: {
+                            revenue: parseFloat(revenueRows[0].revenue),
+                            total_quotes: total,
+                            success_rate,
+                            available_vehicles: available?.count || 0,
+                            active_users: activeUsersRows[0].count
+                        },
+                        quotations_by_status,
+                        top_operators: topOperatorsRows,
+                        by_day: byDayRows,
+                        fleet_status: fleetStatusRows,
+                        fleet_efficiency: parseFloat(fleetEffRows[0].fleet_eff || 0).toFixed(1),
+                        recent_logs: recentLogsRows
+                    });
+                }
+
+                // ── SUPERVISOR ────────────────────────────────────────────────────────
+                if (role === 'SUPERVISOR') {
+                    const { clause: dc, params: dp } = dateClause();    // no-join
+                    const { clause: dqc, params: dqp } = dateClause('q'); // join queries
+
+                    const [
+                        [fleetStatusRows],
+                        [fleetEffRows],
+                        [pendingRows],
+                        [avgTimeRows]
+                    ] = await Promise.all([
+                        db.query(`SELECT status, COUNT(*) as count FROM vehicles GROUP BY status`),
+                        db.query(`SELECT COALESCE(AVG(rendimiento_real/rendimiento_teorico*100), 0) as fleet_eff FROM vehicles WHERE rendimiento_teorico > 0`),
+                        db.query(`SELECT q.folio, q.total, q.created_at, u.name as operator FROM quotations q JOIN users u ON q.user_id=u.id WHERE q.status='pendiente'${dqc} ORDER BY q.created_at DESC LIMIT 5`, dqp),
+                        db.query(`SELECT COALESCE(AVG(time_total), 0) as avg_time FROM quotations WHERE status='completada'${dc}`, dp)
+                    ]);
+
+                    const activeCount = quotations_by_status
+                        .filter(r => r.status === 'pendiente' || r.status === 'en_proceso')
+                        .reduce((s, r) => s + r.count, 0);
+                    const inRoute = fleetStatusRows.find(r => r.status === 'in_route');
+
+                    return res.json({
+                        role: 'SUPERVISOR',
+                        kpis: {
+                            active_quotes: activeCount,
+                            vehicles_in_route: inRoute?.count || 0,
+                            avg_route_time: Math.round(parseFloat(avgTimeRows[0].avg_time || 0)),
+                            fleet_efficiency: parseFloat(fleetEffRows[0].fleet_eff || 0).toFixed(1)
+                        },
+                        quotations_by_status,
+                        fleet_status: fleetStatusRows,
+                        fleet_efficiency: parseFloat(fleetEffRows[0].fleet_eff || 0).toFixed(1),
+                        pending_quotes: pendingRows
+                    });
+                }
+
+                // ── OPERADOR ──────────────────────────────────────────────────────────
+                const { clause: dc, params: dp } = dateClause();
+
+                const [
+                    [myStatusRows],
+                    [myRevenueRows],
+                    [myWeeklyRows],
+                    [myRecentRows]
+                ] = await Promise.all([
+                    db.query(`SELECT status, COUNT(*) as count FROM quotations WHERE user_id=?${dc} GROUP BY status`, [user_id, ...dp]),
+                    db.query(`SELECT COALESCE(SUM(total),0) as amount FROM quotations WHERE user_id=? AND status='completada'${dc}`, [user_id, ...dp]),
+                    db.query(`SELECT YEARWEEK(created_at,1) as week, COUNT(*) as count FROM quotations WHERE user_id=?${dc} GROUP BY YEARWEEK(created_at,1) ORDER BY week ASC`, [user_id, ...dp]),
+                    db.query(`SELECT folio, destination_address, total, status, created_at FROM quotations WHERE user_id=?${dc} ORDER BY created_at DESC LIMIT 5`, [user_id, ...dp])
+                ]);
+
+                const myTotal = myStatusRows.reduce((s, r) => s + r.count, 0);
+                const myCompleted = myStatusRows.find(r => r.status === 'completada');
+                const myPending = myStatusRows.find(r => r.status === 'pendiente');
+
+                return res.json({
+                    role: 'OPERADOR',
+                    kpis: {
+                        total_quotes: myTotal,
+                        completed_this_month: myCompleted?.count || 0,
+                        revenue_this_month: parseFloat(myRevenueRows[0].amount),
+                        pending: myPending?.count || 0
+                    },
+                    my_status: myStatusRows,
+                    my_weekly: myWeeklyRows,
+                    my_recent: myRecentRows
+                });
+
+            } catch (error) {
+                console.error('Dashboard error:', error);
+                res.status(500).json({ message: error.message });
+            }
+        }
+    };
+};
+
+

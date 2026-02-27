@@ -167,4 +167,15 @@ export const logService = {
     }
 };
 
+export const dashboardService = {
+    stats: async (userId, role, dateFrom = null, dateTo = null) => {
+        const params = { user_id: userId, role };
+        if (dateFrom) params.date_from = dateFrom;
+        if (dateTo) params.date_to = dateTo;
+        const response = await apiClient.get('/dashboard', { params });
+        return response.data;
+    }
+};
+
 export default apiClient;
+
