@@ -328,7 +328,8 @@ const NewQuote = () => {
 
         setLoading(true);
         try {
-            const user = JSON.parse(localStorage.getItem('user'));
+            const rawU = localStorage.getItem('user') || sessionStorage.getItem('user');
+            const user = JSON.parse(rawU);
             const quotationData = {
                 user_id: user ? user.id : 1,
                 vehicle_id: selectedVehicle ? selectedVehicle.id : null,

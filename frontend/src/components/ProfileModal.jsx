@@ -4,7 +4,7 @@ import { userService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 
 const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
-    const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || {});
+    const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user')) || {});
     const [formData, setFormData] = useState({
         name: user.name || '',
         password: '',
@@ -18,7 +18,7 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
 
     useEffect(() => {
         if (isOpen) {
-            const currentUser = JSON.parse(localStorage.getItem('user')) || {};
+            const currentUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user')) || {};
             setUser(currentUser);
             setFormData({
                 name: currentUser.name || '',

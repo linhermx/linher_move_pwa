@@ -8,7 +8,7 @@ import logoHorizontal from '../assets/logo-horizontal-negativo.svg';
 import ProfileModal from './ProfileModal';
 
 const Sidebar = () => {
-    const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || {});
+    const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user')) || {});
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const userPermissions = user.permissions || [];
@@ -16,7 +16,7 @@ const Sidebar = () => {
     // Listen for storage changes in case other tabs or components update local storage
     useEffect(() => {
         const handleStorageChange = () => {
-            const updatedUser = JSON.parse(localStorage.getItem('user')) || {};
+            const updatedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user')) || {};
             setUser(updatedUser);
         };
         window.addEventListener('storage', handleStorageChange);

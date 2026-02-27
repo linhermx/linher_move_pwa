@@ -68,6 +68,7 @@ const dashCtrl = DashboardController(pool);
 // Auth
 v1.post('/auth/login', authCtrl.login);
 
+
 // Vehicles
 v1.get('/vehicles', vehicleCtrl.list);
 v1.get('/vehicles/:id', vehicleCtrl.show);

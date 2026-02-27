@@ -18,14 +18,17 @@ import Login from './pages/Login';
 const App = () => {
   const getUser = () => {
     try {
-      const userStr = localStorage.getItem('user');
+      // Check localStorage first (remember me = on), then sessionStorage (remember me = off)
+      const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
       return userStr ? JSON.parse(userStr) : null;
     } catch (error) {
       console.error('Error parsing user from localStorage:', error);
       localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
       return null;
     }
   };
+
 
   const user = getUser();
 

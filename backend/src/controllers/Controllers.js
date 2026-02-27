@@ -381,6 +381,7 @@ export const AuthController = (db) => {
     };
 };
 
+
 export const UserController = (db) => {
     const model = new UserModel(db);
     const logger = new SystemLogger(db);

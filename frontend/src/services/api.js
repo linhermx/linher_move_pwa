@@ -6,19 +6,15 @@ const apiClient = axios.create({
     baseURL: API_BASE_URL
 });
 
-// Interceptor para inyectar automáticamente el operator_id en peticiones de modificación
+// Interceptor — auto-inject operator_id; reads from localStorage or sessionStorage
 apiClient.interceptors.request.use(config => {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
+    const user = raw ? JSON.parse(raw) : null;
 
     if (user && user.id && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
-        // Para peticiones multipart/form-data (con archivos)
         if (config.data instanceof FormData) {
-            if (!config.data.has('operator_id')) {
-                config.data.append('operator_id', user.id);
-            }
-        }
-        // Para peticiones JSON normales
-        else {
+            if (!config.data.has('operator_id')) config.data.append('operator_id', user.id);
+        } else {
             if (typeof config.data === 'object' && config.data !== null) {
                 config.data.operator_id = user.id;
             } else if (!config.data) {
@@ -27,9 +23,8 @@ apiClient.interceptors.request.use(config => {
         }
     }
     return config;
-}, error => {
-    return Promise.reject(error);
-});
+}, error => Promise.reject(error));
+
 
 export const mapsService = {
     autocomplete: async (text) => {
@@ -122,8 +117,13 @@ export const authService = {
     login: async (email, password) => {
         const { data } = await apiClient.post('/auth/login', { email, password });
         return data;
+    },
+    forgotPassword: async (email) => {
+        const { data } = await apiClient.post('/auth/forgot-password', { email });
+        return data;
     }
 };
+
 
 export const userService = {
     list: async (params) => {

@@ -660,7 +660,7 @@ const Dashboard = () => {
     const [error, setError] = useState(null);
     const [period, setPeriod] = useState('month');
 
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
     const roleName = (user.role_name || 'OPERADOR').toUpperCase();
 
     const ROLE_SUBTITLE = {
