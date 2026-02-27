@@ -8,6 +8,19 @@ import StatusView from '../components/StatusView';
 import { useNotification } from '../context/NotificationContext';
 import CustomMenu from '../components/CustomMenu';
 
+const getEfficiency = (vehicle) => {
+    if (vehicle.status === 'maintenance') {
+        return { label: 'N/A', color: 'var(--color-text-muted)', pct: null };
+    }
+    if (!vehicle.rendimiento_real || !vehicle.rendimiento_teorico) {
+        return { label: 'Sin datos', color: 'var(--color-text-muted)', pct: null };
+    }
+    const pct = (vehicle.rendimiento_real / vehicle.rendimiento_teorico) * 100;
+    if (pct >= 90) return { label: `Óptima (${pct.toFixed(0)}%)`, color: '#28A745', pct };
+    if (pct >= 70) return { label: `Regular (${pct.toFixed(0)}%)`, color: '#FFC107', pct };
+    return { label: `Crítica (${pct.toFixed(0)}%)`, color: '#DC3545', pct };
+};
+
 const Fleet = () => {
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -190,8 +203,10 @@ const Fleet = () => {
                                 <div style={{ flex: 1 }}>
                                     <span className="text-muted" style={{ fontSize: '10px', display: 'block' }}>EFICIENCIA</span>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
-                                        <Truck size={14} />
-                                        <span>{v.status === 'available' ? 'Óptima' : 'En uso'}</span>
+                                        <Gauge size={14} style={{ color: getEfficiency(v).color }} />
+                                        <span style={{ color: getEfficiency(v).color, fontSize: '12px' }}>
+                                            {getEfficiency(v).label}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -199,10 +214,18 @@ const Fleet = () => {
                             <div style={{
                                 marginTop: '12px', fontSize: '11px',
                                 display: 'inline-block', padding: '2px 8px', borderRadius: '10px',
-                                backgroundColor: v.status === 'available' ? 'rgba(40, 167, 69, 0.1)' : 'rgba(0, 123, 255, 0.1)',
-                                color: v.status === 'available' ? '#28A745' : '#007BFF'
+                                backgroundColor: v.status === 'available'
+                                    ? 'rgba(40, 167, 69, 0.1)'
+                                    : v.status === 'maintenance'
+                                        ? 'rgba(255, 193, 7, 0.1)'
+                                        : 'rgba(0, 123, 255, 0.1)',
+                                color: v.status === 'available'
+                                    ? '#28A745'
+                                    : v.status === 'maintenance'
+                                        ? '#FFC107'
+                                        : '#007BFF'
                             }}>
-                                {v.status === 'available' ? '● Disponible' : '● En Ruta'}
+                                {v.status === 'available' ? '● Disponible' : v.status === 'maintenance' ? '● Mantenimiento' : '● En Ruta'}
                             </div>
                         </div>
                     ))}
