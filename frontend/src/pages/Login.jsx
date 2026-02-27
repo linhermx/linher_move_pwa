@@ -16,7 +16,7 @@ const Login = () => {
             const data = await authService.login(email, password);
             localStorage.setItem('user', JSON.stringify(data.user));
             // Force reload to update sidebar/navigation if needed
-            window.location.href = '/dashboard';
+            window.location.href = '/';
         } catch (err) {
             showNotification(err.response?.data?.message || 'Error al iniciar sesión', 'error');
         }
