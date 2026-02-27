@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Save, User, Camera, Lock, Mail } from 'lucide-react';
 import { userService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
@@ -78,7 +79,7 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
         }
     };
 
-    return (
+    return createPortal(
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -228,7 +229,8 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                     </button>
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

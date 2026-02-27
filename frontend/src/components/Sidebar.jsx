@@ -83,7 +83,7 @@ const Sidebar = () => {
             padding: isCollapsed ? 'var(--spacing-md) 8px' : 'var(--spacing-md)',
             display: 'flex',
             flexDirection: 'column',
-            zIndex: 10,
+            zIndex: 1000,
             transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease'
         }}>
             <div style={{
