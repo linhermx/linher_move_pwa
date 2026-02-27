@@ -2,16 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
     LayoutDashboard, Route, History, Truck, Settings as SettingsIcon,
-    Users, User, Package, ShieldCheck, LogOut, Moon, Sun, ChevronUp
+    Users, User, Package, ShieldCheck, LogOut, Moon, Sun, ChevronUp, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import logoHorizontal from '../assets/logo-horizontal-negativo.svg';
+import logoMonograma from '../assets/logo-monograma-move.svg';
 import ProfileModal from './ProfileModal';
 
 const Sidebar = () => {
     const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user')) || {});
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(localStorage.getItem('sidebarCollapsed') === 'true');
     const userPermissions = user.permissions || [];
+
+    const toggleSidebar = () => {
+        const newState = !isCollapsed;
+        setIsCollapsed(newState);
+        localStorage.setItem('sidebarCollapsed', newState);
+        // Close profile if open to prevent visual glitches
+        if (isProfileOpen) setIsProfileOpen(false);
+    };
 
     // Listen for storage changes in case other tabs or components update local storage
     useEffect(() => {
@@ -35,10 +45,6 @@ const Sidebar = () => {
     const menuGroups = [
         // ... (rest of menuGroups remains original)
     ];
-
-    // Redeclaramos menuGroups aquí para asegurar disponibilidad si es necesario, 
-    // pero idealmente mantenemos los que ya existen. 
-    // Como estamos usando replace_file_content, necesitamos incluir el bloque completo si lo pisamos.
 
     const currentMenuGroups = [
         {
@@ -68,19 +74,38 @@ const Sidebar = () => {
 
     return (
         <aside style={{
-            width: '260px',
+            width: isCollapsed ? '80px' : '260px',
             backgroundColor: 'var(--color-surface)',
             height: '100vh',
             position: 'sticky',
             top: 0,
             borderRight: '1px solid var(--color-border)',
-            padding: 'var(--spacing-md)',
+            padding: isCollapsed ? 'var(--spacing-md) 8px' : 'var(--spacing-md)',
             display: 'flex',
             flexDirection: 'column',
-            zIndex: 10
+            zIndex: 10,
+            transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease'
         }}>
-            <div style={{ marginBottom: 'var(--spacing-xl)', textAlign: 'center', padding: '10px' }}>
-                <img src={logoHorizontal} alt="LINHER MOVE" style={{ width: '100%', maxWidth: '180px', height: 'auto' }} />
+            <div style={{
+                marginBottom: 'var(--spacing-xl)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: isCollapsed ? '10px 0' : '10px',
+            }}>
+                <div style={{ height: '45px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: isCollapsed ? '100%' : 'auto', overflow: 'hidden' }}>
+                    <img
+                        src={isCollapsed ? logoMonograma : logoHorizontal}
+                        alt="LINHER MOVE"
+                        style={{
+                            height: '100%',
+                            width: 'auto',
+                            maxWidth: isCollapsed ? '45px' : '180px',
+                            objectFit: 'contain',
+                            display: 'block'
+                        }}
+                    />
+                </div>
             </div>
 
             <nav style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
@@ -93,36 +118,55 @@ const Sidebar = () => {
 
                     return (
                         <div key={group.title} style={{ marginBottom: '16px' }}>
-                            <div style={{
-                                padding: '0 12px',
-                                marginBottom: '8px',
-                                fontSize: '10px',
-                                fontWeight: 'bold',
-                                color: 'var(--color-text-muted)',
-                                letterSpacing: '1px'
-                            }}>
-                                {group.title}
-                            </div>
+                            {!isCollapsed && (
+                                <div style={{
+                                    padding: '0 12px',
+                                    marginBottom: '8px',
+                                    fontSize: '10px',
+                                    fontWeight: 'bold',
+                                    color: 'var(--color-text-muted)',
+                                    letterSpacing: '1px',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    opacity: isCollapsed ? 0 : 1,
+                                    transition: 'opacity 0.2s ease'
+                                }}>
+                                    {group.title}
+                                </div>
+                            )}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 {filteredItems.map((item) => (
                                     <NavLink
                                         key={item.path}
                                         to={item.path}
+                                        title={item.name}
                                         style={({ isActive }) => ({
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: '12px',
-                                            padding: '10px 12px',
+                                            justifyContent: isCollapsed ? 'center' : 'flex-start',
+                                            gap: isCollapsed ? '0' : '12px',
+                                            padding: isCollapsed ? '10px 0' : '10px 12px',
                                             borderRadius: 'var(--radius-md)',
                                             textDecoration: 'none',
                                             color: isActive ? 'var(--color-text-main)' : 'var(--color-text-muted)',
                                             backgroundColor: isActive ? 'rgba(255, 72, 72, 0.1)' : 'transparent',
                                             borderLeft: isActive ? '3px solid var(--color-primary)' : '3px solid transparent',
-                                            transition: 'all 0.2s'
+                                            transition: 'all 0.2s ease',
+                                            overflow: 'hidden'
                                         })}
                                     >
-                                        {item.icon}
-                                        <span style={{ fontSize: '13px' }}>{item.name}</span>
+                                        <div style={{ minWidth: '20px', display: 'flex', justifyContent: 'center' }}>
+                                            {item.icon}
+                                        </div>
+                                        {!isCollapsed && (
+                                            <span style={{
+                                                fontSize: '13px',
+                                                whiteSpace: 'nowrap',
+                                                opacity: isCollapsed ? 0 : 1,
+                                                transition: 'opacity 0.2s ease'
+                                            }}>{item.name}</span>
+                                        )}
                                     </NavLink>
                                 ))}
                             </div>
@@ -133,12 +177,41 @@ const Sidebar = () => {
 
             {/* Profile Section */}
             <div style={{ position: 'relative', marginTop: 'auto', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-md)' }}>
+                {/* Overlapping toggle button positioned on the divider line */}
+                <button
+                    onClick={toggleSidebar}
+                    className="sidebar-toggle-btn"
+                    title={isCollapsed ? "Expandir menú" : "Contraer menú"}
+                    style={{
+                        background: 'var(--color-bg)',
+                        border: '1px solid var(--color-border)',
+                        color: 'var(--color-text-muted)',
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        position: 'absolute',
+                        right: isCollapsed ? '-20px' : '-28px', // Adjust to perfectly overlap the aside's right border
+                        top: '-12px', // Centered on the top border
+                        zIndex: 20,
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'var(--color-primary)'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.color = 'var(--color-text-muted)'; e.currentTarget.style.borderColor = 'var(--color-border)'; }}
+                >
+                    {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+                </button>
+
                 {isProfileOpen && (
                     <div style={{
                         position: 'absolute',
                         bottom: 'calc(100% + 10px)',
-                        left: 0,
-                        right: 0,
+                        left: isCollapsed ? '8px' : '0',
+                        width: '230px', // Fixed width to prevent breaking
                         backgroundColor: '#161616',
                         border: '1px solid var(--color-border)',
                         borderRadius: 'var(--radius-md)',
@@ -185,14 +258,16 @@ const Sidebar = () => {
 
                 <div
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
+                    title={isCollapsed ? "Opciones de cuenta" : ""}
                     style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '12px',
-                        padding: '12px',
+                        justifyContent: isCollapsed ? 'center' : 'flex-start',
+                        gap: isCollapsed ? '0' : '12px',
+                        padding: isCollapsed ? '12px 0' : '12px',
                         borderRadius: 'var(--radius-md)',
                         cursor: 'pointer',
-                        transition: 'all 0.2s',
+                        transition: 'all 0.2s ease',
                         backgroundColor: isProfileOpen ? 'rgba(255,255,255,0.05)' : 'transparent'
                     }}
                     onMouseOver={(e) => !isProfileOpen && (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)')}
@@ -202,7 +277,8 @@ const Sidebar = () => {
                         width: '36px', height: '36px', borderRadius: '50%',
                         backgroundColor: 'rgba(255, 72, 72, 0.1)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        overflow: 'hidden', border: '1px solid var(--color-border)'
+                        overflow: 'hidden', border: '1px solid var(--color-border)',
+                        flexShrink: 0
                     }}>
                         {user.photo_path ? (
                             <img src={`http://localhost:3000/${user.photo_path}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Avatar" />
@@ -210,15 +286,20 @@ const Sidebar = () => {
                             <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--color-primary)' }}>{user.name?.charAt(0) || 'U'}</span>
                         )}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: '14px', fontWeight: 'bold', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {user.name || 'Usuario'}
-                        </p>
-                        <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            {user.role_name || 'Miembro'}
-                        </p>
-                    </div>
-                    <ChevronUp size={16} className="text-muted" style={{ transition: 'transform 0.3s', transform: isProfileOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+
+                    {!isCollapsed && (
+                        <>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: '14px', fontWeight: 'bold', color: 'white', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {user.name || 'Usuario'}
+                                </p>
+                                <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    {user.role_name || 'Miembro'}
+                                </p>
+                            </div>
+                            <ChevronUp size={16} className="text-muted" style={{ transition: 'transform 0.3s', transform: isProfileOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                        </>
+                    )}
                 </div>
             </div>
 
