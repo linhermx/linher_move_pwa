@@ -59,8 +59,12 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
             // We use the current user id for the update
             const response = await userService.update(user.id, data);
 
-            // Update local storage with new data (backend usually returns updated user)
-            const updatedUser = { ...user, ...response };
+            // Update local storage with new data
+            const updatedUser = {
+                ...user,
+                name: formData.name,
+                photo_path: response.photo_path || user.photo_path
+            };
             localStorage.setItem('user', JSON.stringify(updatedUser));
 
             showNotification('Perfil actualizado correctamente', 'success');

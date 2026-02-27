@@ -409,7 +409,10 @@ export const UserController = (db) => {
                 // Log
                 await logger.system(req.body.admin_id, 'UPDATE_USER', { user_id: req.params.id, email: userData.email });
 
-                res.json({ message: "Usuario actualizado" });
+                res.json({
+                    message: "Usuario actualizado",
+                    photo_path: userData.photo_path
+                });
             } catch (error) {
                 res.status(500).json({ message: error.message });
             }

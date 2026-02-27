@@ -81,20 +81,37 @@ export class UserModel extends BaseModel {
     }
 
     async update(id, data) {
-        let query = `UPDATE ${this.tableName} SET name = ?, email = ?, role_id = ?, status = ?`;
-        let params = [data.name, data.email, data.role_id, data.status];
+        const fields = [];
+        const params = [];
 
-        if (data.password) {
-            query += `, password = ?`;
+        if (data.name !== undefined) {
+            fields.push('name = ?');
+            params.push(data.name);
+        }
+        if (data.email !== undefined) {
+            fields.push('email = ?');
+            params.push(data.email);
+        }
+        if (data.role_id !== undefined) {
+            fields.push('role_id = ?');
+            params.push(data.role_id);
+        }
+        if (data.status !== undefined) {
+            fields.push('status = ?');
+            params.push(data.status);
+        }
+        if (data.password !== undefined) {
+            fields.push('password = ?');
             params.push(data.password);
         }
-
-        if (data.photo_path) {
-            query += `, photo_path = ?`;
+        if (data.photo_path !== undefined) {
+            fields.push('photo_path = ?');
             params.push(data.photo_path);
         }
 
-        query += ` WHERE id = ?`;
+        if (fields.length === 0) return true; // Nothing to update
+
+        const query = `UPDATE ${this.tableName} SET ${fields.join(', ')} WHERE id = ?`;
         params.push(id);
 
         const [result] = await this.db.query(query, params);
