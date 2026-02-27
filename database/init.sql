@@ -82,30 +82,53 @@ CREATE TABLE IF NOT EXISTS `quotations` (
   `folio` VARCHAR(20) NOT NULL UNIQUE,
   `user_id` INT,
   `vehicle_id` INT,
-  `origin_address` TEXT NOT NULL,
-  `destination_address` TEXT NOT NULL,
-  `google_maps_link` TEXT,
-  `num_trayectos` INT DEFAULT 1,
-  `num_casetas` INT DEFAULT 0,
-  `costo_casetas_unit` DECIMAL(10,2) DEFAULT 0,
-  `gas_price_applied` DECIMAL(10,2),
-  `factor_maniobra_applied` DECIMAL(10,2),
-  `factor_trafico_applied` DECIMAL(10,2),
-  `distance_total` DECIMAL(10,2),
-  `time_total` INT, -- in minutes
-  `toll_cost` DECIMAL(10,2) DEFAULT 0,
-  `lodging_cost` DECIMAL(10,2) DEFAULT 0,
-  `meal_cost` DECIMAL(10,2) DEFAULT 0,
-  `logistics_cost_raw` DECIMAL(10,2) DEFAULT 0,
-  `costo_logistico_redondeado` DECIMAL(10,2),
-  `subtotal` DECIMAL(10,2),
-  `iva` DECIMAL(10,2),
-  `total` DECIMAL(10,2),
   `status` ENUM('pendiente', 'en_proceso', 'completada', 'cancelada') DEFAULT 'pendiente',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
   FOREIGN KEY (`vehicle_id`) REFERENCES `vehicles`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `quotation_routes` (
+  `quotation_id` INT PRIMARY KEY,
+  `origin_address` TEXT NOT NULL,
+  `destination_address` TEXT NOT NULL,
+  `origin_lat` DECIMAL(10,8),
+  `origin_lng` DECIMAL(11,8),
+  `destination_lat` DECIMAL(10,8),
+  `destination_lng` DECIMAL(11,8),
+  `google_maps_link` TEXT,
+  `distance_total` DECIMAL(10,2) DEFAULT 0,
+  `time_total` INT DEFAULT 0,
+  `time_traffic_min` INT DEFAULT 0,
+  `time_services_min` INT DEFAULT 0,
+  FOREIGN KEY (`quotation_id`) REFERENCES `quotations`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `quotation_costs` (
+  `quotation_id` INT PRIMARY KEY,
+  `toll_cost` DECIMAL(10,2) DEFAULT 0,
+  `lodging_cost` DECIMAL(10,2) DEFAULT 0,
+  `meal_cost` DECIMAL(10,2) DEFAULT 0,
+  `gas_liters` DECIMAL(10,2) DEFAULT 0,
+  `gas_cost` DECIMAL(10,2) DEFAULT 0,
+  `logistics_cost_raw` DECIMAL(10,2) DEFAULT 0,
+  `logistics_cost_rounded` DECIMAL(10,2) DEFAULT 0,
+  `subtotal` DECIMAL(10,2) DEFAULT 0,
+  `iva` DECIMAL(10,2) DEFAULT 0,
+  `total` DECIMAL(10,2) DEFAULT 0,
+  FOREIGN KEY (`quotation_id`) REFERENCES `quotations`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `quotation_parameters` (
+  `quotation_id` INT PRIMARY KEY,
+  `num_legs` INT DEFAULT 1,
+  `num_tolls` INT DEFAULT 0,
+  `toll_unit_cost` DECIMAL(10,2) DEFAULT 0,
+  `gas_price_applied` DECIMAL(10,2) DEFAULT 0,
+  `maneuver_factor_applied` DECIMAL(10,2) DEFAULT 1,
+  `traffic_factor_applied` DECIMAL(10,2) DEFAULT 1,
+  FOREIGN KEY (`quotation_id`) REFERENCES `quotations`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `quotation_stops` (

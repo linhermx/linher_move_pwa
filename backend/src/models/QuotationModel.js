@@ -8,34 +8,38 @@ export class QuotationModel extends BaseModel {
     /**
      * Get all records from the table with filters
      */
-    /**
-     * Get all records from the table with filters
-     */
     async filterQuotes(filters) {
-        let query = `SELECT * FROM ${this.tableName} WHERE 1=1`;
+        let query = `
+            SELECT q.*, qr.*, qc.*, qp.*
+            FROM ${this.tableName} q
+            LEFT JOIN quotation_routes qr ON q.id = qr.quotation_id
+            LEFT JOIN quotation_costs qc ON q.id = qc.quotation_id
+            LEFT JOIN quotation_parameters qp ON q.id = qp.quotation_id
+            WHERE 1=1
+        `;
         const params = [];
 
         if (filters.folio) {
-            query += " AND folio LIKE ?";
+            query += " AND q.folio LIKE ?";
             params.push(`%${filters.folio}%`);
         }
 
         if (filters.status) {
-            query += " AND status = ?";
+            query += " AND q.status = ?";
             params.push(filters.status);
         }
 
         if (filters.date_from) {
-            query += " AND created_at >= ?";
+            query += " AND q.created_at >= ?";
             params.push(filters.date_from);
         }
 
         if (filters.date_to) {
-            query += " AND created_at <= ?";
+            query += " AND q.created_at <= ?";
             params.push(`${filters.date_to} 23:59:59`);
         }
 
-        query += " ORDER BY created_at DESC";
+        query += " ORDER BY q.created_at DESC";
 
         // Pagination
         if (filters.limit !== undefined && filters.offset !== undefined) {
@@ -47,30 +51,27 @@ export class QuotationModel extends BaseModel {
         return rows;
     }
 
-    /**
-     * Count total records with filters
-     */
     async countQuotes(filters) {
-        let query = `SELECT COUNT(*) as total FROM ${this.tableName} WHERE 1=1`;
+        let query = `SELECT COUNT(*) as total FROM ${this.tableName} q WHERE 1=1`;
         const params = [];
 
         if (filters.folio) {
-            query += " AND folio LIKE ?";
+            query += " AND q.folio LIKE ?";
             params.push(`%${filters.folio}%`);
         }
 
         if (filters.status) {
-            query += " AND status = ?";
+            query += " AND q.status = ?";
             params.push(filters.status);
         }
 
         if (filters.date_from) {
-            query += " AND created_at >= ?";
+            query += " AND q.created_at >= ?";
             params.push(filters.date_from);
         }
 
         if (filters.date_to) {
-            query += " AND created_at <= ?";
+            query += " AND q.created_at <= ?";
             params.push(`${filters.date_to} 23:59:59`);
         }
 
@@ -141,64 +142,81 @@ export class QuotationModel extends BaseModel {
         }
     }
 
-    /**
-     * Create complex quotation with stops and services
-     */
     async createQuote(data) {
-        const query = `
-            INSERT INTO ${this.tableName} 
-            (folio, user_id, vehicle_id, origin_address, destination_address, 
-             origin_lat, origin_lng, destination_lat, destination_lng,
-             google_maps_link, num_trayectos, num_casetas, costo_casetas_unit, 
-             gas_price_applied, factor_maniobra_applied, factor_trafico_applied,
-             distance_total, time_total, time_traffic_min, time_services_min,
-             toll_cost, lodging_cost, meal_cost, gas_liters, gas_cost,
-             logistics_cost_raw, costo_logistico_redondeado,
-             subtotal, iva, total, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente')
-        `;
+        const connection = await this.db.getConnection();
+        await connection.beginTransaction();
 
-        const params = [
-            data.folio,
-            data.user_id,
-            data.vehicle_id,
-            data.origin_address,
-            data.destination_address,
-            data.origin_lat || null,
-            data.origin_lng || null,
-            data.destination_lat || null,
-            data.destination_lng || null,
-            data.google_maps_link,
-            data.num_trayectos || data.num_legs || 1,
-            data.num_casetas || data.num_tolls || 0,
-            data.costo_casetas_unit || data.cost_per_toll || 0,
-            data.gas_price_applied || data.gas_price || 0,
-            data.factor_maniobra_applied || data.maneuver_factor || 1,
-            data.factor_trafico_applied || data.traffic_factor || 1,
-            data.distance_total || data.distancia_total || 0,
-            data.time_total || data.tiempo_total_min || 0,
-            data.time_traffic_min || data.tiempo_con_trafico_min || 0,
-            data.time_services_min || data.tiempo_con_servicios_min || 0,
-            data.toll_cost || 0,
-            data.lodging_cost || 0,
-            data.meal_cost || 0,
-            data.gas_liters || data.gasolina_litros || 0,
-            data.gas_cost || 0,
-            data.logistics_cost_raw || 0,
-            data.costo_logistico_redondeado || data.logistics_cost_rounded || 0,
-            data.subtotal,
-            data.iva,
-            data.total
-        ];
+        try {
+            // 1. Insert into quotations
+            const [qResult] = await connection.query(`
+                INSERT INTO ${this.tableName} (folio, user_id, vehicle_id, status)
+                VALUES (?, ?, ?, 'pendiente')
+            `, [data.folio, data.user_id, data.vehicle_id]);
 
-        const [result] = await this.db.query(query, params);
-        const quoteId = result.insertId;
+            const quoteId = qResult.insertId;
 
-        if (data.services && Array.isArray(data.services)) {
-            await this.addServices(quoteId, data.services);
+            // 2. Insert into quotation_routes
+            await connection.query(`
+                INSERT INTO quotation_routes (
+                    quotation_id, origin_address, destination_address, origin_lat, origin_lng, 
+                    destination_lat, destination_lng, google_maps_link, distance_total, 
+                    time_total, time_traffic_min, time_services_min
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+                quoteId, data.origin_address, data.destination_address, data.origin_lat || null, data.origin_lng || null,
+                data.destination_lat || null, data.destination_lng || null, data.google_maps_link,
+                data.distance_total || data.distancia_total || 0, data.time_total || data.tiempo_total_min || 0,
+                data.time_traffic_min || data.tiempo_con_trafico_min || 0, data.time_services_min || data.tiempo_con_servicios_min || 0
+            ]);
+
+            // 3. Insert into quotation_costs
+            await connection.query(`
+                INSERT INTO quotation_costs (
+                    quotation_id, toll_cost, lodging_cost, meal_cost, gas_liters, gas_cost, 
+                    logistics_cost_raw, logistics_cost_rounded, subtotal, iva, total
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+                quoteId, data.toll_cost || 0, data.lodging_cost || 0, data.meal_cost || 0,
+                data.gas_liters || data.gasolina_litros || 0, data.gas_cost || 0,
+                data.logistics_cost_raw || 0, data.costo_logistico_redondeado || data.logistics_cost_rounded || 0,
+                data.subtotal || 0, data.iva || 0, data.total || 0
+            ]);
+
+            // 4. Insert into quotation_parameters
+            await connection.query(`
+                INSERT INTO quotation_parameters (
+                    quotation_id, num_legs, num_tolls, toll_unit_cost, gas_price_applied, 
+                    maneuver_factor_applied, traffic_factor_applied
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            `, [
+                quoteId, data.num_trayectos || data.num_legs || 1, data.num_casetas || data.num_tolls || 0,
+                data.costo_casetas_unit || data.toll_unit_cost || data.cost_per_toll || 0,
+                data.gas_price_applied || data.gas_price || 0, data.factor_maniobra_applied || data.maneuver_factor_applied || data.maneuver_factor || 1,
+                data.factor_trafico_applied || data.traffic_factor_applied || data.traffic_factor || 1
+            ]);
+
+            // 5. Insert services if any
+            if (data.services && Array.isArray(data.services)) {
+                for (const service of data.services) {
+                    await connection.query(`
+                        INSERT INTO quotation_services (quotation_id, service_id, cost, time_minutes)
+                        VALUES (?, ?, ?, ?)
+                    `, [quoteId, service.id, service.cost, service.time_minutes || 0]);
+                }
+            }
+
+            // Also replace addServices method calls by embedding it directly inside the transaction so it's safer
+            // AddServices is a separate function, but here we run it within the transaction connection. 
+            // In case there is an addServices call elsewhere, it's safer to keep the old addServices function as well.
+
+            await connection.commit();
+            return quoteId;
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
         }
-
-        return quoteId;
     }
 
     async addServices(quotationId, services) {
@@ -216,13 +234,16 @@ export class QuotationModel extends BaseModel {
         }
     }
 
-    /**
-     * Get a quotation by ID with its stops and services
-     */
     async getById(id) {
         const query = `
-            SELECT q.*, v.name as vehicle_name, v.plate as vehicle_plate, u.name as user_name
+            SELECT q.*, qr.*, qc.*, qp.*, v.name as vehicle_name, v.plate as vehicle_plate, u.name as user_name,
+                   qc.logistics_cost_rounded as costo_logistico_redondeado,
+                   qp.num_legs as num_trayectos, qp.num_tolls as num_casetas, qp.toll_unit_cost as costo_casetas_unit,
+                   qp.maneuver_factor_applied as factor_maniobra_applied, qp.traffic_factor_applied as factor_trafico_applied
             FROM ${this.tableName} q
+            LEFT JOIN quotation_routes qr ON q.id = qr.quotation_id
+            LEFT JOIN quotation_costs qc ON q.id = qc.quotation_id
+            LEFT JOIN quotation_parameters qp ON q.id = qp.quotation_id
             LEFT JOIN vehicles v ON q.vehicle_id = v.id
             LEFT JOIN users u ON q.user_id = u.id
             WHERE q.id = ?
@@ -257,51 +278,101 @@ export class QuotationModel extends BaseModel {
             quote.gas_cost = (parseFloat(quote.gas_liters || 0) * parseFloat(quote.gas_price_applied || 0));
         }
 
-        // Ensure consistent field alias for frontend
-        quote.logistics_cost_rounded = parseFloat(quote.costo_logistico_redondeado || 0);
+        // Map English DB columns back to Spanish frontend keys expected by UI to avoid breaking it
+        quote.logistics_cost_rounded = parseFloat(quote.logistics_cost_rounded || 0);
 
         return quote;
     }
 
-    /**
-     * Update quotation fields and recalculate if necessary
-     */
     async updateQuote(id, data) {
-        const allowedFields = [
-            'status', 'lodging_cost', 'meal_cost', 'subtotal', 'iva', 'total',
-            'vehicle_id', 'distance_total', 'time_total', 'toll_cost',
-            'num_trayectos', 'num_casetas', 'costo_casetas_unit',
-            'gas_price_applied', 'factor_maniobra_applied', 'factor_trafico_applied',
-            'logistics_cost_raw', 'costo_logistico_redondeado', 'gas_cost'
-        ];
+        const connection = await this.db.getConnection();
+        await connection.beginTransaction();
 
-        const updates = [];
-        const params = [];
-
-        for (const field of allowedFields) {
-            if (data[field] !== undefined) {
-                updates.push(`${field} = ?`);
-                params.push(data[field]);
+        try {
+            // Update quotations table
+            const qFields = ['status', 'vehicle_id'];
+            let qUpdates = [];
+            let qParams = [];
+            for (let f of qFields) {
+                if (data[f] !== undefined) { qUpdates.push(`${f} = ?`); qParams.push(data[f]); }
             }
-        }
-
-        if (updates.length > 0) {
-            params.push(id);
-            const query = `UPDATE ${this.tableName} SET ${updates.join(', ')} WHERE id = ?`;
-            await this.db.query(query, params);
-        }
-
-        // Synchronize services if provided
-        if (data.services && Array.isArray(data.services)) {
-            // Remove existing services
-            await this.db.query("DELETE FROM quotation_services WHERE quotation_id = ?", [id]);
-            // Add new ones
-            if (data.services.length > 0) {
-                await this.addServices(id, data.services);
+            if (qUpdates.length > 0) {
+                qParams.push(id);
+                await connection.query(`UPDATE quotations SET ${qUpdates.join(', ')} WHERE id = ?`, qParams);
             }
-        }
 
-        return true;
+            // Update quotation_routes
+            const qrFields = ['distance_total', 'time_total'];
+            let qrUpdates = [];
+            let qrParams = [];
+            for (let f of qrFields) {
+                if (data[f] !== undefined) { qrUpdates.push(`${f} = ?`); qrParams.push(data[f]); }
+            }
+            if (qrUpdates.length > 0) {
+                qrParams.push(id);
+                await connection.query(`UPDATE quotation_routes SET ${qrUpdates.join(', ')} WHERE quotation_id = ?`, qrParams);
+            }
+
+            // Update quotation_costs
+            // Map legacy spanish fields from frontend to new schema if present
+            const qcF = {
+                'toll_cost': data.toll_cost, 'lodging_cost': data.lodging_cost, 'meal_cost': data.meal_cost,
+                'subtotal': data.subtotal, 'iva': data.iva, 'total': data.total,
+                'gas_cost': data.gas_cost,
+                'logistics_cost_raw': data.logistics_cost_raw,
+                'logistics_cost_rounded': data.costo_logistico_redondeado !== undefined ? data.costo_logistico_redondeado : data.logistics_cost_rounded
+            };
+            let qcUpdates = [];
+            let qcParams = [];
+            for (let f in qcF) {
+                if (qcF[f] !== undefined) { qcUpdates.push(`${f} = ?`); qcParams.push(qcF[f]); }
+            }
+            if (qcUpdates.length > 0) {
+                qcParams.push(id);
+                await connection.query(`UPDATE quotation_costs SET ${qcUpdates.join(', ')} WHERE quotation_id = ?`, qcParams);
+            }
+
+            // Update quotation_parameters
+            // Map legacy spanish fields
+            const qpF = {
+                'num_legs': data.num_trayectos !== undefined ? data.num_trayectos : data.num_legs,
+                'num_tolls': data.num_casetas !== undefined ? data.num_casetas : data.num_tolls,
+                'toll_unit_cost': data.costo_casetas_unit !== undefined ? data.costo_casetas_unit : data.toll_unit_cost,
+                'gas_price_applied': data.gas_price_applied,
+                'maneuver_factor_applied': data.factor_maniobra_applied !== undefined ? data.factor_maniobra_applied : data.maneuver_factor_applied,
+                'traffic_factor_applied': data.factor_trafico_applied !== undefined ? data.factor_trafico_applied : data.traffic_factor_applied
+            };
+            let qpUpdates = [];
+            let qpParams = [];
+            for (let f in qpF) {
+                if (qpF[f] !== undefined) { qpUpdates.push(`${f} = ?`); qpParams.push(qpF[f]); }
+            }
+            if (qpUpdates.length > 0) {
+                qpParams.push(id);
+                await connection.query(`UPDATE quotation_parameters SET ${qpUpdates.join(', ')} WHERE quotation_id = ?`, qpParams);
+            }
+
+            // Synchronize services if provided
+            if (data.services && Array.isArray(data.services)) {
+                await connection.query("DELETE FROM quotation_services WHERE quotation_id = ?", [id]);
+                if (data.services.length > 0) {
+                    for (const service of data.services) {
+                        await connection.query(`
+                            INSERT INTO quotation_services (quotation_id, service_id, cost, time_minutes)
+                            VALUES (?, ?, ?, ?)
+                        `, [id, service.id, service.cost, service.time_minutes || 0]);
+                    }
+                }
+            }
+
+            await connection.commit();
+            return true;
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     }
 
     /**
