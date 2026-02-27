@@ -36,7 +36,21 @@ const MapComponent = ({ points = [], routeData = null, onMarkerDrag, readOnly = 
             }).addTo(mapInstance.current);
         }
 
+        const mapContainer = mapRef.current;
+        const resizeObserver = new ResizeObserver(() => {
+            if (mapInstance.current) {
+                mapInstance.current.invalidateSize();
+            }
+        });
+
+        if (mapContainer) {
+            resizeObserver.observe(mapContainer);
+        }
+
         return () => {
+            if (mapContainer) {
+                resizeObserver.unobserve(mapContainer);
+            }
             if (mapInstance.current) {
                 // mapInstance.current.remove();
             }
@@ -88,6 +102,16 @@ const MapComponent = ({ points = [], routeData = null, onMarkerDrag, readOnly = 
         routeLayer.current = L.geoJSON(routeData, {
             style: { color: '#FF4848', weight: 5, opacity: 0.7 }
         }).addTo(mapInstance.current);
+
+        // Fit map bounds to the actual route polyline, plus slight delay to ensure size is registered
+        setTimeout(() => {
+            if (mapInstance.current && routeLayer.current) {
+                const routeBounds = routeLayer.current.getBounds();
+                if (routeBounds.isValid()) {
+                    mapInstance.current.fitBounds(routeBounds, { padding: [50, 50] });
+                }
+            }
+        }, 150);
 
     }, [routeData]);
 
