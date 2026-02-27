@@ -59,6 +59,7 @@ input:-webkit-autofill:active {
   box-shadow: var(--shadow-sm);
 }
 
+
 /* Animated Map Pulse */
 .custom-marker {
   position: relative;
@@ -400,4 +401,24 @@ input[type="number"] {
   background-color: var(--color-primary);
   transform: scale(1.1);
   border-color: var(--color-primary);
+}
+
+
+/* Animations */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fade-in {
+  animation: fade-in 0.3s ease-out;
 }

@@ -11,8 +11,11 @@ import {
     AuthController,
     UserController,
     LogController,
-    DashboardController
+    DashboardController,
+    BackupController
 } from './controllers/Controllers.js';
+import { BackupService } from './services/BackupService.js';
+import nodeCron from 'node-cron';
 import { UserModel } from './models/UserModel.js';
 import multer from 'multer';
 import path from 'path';
@@ -64,6 +67,7 @@ const authCtrl = AuthController(pool);
 const userCtrl = UserController(pool);
 const logCtrl = LogController(pool);
 const dashCtrl = DashboardController(pool);
+const backupCtrl = BackupController(pool);
 
 // Auth
 v1.post('/auth/login', authCtrl.login);
@@ -114,6 +118,12 @@ v1.get('/logs', logCtrl.list);
 // Dashboard analytics
 v1.get('/dashboard', dashCtrl.stats);
 
+// Backups
+v1.get('/backups', backupCtrl.list);
+v1.post('/backups/generate', backupCtrl.generate);
+v1.get('/backups/download/:id', backupCtrl.download);
+v1.delete('/backups/:id', backupCtrl.delete);
+
 // Mount
 app.use('/api/v1', v1);
 
@@ -123,8 +133,37 @@ const startServer = async () => {
         await pool.query('SELECT 1');
         console.log('Database connected successfully');
 
+        // Ensure backups table exists
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS backups (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                filename VARCHAR(255) NOT NULL,
+                size_bytes BIGINT NOT NULL,
+                type ENUM('local', 'google_drive') DEFAULT 'local',
+                status ENUM('success', 'failed', 'pending') DEFAULT 'pending',
+                operator_id INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (operator_id) REFERENCES users(id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+        console.log('Backups table ensured.');
+
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
+
+            // Setup automated backups cron
+            nodeCron.schedule('0 0 * * *', async () => {
+                try {
+                    const [settings] = await pool.query('SELECT backups_enabled, backup_frequency FROM settings LIMIT 1');
+                    if (settings && settings[0].backups_enabled) {
+                        console.log('[Cron] Triggering automated daily backup...');
+                        await BackupService.generateLocalBackup(null); // System generated
+                    }
+                } catch (err) {
+                    console.error('[Cron] Error in automated backup:', err);
+                }
+            });
+            console.log('Automated backup scheduler initialized.');
         });
     } catch (error) {
         console.error('Failed to connect to the database:', error.message);

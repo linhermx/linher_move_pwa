@@ -167,6 +167,18 @@ CREATE TABLE IF NOT EXISTS `folio_counters` (
   `last_count` INT DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 10. Backup Management
+CREATE TABLE IF NOT EXISTS `backups` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `filename` VARCHAR(255) NOT NULL,
+  `size_bytes` BIGINT NOT NULL,
+  `type` ENUM('local', 'google_drive') DEFAULT 'local',
+  `status` ENUM('success', 'failed', 'pending') DEFAULT 'pending',
+  `operator_id` INT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`operator_id`) REFERENCES `users`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- 9. Seed Data
 -- Seed Basic Roles
 INSERT IGNORE INTO `roles` (`id`, `name`, `description`) VALUES 
@@ -181,7 +193,8 @@ INSERT IGNORE INTO `permissions` (`slug`, `name`) VALUES
 ('manage_fleet', 'Gestionar Flota'),
 ('edit_settings', 'Editar Parámetros'),
 ('manage_users', 'Gestionar Usuarios'),
-('manage_services', 'Gestionar Servicios');
+('manage_services', 'Gestionar Servicios'),
+('manage_backups', 'Gestionar Respaldos');
 
 CREATE TABLE IF NOT EXISTS `role_permissions` (
   `role_id` INT,

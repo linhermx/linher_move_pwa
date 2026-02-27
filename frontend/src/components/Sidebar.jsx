@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
     LayoutDashboard, Route, History, Truck, Settings as SettingsIcon,
-    Users, User, Package, ShieldCheck, LogOut, Moon, Sun, ChevronUp, ChevronLeft, ChevronRight
+    Users, User, Package, ShieldCheck, LogOut, Moon, Sun, ChevronUp, ChevronLeft, ChevronRight,
+    Database
 } from 'lucide-react';
 import logoHorizontal from '../assets/logo-horizontal-negativo.svg';
 import logoMonograma from '../assets/logo-monograma-move.svg';
@@ -66,6 +67,7 @@ const Sidebar = () => {
             title: 'SISTEMA',
             items: [
                 { name: 'Usuarios', path: '/users', icon: <Users size={20} />, permission: 'manage_users' },
+                { name: 'Respaldos', path: '/backups', icon: <Database size={20} />, permission: 'manage_backups' },
                 { name: 'Auditoría', path: '/audit', icon: <ShieldCheck size={20} />, permission: 'manage_users' },
                 { name: 'Ajustes', path: '/settings', icon: <SettingsIcon size={20} />, permission: 'edit_settings' },
             ]
@@ -110,9 +112,17 @@ const Sidebar = () => {
 
             <nav style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
                 {currentMenuGroups.map((group) => {
-                    const filteredItems = group.items.filter(item =>
-                        !item.permission || userPermissions.includes(item.permission)
-                    );
+                    const filteredItems = group.items.filter(item => {
+                        const hasPermission = !item.permission || userPermissions.includes(item.permission);
+                        const isAdmin = user.role_name?.toLowerCase() === 'admin' || user.role_id == 1;
+
+                        // Fallback for Admin on system-level tasks if permissions array is missing them
+                        if (isAdmin && (item.permission === 'manage_backups' || item.permission === 'manage_users' || item.permission === 'edit_settings')) {
+                            return true;
+                        }
+
+                        return hasPermission;
+                    });
 
                     if (filteredItems.length === 0) return null;
 

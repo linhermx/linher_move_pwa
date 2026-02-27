@@ -11,6 +11,7 @@ import QuoteDetail from './pages/QuoteDetail';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import AuditLogs from './pages/AuditLogs';
+import Backups from './pages/Backups';
 import { NotificationProvider } from './context/NotificationContext';
 
 import Login from './pages/Login';
@@ -54,6 +55,7 @@ const App = () => {
                       <Route path="/users" element={<Users />} />
                       <Route path="/audit" element={<AuditLogs />} />
                       <Route path="/settings" element={<Settings />} />
+                      <Route path="/backups" element={<Backups />} />
                     </Routes>
                   </main>
                 </div>

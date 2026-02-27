@@ -6,7 +6,15 @@ import { AuthModel } from '../models/AuthModel.js';
 import { CalculationMotor } from '../utils/CalculationMotor.js';
 import { LogModel } from '../models/LogModel.js';
 import { SystemLogger } from '../utils/Logger.js';
+import { BackupService } from '../services/BackupService.js';
 import bcrypt from 'bcryptjs';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 
 export const VehicleController = (db) => {
     const model = new VehicleModel(db);
@@ -702,6 +710,64 @@ export const DashboardController = (db) => {
 
             } catch (error) {
                 console.error('Dashboard error:', error);
+                res.status(500).json({ message: error.message });
+            }
+        }
+    };
+};
+
+export const BackupController = (db) => {
+    const logger = new SystemLogger(db);
+    return {
+        list: async (req, res) => {
+            try {
+                const [rows] = await db.query('SELECT * FROM backups ORDER BY created_at DESC');
+                res.json(rows);
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        },
+
+        generate: async (req, res) => {
+            try {
+                const { operator_id } = req.body;
+                const result = await BackupService.generateLocalBackup(operator_id);
+
+                await logger.system(operator_id, 'BACKUP_CREATED', { filename: result.filename });
+
+                res.json({ message: 'Backup generated successfully', ...result });
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        },
+
+        download: async (req, res) => {
+            try {
+                const { id } = req.params;
+                const [rows] = await db.query('SELECT filename FROM backups WHERE id = ?', [id]);
+                if (!rows.length) return res.status(404).json({ message: 'Backup not found' });
+
+                const filePath = path.join(__dirname, '../../backups', rows[0].filename);
+                if (!fs.existsSync(filePath)) return res.status(404).json({ message: 'File not found on disk' });
+
+                res.download(filePath);
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        },
+
+        delete: async (req, res) => {
+            try {
+                const { id } = req.params;
+                const [rows] = await db.query('SELECT filename FROM backups WHERE id = ?', [id]);
+                if (!rows.length) return res.status(404).json({ message: 'Backup not found' });
+
+                const filePath = path.join(__dirname, '../../backups', rows[0].filename);
+                if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+                await db.query('DELETE FROM backups WHERE id = ?', [id]);
+                res.json({ message: 'Backup deleted successfully' });
+            } catch (error) {
                 res.status(500).json({ message: error.message });
             }
         }
