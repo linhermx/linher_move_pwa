@@ -123,9 +123,9 @@ const KpiCard = ({ icon, label, value, color = C.primary, sub }) => (
             {icon}
         </div>
         <div>
-            <p style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.8px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '4px' }}>{label}</p>
-            <p style={{ fontSize: '24px', fontWeight: '800', lineHeight: 1, letterSpacing: '-0.5px' }}>{value}</p>
-            {sub && <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', marginTop: '3px' }}>{sub}</p>}
+            <p style={{ fontSize: '11px', fontWeight: '600', letterSpacing: '0.5px', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>{label}</p>
+            <p style={{ fontSize: '26px', fontWeight: '600', lineHeight: 1, letterSpacing: '-0.5px' }}>{value}</p>
+            {sub && <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>{sub}</p>}
         </div>
     </div>
 );
@@ -133,7 +133,9 @@ const KpiCard = ({ icon, label, value, color = C.primary, sub }) => (
 // ── Section Card ───────────────────────────────────────────────────────────
 const Section = ({ title, children, style }) => (
     <div className="card" style={style}>
-        <p style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.8px', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', marginBottom: '16px' }}>{title}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px', borderBottom: '1px solid var(--color-border)', paddingBottom: '12px', marginTop: '-4px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.7)' }}>{title}</h3>
+        </div>
         {children}
     </div>
 );
@@ -346,7 +348,7 @@ const AdminDashboard = ({ data }) => {
                         }}>
                             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                                 <span style={{
-                                    padding: '2px 8px', borderRadius: '6px', fontSize: '9px',
+                                    padding: '3px 8px', borderRadius: '4px', fontSize: '10px',
                                     fontWeight: '700', letterSpacing: '0.5px', textTransform: 'uppercase',
                                     background: `${logTypeColor[log.log_type] || C.primary}18`,
                                     color: logTypeColor[log.log_type] || C.primary,
@@ -354,11 +356,11 @@ const AdminDashboard = ({ data }) => {
                                 }}>
                                     {log.log_type}
                                 </span>
-                                <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)' }}>{log.action}</span>
+                                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)' }}>{log.action}</span>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>{log.user_name || 'Sistema'}</span>
-                                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)' }}>{formatDate(log.created_at)}</span>
+                                <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{log.user_name || 'Sistema'}</span>
+                                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)' }}>{formatDate(log.created_at)}</span>
                             </div>
                         </div>
                     ))
@@ -633,15 +635,14 @@ const PeriodBar = ({ value, onChange }) => (
                     onClick={() => onChange(p.key)}
                     style={{
                         padding: '6px 16px',
-                        borderRadius: '20px',
-                        border: active ? `1px solid ${C.primary}` : `1px solid rgba(255,255,255,0.1)`,
-                        background: active ? `${C.primary}18` : 'rgba(255,255,255,0.03)',
-                        color: active ? C.primary : 'rgba(255,255,255,0.45)',
-                        fontSize: '12px',
-                        fontWeight: active ? '700' : '400',
+                        borderRadius: 'var(--radius-md)',
+                        border: active ? `1px solid ${C.primary}` : `1px solid var(--color-border)`,
+                        background: active ? `${C.primary}18` : 'var(--color-surface)',
+                        color: active ? C.primary : 'var(--color-text-muted)',
+                        fontSize: '13px',
+                        fontWeight: active ? '700' : '500',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
-                        letterSpacing: active ? '0.2px' : '0',
                     }}
                 >
                     {p.label}
@@ -688,11 +689,13 @@ const Dashboard = () => {
 
     return (
         <div>
-            <div style={{ marginBottom: 'var(--spacing-md)' }}>
-                <h1 style={{ fontSize: '22px', fontWeight: '800', letterSpacing: '-0.3px' }}>Panel de Control</h1>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', marginTop: '3px' }}>
-                    {ROLE_SUBTITLE[roleName] || 'Resumen de operaciones'}
-                </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-xl)' }}>
+                <div>
+                    <h1 style={{ fontSize: '24px' }}>Panel de Control</h1>
+                    <p className="text-muted">
+                        {ROLE_SUBTITLE[roleName] || 'Resumen de operaciones'}
+                    </p>
+                </div>
             </div>
 
             <PeriodBar value={period} onChange={setPeriod} />
