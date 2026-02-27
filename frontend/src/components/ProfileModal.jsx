@@ -163,6 +163,7 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                                 type="text"
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                autoComplete="name"
                                 style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '14px' }}
                                 placeholder="Tu nombre"
                                 required
@@ -184,6 +185,7 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                                     type="password"
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    autoComplete="new-password"
                                     style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '13px' }}
                                     placeholder="••••••••"
                                 />
@@ -201,6 +203,7 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                                     type="password"
                                     value={formData.confirmPassword}
                                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                    autoComplete="new-password"
                                     style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '13px' }}
                                     placeholder="••••••••"
                                 />

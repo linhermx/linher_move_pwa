@@ -53,6 +53,8 @@ const Login = () => {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="name@company.com"
+                                    inputMode="email"
+                                    autoComplete="email"
                                     style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%' }}
                                     required
                                 />
@@ -68,6 +70,7 @@ const Login = () => {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="••••••••"
+                                    autoComplete="current-password"
                                     style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%' }}
                                     required
                                 />
