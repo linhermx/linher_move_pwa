@@ -579,10 +579,10 @@ export const DashboardController = (db) => {
                     // Revenue: always filtered by period (defaults to current month if no filter)
                     let revenueQuery, revenueParams;
                     if (date_from || date_to) {
-                        revenueQuery = `SELECT COALESCE(SUM(total), 0) as revenue FROM quotations WHERE status='completada'${dc}`;
-                        revenueParams = dp;
+                        revenueQuery = `SELECT COALESCE(SUM(qc.total), 0) as revenue FROM quotations q JOIN quotation_costs qc ON q.id = qc.quotation_id WHERE q.status='completada'${dqc}`;
+                        revenueParams = dqp;
                     } else {
-                        revenueQuery = `SELECT COALESCE(SUM(total), 0) as revenue FROM quotations WHERE status='completada' AND MONTH(created_at)=MONTH(NOW()) AND YEAR(created_at)=YEAR(NOW())`;
+                        revenueQuery = `SELECT COALESCE(SUM(qc.total), 0) as revenue FROM quotations q JOIN quotation_costs qc ON q.id = qc.quotation_id WHERE q.status='completada' AND MONTH(q.created_at)=MONTH(NOW()) AND YEAR(q.created_at)=YEAR(NOW())`;
                         revenueParams = [];
                     }
 
@@ -643,8 +643,8 @@ export const DashboardController = (db) => {
                     ] = await Promise.all([
                         db.query(`SELECT status, COUNT(*) as count FROM vehicles GROUP BY status`),
                         db.query(`SELECT COALESCE(AVG(rendimiento_real/rendimiento_teorico*100), 0) as fleet_eff FROM vehicles WHERE rendimiento_teorico > 0`),
-                        db.query(`SELECT q.folio, q.total, q.created_at, u.name as operator FROM quotations q JOIN users u ON q.user_id=u.id WHERE q.status='pendiente'${dqc} ORDER BY q.created_at DESC LIMIT 5`, dqp),
-                        db.query(`SELECT COALESCE(AVG(time_total), 0) as avg_time FROM quotations WHERE status='completada'${dc}`, dp)
+                        db.query(`SELECT q.folio, qc.total, q.created_at, u.name as operator FROM quotations q JOIN users u ON q.user_id=u.id JOIN quotation_costs qc ON q.id = qc.quotation_id WHERE q.status='pendiente'${dqc} ORDER BY q.created_at DESC LIMIT 5`, dqp),
+                        db.query(`SELECT COALESCE(AVG(qr.time_total), 0) as avg_time FROM quotations q JOIN quotation_routes qr ON q.id = qr.quotation_id WHERE q.status='completada'${dqc}`, dqp)
                     ]);
 
                     const activeCount = quotations_by_status
@@ -669,6 +669,7 @@ export const DashboardController = (db) => {
 
                 // ── OPERADOR ──────────────────────────────────────────────────────────
                 const { clause: dc, params: dp } = dateClause();
+                const { clause: dqc, params: dqp } = dateClause('q');
 
                 const [
                     [myStatusRows],
@@ -676,10 +677,10 @@ export const DashboardController = (db) => {
                     [myWeeklyRows],
                     [myRecentRows]
                 ] = await Promise.all([
-                    db.query(`SELECT status, COUNT(*) as count FROM quotations WHERE user_id=?${dc} GROUP BY status`, [user_id, ...dp]),
-                    db.query(`SELECT COALESCE(SUM(total),0) as amount FROM quotations WHERE user_id=? AND status='completada'${dc}`, [user_id, ...dp]),
-                    db.query(`SELECT YEARWEEK(created_at,1) as week, COUNT(*) as count FROM quotations WHERE user_id=?${dc} GROUP BY YEARWEEK(created_at,1) ORDER BY week ASC`, [user_id, ...dp]),
-                    db.query(`SELECT folio, destination_address, total, status, created_at FROM quotations WHERE user_id=?${dc} ORDER BY created_at DESC LIMIT 5`, [user_id, ...dp])
+                    db.query(`SELECT status, COUNT(*) as count FROM quotations q WHERE q.user_id=?${dqc} GROUP BY status`, [user_id, ...dqp]),
+                    db.query(`SELECT COALESCE(SUM(qc.total),0) as amount FROM quotations q JOIN quotation_costs qc ON q.id=qc.quotation_id WHERE q.user_id=? AND q.status='completada'${dqc}`, [user_id, ...dqp]),
+                    db.query(`SELECT YEARWEEK(q.created_at,1) as week, COUNT(*) as count FROM quotations q WHERE q.user_id=?${dqc} GROUP BY YEARWEEK(q.created_at,1) ORDER BY week ASC`, [user_id, ...dqp]),
+                    db.query(`SELECT q.folio, qr.destination_address, qc.total, q.status, q.created_at FROM quotations q JOIN quotation_routes qr ON q.id = qr.quotation_id JOIN quotation_costs qc ON q.id = qc.quotation_id WHERE q.user_id=?${dqc} ORDER BY q.created_at DESC LIMIT 5`, [user_id, ...dqp])
                 ]);
 
                 const myTotal = myStatusRows.reduce((s, r) => s + r.count, 0);

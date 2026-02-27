@@ -302,7 +302,7 @@ export class QuotationModel extends BaseModel {
             }
 
             // Update quotation_routes
-            const qrFields = ['distance_total', 'time_total'];
+            const qrFields = ['distance_total', 'time_total', 'time_traffic_min', 'time_services_min', 'origin_lat', 'origin_lng', 'destination_lat', 'destination_lng'];
             let qrUpdates = [];
             let qrParams = [];
             for (let f of qrFields) {
@@ -318,6 +318,7 @@ export class QuotationModel extends BaseModel {
             const qcF = {
                 'toll_cost': data.toll_cost, 'lodging_cost': data.lodging_cost, 'meal_cost': data.meal_cost,
                 'subtotal': data.subtotal, 'iva': data.iva, 'total': data.total,
+                'gas_liters': data.gas_liters !== undefined ? data.gas_liters : data.gasolina_litros,
                 'gas_cost': data.gas_cost,
                 'logistics_cost_raw': data.logistics_cost_raw,
                 'logistics_cost_rounded': data.costo_logistico_redondeado !== undefined ? data.costo_logistico_redondeado : data.logistics_cost_rounded
