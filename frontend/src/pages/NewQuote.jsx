@@ -382,39 +382,31 @@ const NewQuote = () => {
     return (
         <div style={{ display: 'flex', gap: 'var(--spacing-lg)', height: '100%', overflow: 'hidden' }}>
             {/* Sidebar with Fixed Distribution */}
-            <div style={{ width: '400px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div style={{ width: '400px', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
                 {/* Scrollable Body area for Accordions - Unified Scrolling */}
-                <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', paddingRight: '4px' }}>
+                <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', paddingRight: '4px', minHeight: 0 }}>
 
                     {/* Ruta Section */}
-                    <div className="card" style={{ padding: '0' }}>
+                    <div className="card accordion-card">
                         <div
                             onClick={() => toggleSection('ruta')}
-                            style={{
-                                padding: '15px',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                cursor: 'pointer',
-                                backgroundColor: expandedSections.includes('ruta') ? 'rgba(255,255,255,0.03)' : 'transparent',
-                                borderBottom: expandedSections.includes('ruta') ? '1px solid var(--color-border)' : 'none'
-                            }}
+                            className={`accordion-header ${expandedSections.includes('ruta') ? 'expanded' : ''}`}
                         >
-                            <h2 style={{ fontSize: '16px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h2>
                                 <MapPin size={18} className="text-primary" /> Ruta
                             </h2>
                             {expandedSections.includes('ruta') ? <ChevronDown size={18} className="text-muted" /> : <ChevronRight size={18} className="text-muted" />}
                         </div>
 
                         {expandedSections.includes('ruta') && (
-                            <div style={{ padding: '15px' }}>
+                            <div className="accordion-content">
                                 {/* Unified Scroll - No nested scroll here */}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                                     {points.map((p, idx) => (
                                         <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <label style={{ fontSize: '10px', fontWeight: 'bold' }} className="text-muted">
-                                                    {p.label.toUpperCase()}
+                                                <label className="form-label">
+                                                    {p.label}
                                                 </label>
                                                 {p.id !== 'origin' && p.id !== 'destination' && (
                                                     <Trash2 size={14} className="text-primary" onClick={() => removeStop(p.id)} cursor="pointer" />
@@ -488,7 +480,7 @@ const NewQuote = () => {
                                                     ) : (
                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', animation: 'fadeIn 0.3s ease-in-out' }}>
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                <label style={{ fontSize: '10px', fontWeight: 'bold' }} className="text-muted">LINK DE GOOGLE MAPS (DESTINO)</label>
+                                                                <label className="form-label">LINK DE GOOGLE MAPS (DESTINO)</label>
                                                                 <button
                                                                     onClick={() => setShowMapsUrl(false)}
                                                                     style={{ background: 'transparent', border: 'none', color: 'var(--color-text-dim)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
@@ -498,9 +490,8 @@ const NewQuote = () => {
                                                             </div>
                                                             <div className="form-field-group" style={{
                                                                 borderStyle: 'dashed',
-                                                                border: '1px dashed var(--color-primary)',
-                                                                backgroundColor: 'rgba(255, 72, 72, 0.05)',
-                                                                transition: 'all 0.3s'
+                                                                borderColor: 'var(--color-primary)',
+                                                                backgroundColor: 'rgba(255, 72, 72, 0.05)'
                                                             }}>
                                                                 <input
                                                                     type="text"
@@ -519,7 +510,7 @@ const NewQuote = () => {
                                 </div>
                                 <button
                                     onClick={addStop}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)', background: 'transparent', border: '1px solid var(--color-primary)', padding: '8px', borderRadius: 'var(--radius-md)', marginTop: '12px', cursor: 'pointer', fontSize: '12px', width: '100%', justifyContent: 'center' }}>
+                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)', background: 'transparent', border: '1px solid var(--color-primary)', padding: '8px', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: '12px', width: '100%', justifyContent: 'center' }}>
                                     <Plus size={16} />
                                     Agregar parada
                                 </button>
@@ -528,30 +519,22 @@ const NewQuote = () => {
                     </div>
 
                     {/* Logística Section */}
-                    <div className="card" style={{ padding: '0' }}>
+                    <div className="card accordion-card">
                         <div
                             onClick={() => toggleSection('logistica')}
-                            style={{
-                                padding: '15px',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                cursor: 'pointer',
-                                backgroundColor: expandedSections.includes('logistica') ? 'rgba(255,255,255,0.03)' : 'transparent',
-                                borderBottom: expandedSections.includes('logistica') ? '1px solid var(--color-border)' : 'none'
-                            }}
+                            className={`accordion-header ${expandedSections.includes('logistica') ? 'expanded' : ''}`}
                         >
-                            <h2 style={{ fontSize: '16px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h2>
                                 <Truck size={18} className="text-primary" /> Logística
                             </h2>
                             {expandedSections.includes('logistica') ? <ChevronDown size={18} className="text-muted" /> : <ChevronRight size={18} className="text-muted" />}
                         </div>
 
                         {expandedSections.includes('logistica') && (
-                            <div style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                            <div className="accordion-content">
                                 <div>
-                                    <label className="text-muted" style={{ display: 'block', fontSize: '10px', fontWeight: 'bold', marginBottom: '6px' }}>VEHÍCULO</label>
-                                    <div style={{ padding: '12px', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+                                    <label className="form-label">VEHÍCULO</label>
+                                    <div className="form-select-container">
                                         <CustomSelect
                                             placeholder="Seleccionar vehículo..."
                                             value={selectedVehicle?.id || ''}
@@ -564,9 +547,9 @@ const NewQuote = () => {
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
                                     <div style={{ gridColumn: 'span 2' }}>
-                                        <label className="text-muted" style={{ display: 'block', fontSize: '10px', fontWeight: 'bold', marginBottom: '4px' }}>NÚMERO DE TRAYECTOS (RECORRIDO)</label>
+                                        <label className="form-label">NÚMERO DE TRAYECTOS (RECORRIDO)</label>
                                         <input
                                             className="form-field"
                                             type="number"
@@ -576,7 +559,7 @@ const NewQuote = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-muted" style={{ display: 'block', fontSize: '10px', fontWeight: 'bold', marginBottom: '4px' }}>NÚM. CASETAS (IDA)</label>
+                                        <label className="form-label">NÚM. CASETAS (IDA)</label>
                                         <input
                                             className="form-field"
                                             type="number"
@@ -586,7 +569,7 @@ const NewQuote = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="text-muted" style={{ display: 'block', fontSize: '10px', fontWeight: 'bold', marginBottom: '4px' }}>COSTO C/U ($)</label>
+                                        <label className="form-label">COSTO C/U ($)</label>
                                         <input
                                             className="form-field"
                                             type="number"
@@ -601,27 +584,19 @@ const NewQuote = () => {
                     </div>
 
                     {/* Services Section */}
-                    <div className="card" style={{ padding: '0' }}>
+                    <div className="card accordion-card">
                         <div
                             onClick={() => toggleSection('servicios')}
-                            style={{
-                                padding: '15px',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                cursor: 'pointer',
-                                backgroundColor: expandedSections.includes('servicios') ? 'rgba(255,255,255,0.03)' : 'transparent',
-                                borderBottom: expandedSections.includes('servicios') ? '1px solid var(--color-border)' : 'none'
-                            }}
+                            className={`accordion-header ${expandedSections.includes('servicios') ? 'expanded' : ''}`}
                         >
-                            <h2 style={{ fontSize: '16px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h2>
                                 <Package size={18} className="text-primary" /> Servicios Adicionales
                             </h2>
                             {expandedSections.includes('servicios') ? <ChevronDown size={18} className="text-muted" /> : <ChevronRight size={18} className="text-muted" />}
                         </div>
 
                         {expandedSections.includes('servicios') && (
-                            <div style={{ padding: '15px' }}>
+                            <div className="accordion-content">
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     {services.map(s => (
                                         <div

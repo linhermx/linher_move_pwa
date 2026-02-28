@@ -106,12 +106,11 @@ const History = () => {
 
                     {/* Search */}
                     <div style={{ flex: '2', minWidth: '220px' }}>
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '10px 15px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                        <div className="form-field-group">
                             <Search size={18} className="text-muted" />
                             <input
                                 type="text"
                                 placeholder="Buscar por folio..."
-                                style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '14px' }}
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                             />
@@ -137,19 +136,19 @@ const History = () => {
 
                     {/* Custom Range (Inline) */}
                     {period === 'custom' && (
-                        <div className="fade-in" style={{ display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '0 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', height: '42px' }}>
+                        <div className="fade-in" style={{ display: 'flex', gap: '10px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '0 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', height: '42px' }}>
                             <input
                                 type="date"
                                 value={dateFrom}
                                 onChange={(e) => setDateFrom(e.target.value)}
-                                style={{ backgroundColor: 'transparent', border: 'none', color: 'white', fontSize: '12px', outline: 'none', width: '110px' }}
+                                style={{ backgroundColor: 'transparent', border: 'none', color: 'white', fontSize: '14px', outline: 'none', width: '130px', height: '100%' }}
                             />
-                            <span style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>-</span>
+                            <span style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>-</span>
                             <input
                                 type="date"
                                 value={dateTo}
                                 onChange={(e) => setDateTo(e.target.value)}
-                                style={{ backgroundColor: 'transparent', border: 'none', color: 'white', fontSize: '12px', outline: 'none', width: '110px' }}
+                                style={{ backgroundColor: 'transparent', border: 'none', color: 'white', fontSize: '14px', outline: 'none', width: '130px', height: '100%' }}
                             />
                         </div>
                     )}

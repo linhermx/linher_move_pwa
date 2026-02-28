@@ -78,14 +78,13 @@ const Services = () => {
                 </button>
             </div>
 
-            <div className="card" style={{ marginBottom: 'var(--spacing-lg)', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px' }}>
-                <Search size={20} className="text-muted" />
+            <div className="form-field-group" style={{ marginBottom: 'var(--spacing-lg)' }}>
+                <Search size={18} className="text-muted" />
                 <input
                     type="text"
                     placeholder="Buscar servicios..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ background: 'none', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '16px' }}
                 />
             </div>
 

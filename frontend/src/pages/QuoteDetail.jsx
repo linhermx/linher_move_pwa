@@ -595,7 +595,7 @@ const QuoteDetail = () => {
                         <h3 style={{ fontSize: '14px', marginBottom: '20px', color: 'white' }}>Ajustes de Revisión</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                             <div>
-                                <label className="text-muted" style={{ fontSize: '10px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>VIÁTICOS HOSPEDAJE ($)</label>
+                                <label className="form-label">VIÁTICOS HOSPEDAJE ($)</label>
                                 <input
                                     className="form-field"
                                     type="number"
@@ -603,15 +603,14 @@ const QuoteDetail = () => {
                                     onChange={(e) => handleAdjustmentChange('lodging_cost', e.target.value)}
                                     readOnly={isLocked}
                                     style={{
-                                        borderRadius: '8px',
-                                        backgroundColor: isLocked ? 'rgba(255,255,255,0.02)' : undefined,
-                                        borderColor: isLocked ? 'transparent' : undefined,
-                                        color: isLocked ? 'var(--color-text-muted)' : 'white'
+                                        backgroundColor: isLocked ? 'var(--color-surface)' : undefined,
+                                        opacity: isLocked ? 0.6 : 1,
+                                        cursor: isLocked ? 'default' : 'text'
                                     }}
                                 />
                             </div>
                             <div>
-                                <label className="text-muted" style={{ fontSize: '10px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>VIÁTICOS COMIDAS ($)</label>
+                                <label className="form-label">VIÁTICOS COMIDAS ($)</label>
                                 <input
                                     className="form-field"
                                     type="number"
@@ -619,10 +618,9 @@ const QuoteDetail = () => {
                                     onChange={(e) => handleAdjustmentChange('meal_cost', e.target.value)}
                                     readOnly={isLocked}
                                     style={{
-                                        borderRadius: '8px',
-                                        backgroundColor: isLocked ? 'rgba(255,255,255,0.02)' : undefined,
-                                        borderColor: isLocked ? 'transparent' : undefined,
-                                        color: isLocked ? 'var(--color-text-muted)' : 'white'
+                                        backgroundColor: isLocked ? 'var(--color-surface)' : undefined,
+                                        opacity: isLocked ? 0.6 : 1,
+                                        cursor: isLocked ? 'default' : 'text'
                                     }}
                                 />
                             </div>

@@ -133,14 +133,13 @@ const Fleet = () => {
                 type="danger"
             />
 
-            <div className="card" style={{ marginBottom: 'var(--spacing-lg)', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px' }}>
-                <Search size={20} className="text-muted" />
+            <div className="form-field-group" style={{ marginBottom: 'var(--spacing-lg)' }}>
+                <Search size={18} className="text-muted" />
                 <input
                     type="text"
                     placeholder="Buscar vehículos por nombre o placas..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ background: 'none', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '16px' }}
                 />
             </div>
 
@@ -194,14 +193,14 @@ const Fleet = () => {
 
                             <div style={{ display: 'flex', gap: 'var(--spacing-md)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-md)' }}>
                                 <div style={{ flex: 1 }}>
-                                    <span className="text-muted" style={{ fontSize: '10px', display: 'block' }}>RENDIMIENTO REAL</span>
+                                    <label className="form-label">RENDIMIENTO REAL</label>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
                                         <Gauge size={14} />
                                         <span>{v.rendimiento_real} km/L</span>
                                     </div>
                                 </div>
                                 <div style={{ flex: 1 }}>
-                                    <span className="text-muted" style={{ fontSize: '10px', display: 'block' }}>EFICIENCIA</span>
+                                    <label className="form-label">EFICIENCIA</label>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
                                         <Gauge size={14} style={{ color: getEfficiency(v).color }} />
                                         <span style={{ color: getEfficiency(v).color, fontSize: '12px' }}>

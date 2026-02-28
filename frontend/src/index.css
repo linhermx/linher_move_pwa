@@ -25,7 +25,8 @@ input:-webkit-autofill:active {
 }
 
 #root {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
 }
 
@@ -33,12 +34,16 @@ input:-webkit-autofill:active {
 .layout-container {
   display: flex;
   width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 .main-content {
   flex-grow: 1;
   padding: var(--spacing-lg);
   overflow-y: auto;
+  height: 100%;
+  min-height: 0;
 }
 
 /* Typography Utility Classes */
@@ -200,13 +205,13 @@ input[type="number"] {
 }
 
 .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-  background: #333333;
-  /* Shows when hovering the container */
+  background: rgba(0, 123, 255, 0.4);
+  /* Blue color for 'bonito' scrollbar */
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary);
-  /* Red when hovering the scrollbar itself */
+  background: var(--color-status-process);
+  /* Vibrant blue on hover */
 }
 
 /* For Firefox */
@@ -244,37 +249,119 @@ input[type="number"] {
   background: #444;
 }
 
-/* Effective Standardized Form Controls (Based on Route Card) */
+.form-label {
+  display: block;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
 .form-field {
   width: 100%;
-  padding: 8px;
+  height: 42px;
+  padding: 0 12px;
   background-color: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: white;
   font-size: 14px;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+
+.form-field:hover {
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .form-field:focus {
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(255, 72, 72, 0.2);
 }
 
 /* Form Field Group (For icons + input) */
 .form-field-group {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
   background-color: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: 8px;
-  transition: border-color 0.2s ease;
+  padding: 0 12px;
+  height: 42px;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.form-select-container {
+  height: 42px;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  position: relative;
+  /* Allow children to be positioned correctly */
+}
+
+/* Common Dropdown Menu Style */
+.dropdown-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background-color: #161616;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  z-index: 9999;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+  padding: 6px;
+  animation: fade-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 200px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.dropdown-item {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.1s;
+  color: white;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.dropdown-item.active {
+  background-color: rgba(255, 72, 72, 0.2);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.form-select-container:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(255, 72, 72, 0.2);
+}
+
+.form-field-group:hover {
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .form-field-group:focus-within {
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(255, 72, 72, 0.2);
 }
 
 .form-field-group input {
@@ -284,6 +371,7 @@ input[type="number"] {
   outline: none;
   width: 100%;
   font-size: 14px;
+  height: 100%;
 }
 
 /* Floating Action Button (FAB) & Menu */
@@ -403,6 +491,57 @@ input[type="number"] {
   border-color: var(--color-primary);
 }
 
+/* Standard Buttons */
+.btn {
+  height: 42px;
+  padding: 0 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  width: fit-content;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 72, 72, 0.2);
+}
+
+.btn-primary:hover {
+  background-color: #ff5c5c;
+  box-shadow: 0 6px 15px rgba(255, 72, 72, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
 
 /* Animations */
 .spin {
@@ -421,4 +560,60 @@ input[type="number"] {
 
 .fade-in {
   animation: fade-in 0.3s ease-out;
+}
+
+/* Accordion Standard */
+.accordion-card {
+  padding: 0 !important;
+
+}
+
+.accordion-header {
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+  user-select: none;
+}
+
+.accordion-header:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.accordion-header.expanded {
+  background-color: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.accordion-header h2 {
+  font-size: 16px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: white;
+}
+
+.accordion-content {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  animation: slideDownAccordion 0.3s ease-out;
+}
+
+@keyframes slideDownAccordion {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

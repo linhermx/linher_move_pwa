@@ -66,47 +66,17 @@ const CustomSelect = ({ options, value, onChange, placeholder = 'Seleccionar...'
             </div>
 
             {isOpen && (
-                <div style={{
-                    position: 'absolute',
-                    [openUpward ? 'bottom' : 'top']: 'calc(100% + 10px)',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: '#161616',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-md)',
-                    zIndex: 9999,
-                    boxShadow: '0 8px 16px rgba(0,0,0,0.5)',
-                    padding: '6px',
-                    animation: 'fade-in 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    minWidth: '200px',
-                    maxHeight: '250px',
-                    overflowY: 'auto'
-                }} className="custom-scrollbar">
+                <div
+                    className="dropdown-menu custom-scrollbar"
+                    style={{
+                        [openUpward ? 'bottom' : 'top']: 'calc(100% + 8px)',
+                    }}
+                >
                     {options.map((opt) => (
                         <div
                             key={opt.value}
                             onClick={() => handleSelect(opt.value)}
-                            style={{
-                                padding: '10px 12px',
-                                borderRadius: 'var(--radius-sm)',
-                                fontSize: '13px',
-                                cursor: 'pointer',
-                                transition: 'all 0.1s',
-                                backgroundColor: value === opt.value ? 'rgba(255, 72, 72, 0.1)' : 'transparent',
-                                color: value === opt.value ? 'var(--color-primary)' : 'white',
-                                marginBottom: '2px',
-                                fontWeight: value === opt.value ? 'bold' : 'normal'
-                            }}
-                            onMouseOver={(e) => {
-                                if (value !== opt.value) {
-                                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
-                                }
-                            }}
-                            onMouseOut={(e) => {
-                                if (value !== opt.value) {
-                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                }
-                            }}
+                            className={`dropdown-item ${value === opt.value ? 'active' : ''}`}
                         >
                             {opt.label}
                         </div>

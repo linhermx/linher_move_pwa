@@ -340,17 +340,17 @@ const AuditLogs = () => {
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
                             <div>
-                                <label style={{ display: 'block', fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '5px', textTransform: 'uppercase', fontWeight: 'bold' }}>Evento</label>
+                                <label className="form-label">Evento</label>
                                 <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{selectedLog.action}</div>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '5px', textTransform: 'uppercase', fontWeight: 'bold' }}>Fecha y Hora</label>
+                                <label className="form-label">Fecha y Hora</label>
                                 <div style={{ fontSize: '14px' }}>{formatDateTime(selectedLog.created_at)}</div>
                             </div>
                         </div>
 
                         <div>
-                            <label style={{ display: 'block', fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '5px', textTransform: 'uppercase', fontWeight: 'bold' }}>Carga Útil (JSON)</label>
+                            <label className="form-label">Carga Útil (JSON)</label>
                             <pre style={{
                                 backgroundColor: '#111',
                                 padding: '15px',
@@ -367,17 +367,9 @@ const AuditLogs = () => {
 
                         <div style={{ marginTop: '25px', textAlign: 'right' }}>
                             <button
-                                className="button-primary"
+                                className="btn btn-primary"
                                 onClick={() => setSelectedLog(null)}
-                                style={{
-                                    backgroundColor: 'var(--color-primary)',
-                                    color: 'white',
-                                    border: 'none',
-                                    padding: '10px 25px',
-                                    borderRadius: 'var(--radius-md)',
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold'
-                                }}
+                                style={{ marginLeft: 'auto' }}
                             >
                                 Cerrar
                             </button>

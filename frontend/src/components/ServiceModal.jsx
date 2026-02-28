@@ -108,46 +108,46 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                     <div>
-                        <label className="text-muted" style={{ display: 'block', fontSize: '12px', marginBottom: '8px' }}>NOMBRE DEL SERVICIO</label>
+                        <label className="form-label">NOMBRE DEL SERVICIO</label>
                         <input
                             type="text" name="name" value={formData.name} onChange={handleChange}
                             placeholder="Ej. Maniobra Especial"
-                            className="input-field"
-                            style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}
+                            className="form-field"
                         />
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
                         <div>
-                            <label className="text-muted" style={{ display: 'block', fontSize: '12px', marginBottom: '8px' }}>COSTO ($)</label>
+                            <label className="form-label">COSTO ($)</label>
                             <input
                                 type="number" step="0.01" name="cost" value={formData.cost} onChange={handleChange}
                                 placeholder="0.00"
-                                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}
+                                className="form-field"
                             />
                         </div>
                         <div>
-                            <label className="text-muted" style={{ display: 'block', fontSize: '12px', marginBottom: '8px' }}>TIEMPO (MIN)</label>
+                            <label className="form-label">TIEMPO (MIN)</label>
                             <input
                                 type="number" name="time_minutes" value={formData.time_minutes} onChange={handleChange}
                                 placeholder="0"
-                                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}
+                                className="form-field"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="text-muted" style={{ display: 'block', fontSize: '12px', marginBottom: '8px' }}>DESCRIPCIÓN (OPCIONAL)</label>
+                        <label className="form-label">DESCRIPCIÓN (OPCIONAL)</label>
                         <textarea
                             name="description" value={formData.description} onChange={handleChange}
                             rows="3"
-                            style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white', resize: 'none' }}
+                            className="form-field"
+                            style={{ resize: 'none' }}
                         />
                     </div>
 
                     <div>
-                        <label className="text-muted" style={{ display: 'block', fontSize: '12px', marginBottom: '8px' }}>ESTADO</label>
-                        <div style={{ padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+                        <label className="form-label">ESTADO</label>
+                        <div className="form-select-container">
                             <CustomSelect
                                 value={formData.status}
                                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}

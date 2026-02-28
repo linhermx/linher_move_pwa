@@ -139,33 +139,29 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
 
                     {/* Email (Read-only) */}
                     <div>
-                        <label style={{ display: 'block', fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 'bold', marginBottom: '8px' }}>CORREO ELECTRÓNICO (SOLO LECTURA)</label>
-                        <div style={{
-                            display: 'flex', alignItems: 'center', gap: '12px',
-                            padding: '12px', backgroundColor: 'rgba(255,255,255,0.02)',
-                            border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
-                            color: 'var(--color-text-muted)', fontSize: '14px'
+                        <label className="form-label">CORREO ELECTRÓNICO (SOLO LECTURA)</label>
+                        <div className="form-field-group" style={{
+                            backgroundColor: 'rgba(255,255,255,0.02)',
+                            color: 'var(--color-text-muted)',
+                            cursor: 'default'
                         }}>
                             <Mail size={16} />
-                            <span>{user.email}</span>
+                            <span style={{ fontSize: '14px', opacity: 0.8 }}>{user.email}</span>
                         </div>
                     </div>
 
                     {/* Name */}
                     <div>
-                        <label style={{ display: 'block', fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 'bold', marginBottom: '8px' }}>NOMBRE COMPLETO</label>
-                        <div style={{
-                            display: 'flex', alignItems: 'center', gap: '12px',
-                            padding: '12px', backgroundColor: 'rgba(255,255,255,0.05)',
-                            border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)'
-                        }}>
+                        <label className="form-label">NOMBRE COMPLETO</label>
+                        <div className="form-field-group">
                             <User size={16} className="text-primary" />
                             <input
                                 type="text"
+                                className="form-input-clean"
+                                style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', height: '100%', fontSize: '14px' }}
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 autoComplete="name"
-                                style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '14px' }}
                                 placeholder="Tu nombre"
                                 required
                             />
@@ -173,39 +169,33 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                     </div>
 
                     {/* Password */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 'bold', marginBottom: '8px' }}>NUEVA CONTRASEÑA</label>
-                            <div style={{
-                                display: 'flex', alignItems: 'center', gap: '10px',
-                                padding: '10px', backgroundColor: 'rgba(255,255,255,0.05)',
-                                border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)'
-                            }}>
+                            <label className="form-label">NUEVA CONTRASEÑA</label>
+                            <div className="form-field-group">
                                 <Lock size={14} className="text-muted" />
                                 <input
                                     type="password"
+                                    className="form-input-clean"
+                                    style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', height: '100%', fontSize: '13px' }}
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     autoComplete="new-password"
-                                    style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '13px' }}
                                     placeholder="••••••••"
                                 />
                             </div>
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 'bold', marginBottom: '8px' }}>CONFIRMAR</label>
-                            <div style={{
-                                display: 'flex', alignItems: 'center', gap: '10px',
-                                padding: '10px', backgroundColor: 'rgba(255,255,255,0.05)',
-                                border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)'
-                            }}>
+                            <label className="form-label">CONFIRMAR</label>
+                            <div className="form-field-group">
                                 <Lock size={14} className="text-muted" />
                                 <input
                                     type="password"
+                                    className="form-input-clean"
+                                    style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', height: '100%', fontSize: '13px' }}
                                     value={formData.confirmPassword}
                                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                                     autoComplete="new-password"
-                                    style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '13px' }}
                                     placeholder="••••••••"
                                 />
                             </div>

@@ -137,17 +137,14 @@ const Users = () => {
             </div>
 
             {/* Toolbar */}
-            <div className="card" style={{ marginBottom: 'var(--spacing-lg)', display: 'flex', gap: 'var(--spacing-md)', alignItems: 'center' }}>
-                <div style={{ flexGrow: 1, display: 'flex', gap: '10px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '8px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
-                    <Search size={18} className="text-muted" />
-                    <input
-                        type="text"
-                        placeholder="Buscar por nombre o email..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%' }}
-                    />
-                </div>
+            <div className="form-field-group" style={{ marginBottom: 'var(--spacing-lg)' }}>
+                <Search size={18} className="text-muted" />
+                <input
+                    type="text"
+                    placeholder="Buscar por nombre o email..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                />
             </div>
 
             {/* Users Table */}

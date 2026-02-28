@@ -160,65 +160,45 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                             <input id="user-photo" type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
                         </div>
                     </div>                    <div>
-                        <label style={{ display: 'block', fontSize: '11px', marginBottom: '8px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>
-                            NOMBRE COMPLETO
-                        </label>
+                        <label className="form-label">NOMBRE COMPLETO</label>
                         <input
                             type="text"
                             name="name"
+                            className="form-field"
                             value={formData.name}
                             onChange={handleChange}
                             placeholder="Ej. Juan Pérez"
-                            style={{
-                                width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
-                                color: 'white', outline: 'none'
-                            }}
                         />
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontSize: '11px', marginBottom: '8px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>
-                            CORREO ELECTRÓNICO
-                        </label>
+                        <label className="form-label">CORREO ELECTRÓNICO</label>
                         <input
                             type="email"
                             name="email"
+                            className="form-field"
                             value={formData.email}
                             onChange={handleChange}
                             placeholder="usuario@linher.com"
-                            style={{
-                                width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
-                                color: 'white', outline: 'none'
-                            }}
                         />
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontSize: '11px', marginBottom: '8px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>
-                            CONTRASEÑA {isEdit && '(Dejar en blanco para no cambiar)'}
-                        </label>
+                        <label className="form-label">CONTRASEÑA {isEdit && '(Dejar en blanco para no cambiar)'}</label>
                         <input
                             type="password"
                             name="password"
+                            className="form-field"
                             value={formData.password}
                             onChange={handleChange}
                             placeholder="••••••••"
-                            style={{
-                                width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
-                                color: 'white', outline: 'none'
-                            }}
                         />
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 'var(--spacing-md)' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '11px', marginBottom: '8px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>
-                                ROL DEL SISTEMA
-                            </label>
-                            <div style={{ padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+                            <label className="form-label">ROL DEL SISTEMA</label>
+                            <div className="form-select-container">
                                 <CustomSelect
                                     placeholder="Seleccionar rol"
                                     value={formData.role_id}
@@ -228,10 +208,8 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                             </div>
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '11px', marginBottom: '8px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>
-                                ESTATUS
-                            </label>
-                            <div style={{ padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+                            <label className="form-label">ESTATUS</label>
+                            <div className="form-select-container">
                                 <CustomSelect
                                     value={formData.status}
                                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}

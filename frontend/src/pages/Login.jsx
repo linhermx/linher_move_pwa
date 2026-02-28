@@ -67,13 +67,7 @@ const ForgotPasswordModal = ({ onClose }) => {
                         </p>
                     </div>
 
-                    <button onClick={onClose} style={{
-                        width: '100%', padding: '12px',
-                        background: 'var(--color-primary)', color: 'white',
-                        border: 'none', borderRadius: 'var(--radius-md)',
-                        fontWeight: '700', cursor: 'pointer', fontSize: '14px',
-                        boxShadow: '0 4px 12px rgba(255,72,72,0.3)'
-                    }}>
+                    <button onClick={onClose} className="btn btn-primary" style={{ width: '100%' }}>
                         Entendido
                     </button>
                 </div>
@@ -125,9 +119,7 @@ const Login = () => {
 
                         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                             <div>
-                                <label style={{ display: 'block', marginBottom: 'var(--spacing-xs)', fontSize: '10px', fontWeight: '700', letterSpacing: '0.8px', textTransform: 'uppercase' }} className="text-muted">
-                                    Correo Electrónico
-                                </label>
+                                <label className="form-label">Correo Electrónico</label>
                                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '12px' }}>
                                     <Mail size={18} className="text-muted" />
                                     <input
@@ -144,9 +136,7 @@ const Login = () => {
                             </div>
 
                             <div>
-                                <label style={{ display: 'block', marginBottom: 'var(--spacing-xs)', fontSize: '10px', fontWeight: '700', letterSpacing: '0.8px', textTransform: 'uppercase' }} className="text-muted">
-                                    Contraseña
-                                </label>
+                                <label className="form-label">Contraseña</label>
                                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center', backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', padding: '12px' }}>
                                     <Lock size={18} className="text-muted" />
                                     <input
@@ -202,15 +192,7 @@ const Login = () => {
                                 </button>
                             </div>
 
-                            <button type="submit" style={{
-                                backgroundColor: 'var(--color-primary)', color: 'white',
-                                border: 'none', padding: '12px', borderRadius: 'var(--radius-md)',
-                                marginTop: 'var(--spacing-md)', fontWeight: 'bold', cursor: 'pointer',
-                                fontSize: '15px', transition: 'opacity 0.2s',
-                            }}
-                                onMouseEnter={e => e.target.style.opacity = '0.85'}
-                                onMouseLeave={e => e.target.style.opacity = '1'}
-                            >
+                            <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: 'var(--spacing-md)' }}>
                                 Iniciar Sesión
                             </button>
                         </form>

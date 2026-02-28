@@ -204,54 +204,32 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontSize: '12px', marginBottom: '8px', color: 'var(--color-text-muted)' }}>
-                            NOMBRE DEL VEHÍCULO
-                        </label>
+                        <label className="form-label">NOMBRE DEL VEHÍCULO</label>
                         <input
                             type="text"
                             name="name"
                             value={formData.name}
                             onChange={handleChange}
                             placeholder="Ej. Tracto Volvo 2023"
-                            style={{
-                                width: '100%',
-                                padding: '12px',
-                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                border: '1px solid var(--color-border)',
-                                borderRadius: 'var(--radius-md)',
-                                color: 'white',
-                                outline: 'none'
-                            }}
+                            className="form-field"
                         />
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontSize: '12px', marginBottom: '8px', color: 'var(--color-text-muted)' }}>
-                            PLACAS
-                        </label>
+                        <label className="form-label">PLACAS</label>
                         <input
                             type="text"
                             name="plate"
                             value={formData.plate}
                             onChange={handleChange}
                             placeholder="Ej. ABC-123-D"
-                            style={{
-                                width: '100%',
-                                padding: '12px',
-                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                border: '1px solid var(--color-border)',
-                                borderRadius: 'var(--radius-md)',
-                                color: 'white',
-                                outline: 'none'
-                            }}
+                            className="form-field"
                         />
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '12px', marginBottom: '8px', color: 'var(--color-text-muted)' }}>
-                                REND. TEÓRICO (km/L)
-                            </label>
+                            <label className="form-label">REND. TEÓRICO (km/L)</label>
                             <input
                                 type="number"
                                 step="0.1"
@@ -259,21 +237,11 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                                 value={formData.rendimiento_teorico}
                                 onChange={handleChange}
                                 placeholder="1.5"
-                                style={{
-                                    width: '100%',
-                                    padding: '12px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                    border: '1px solid var(--color-border)',
-                                    borderRadius: 'var(--radius-md)',
-                                    color: 'white',
-                                    outline: 'none'
-                                }}
+                                className="form-field"
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '12px', marginBottom: '8px', color: 'var(--color-text-muted)' }}>
-                                REND. REAL (km/L)
-                            </label>
+                            <label className="form-label">REND. REAL (km/L)</label>
                             <input
                                 type="number"
                                 step="0.1"
@@ -281,24 +249,14 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                                 value={formData.rendimiento_real}
                                 onChange={handleChange}
                                 placeholder="1.2"
-                                style={{
-                                    width: '100%',
-                                    padding: '12px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                    border: '1px solid var(--color-border)',
-                                    borderRadius: 'var(--radius-md)',
-                                    color: 'white',
-                                    outline: 'none'
-                                }}
+                                className="form-field"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontSize: '12px', marginBottom: '8px', color: 'var(--color-text-muted)' }}>
-                            ESTATUS INICIAL
-                        </label>
-                        <div style={{ padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+                        <label className="form-label">ESTATUS INICIAL</label>
+                        <div className="form-select-container">
                             <CustomSelect
                                 value={formData.status}
                                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}

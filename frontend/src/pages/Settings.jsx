@@ -175,23 +175,23 @@ const Settings = () => {
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
                                 <div>
-                                    <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '12px' }}>LATITUD</label>
+                                    <label className="form-label">LATITUD</label>
                                     <input
                                         type="text"
                                         name="default_origin_lat"
+                                        className="form-field"
                                         value={settings.default_origin_lat}
                                         onChange={handleChange}
-                                        style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '12px' }}>LONGITUD</label>
+                                    <label className="form-label">LONGITUD</label>
                                     <input
                                         type="text"
                                         name="default_origin_lng"
+                                        className="form-field"
                                         value={settings.default_origin_lng}
                                         onChange={handleChange}
-                                        style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}
                                     />
                                 </div>
                             </div>
@@ -218,18 +218,18 @@ const Settings = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                         <div>
-                            <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '12px' }}>PRECIO GASOLINA ($/L)</label>
+                            <label className="form-label">PRECIO GASOLINA ($/L)</label>
                             <input
                                 type="number" name="gasoline_price" value={settings.gasoline_price} onChange={handleChange}
-                                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}
+                                className="form-field"
                                 placeholder="24.50"
                             />
                         </div>
                         <div>
-                            <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '12px' }}>FACTOR EFICIENCIA BASE</label>
+                            <label className="form-label">FACTOR EFICIENCIA BASE</label>
                             <input
                                 type="number" step="0.1" name="base_efficiency" value={settings.base_efficiency} onChange={handleChange}
-                                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}
+                                className="form-field"
                                 placeholder="1.0"
                             />
                         </div>
@@ -244,18 +244,18 @@ const Settings = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                         <div>
-                            <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '12px' }}>FACTOR MANIOBRA (MULTIPLICADOR)</label>
+                            <label className="form-label">FACTOR MANIOBRA (MULTIPLICADOR)</label>
                             <input
                                 type="number" step="0.1" name="maneuver_factor" value={settings.maneuver_factor} onChange={handleChange}
-                                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}
+                                className="form-field"
                                 placeholder="1.2"
                             />
                         </div>
                         <div>
-                            <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '12px' }}>FACTOR TRÁFICO (TIEMPO)</label>
+                            <label className="form-label">FACTOR TRÁFICO (TIEMPO)</label>
                             <input
                                 type="number" step="0.1" name="traffic_factor" value={settings.traffic_factor} onChange={handleChange}
-                                style={{ width: '100%', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white' }}
+                                className="form-field"
                                 placeholder="1.5"
                             />
                         </div>
@@ -272,20 +272,20 @@ const Settings = () => {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                         {[1, 2, 3].map(tier => (
-                            <div key={`lodging-tier-${tier}`} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-md)' }}>
+                            <div key={`lodging-tier-${tier}`} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
                                 <div>
-                                    <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '11px' }}>UMBRAL NIVEL {tier} (HORAS IDA)</label>
+                                    <label className="form-label">UMBRAL NIVEL {tier} (HORAS IDA)</label>
                                     <input
                                         type="number" name={`lodging_tier${tier}_hours`} value={settings[`lodging_tier${tier}_hours`]} onChange={handleChange}
-                                        style={{ width: '100%', padding: '10px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', color: 'white' }}
+                                        className="form-field"
                                         placeholder={`${tier === 1 ? '6' : tier === 2 ? '11' : '17'}`}
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '11px' }}>COSTO ASIGNADO ($)</label>
+                                    <label className="form-label">COSTO ASIGNADO ($)</label>
                                     <input
                                         type="number" name={`lodging_tier${tier}_cost`} value={settings[`lodging_tier${tier}_cost`]} onChange={handleChange}
-                                        style={{ width: '100%', padding: '10px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', color: 'white' }}
+                                        className="form-field"
                                         placeholder={`${tier === 1 ? '1500' : tier === 2 ? '2400' : '3600'}`}
                                     />
                                 </div>
@@ -303,62 +303,61 @@ const Settings = () => {
                     <p className="text-muted" style={{ fontSize: '12px', marginBottom: 'var(--spacing-md)' }}>Configura los viáticos según la jornada laboral total o si hay pernocta.</p>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-md)' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
                             <div>
-                                <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '11px' }}>UMBRAL NIVEL 1 - JORNADA (HORAS)</label>
+                                <label className="form-label">UMBRAL NIVEL 1 - JORNADA (HORAS)</label>
                                 <input
                                     type="number" name="meal_tier1_hours" value={settings.meal_tier1_hours} onChange={handleChange}
-                                    style={{ width: '100%', padding: '10px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', color: 'white' }}
+                                    className="form-field"
                                     placeholder="8"
                                 />
                             </div>
                             <div>
-                                <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '11px' }}>COSTO ASIGNADO ($)</label>
+                                <label className="text-muted" style={{ display: 'block', marginBottom: '6px', fontSize: '10px', fontWeight: 'bold' }}>COSTO ASIGNADO ($)</label>
                                 <input
                                     type="number" name="meal_tier1_cost" value={settings.meal_tier1_cost} onChange={handleChange}
-                                    style={{ width: '100%', padding: '10px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', color: 'white' }}
+                                    className="form-field"
                                     placeholder="200"
                                 />
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-md)' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
                             <div>
-                                <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '11px' }}>UMBRAL NIVEL 2 - VIAJE LARGO (HORAS TOTAL)</label>
+                                <label className="form-label">UMBRAL NIVEL 2 - VIAJE LARGO (HORAS TOTAL)</label>
                                 <input
                                     type="number" name="meal_tier2_hours" value={settings.meal_tier2_hours} onChange={handleChange}
-                                    style={{ width: '100%', padding: '10px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', color: 'white' }}
+                                    className="form-field"
                                     placeholder="12"
                                 />
                             </div>
                             <div>
-                                <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '11px' }}>COSTO ASIGNADO ($)</label>
+                                <label className="text-muted" style={{ display: 'block', marginBottom: '6px', fontSize: '10px', fontWeight: 'bold' }}>COSTO ASIGNADO ($)</label>
                                 <input
                                     type="number" name="meal_tier2_cost" value={settings.meal_tier2_cost} onChange={handleChange}
-                                    style={{ width: '100%', padding: '10px', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', color: 'white' }}
+                                    className="form-field"
                                     placeholder="300"
                                 />
                             </div>
                         </div>
 
-                        <div style={{ padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--color-border)' }}>
-                            <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '11px' }}>COSTO ASIGNADO CUANDO APLICA HOSPEDAJE ($)</label>
+                        <div style={{ padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                            <label className="form-label">COSTO ASIGNADO CUANDO APLICA HOSPEDAJE ($)</label>
                             <input
                                 type="number" name="meal_tier3_cost" value={settings.meal_tier3_cost} onChange={handleChange}
-                                style={{ width: '100%', padding: '10px', backgroundColor: 'rgba(255, 255, 255, 0.1)', border: '1px solid var(--color-primary)', borderRadius: 'var(--radius-sm)', color: 'white' }}
+                                className="form-field"
                                 placeholder="500"
                             />
                         </div>
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'var(--spacing-md)' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gridColumn: '1 / -1' }}>
                     <button
                         onClick={handleSave}
-                        className="button-primary"
-                        style={{ padding: '12px 30px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}
+                        className="btn btn-primary"
                     >
-                        <Save size={20} />
+                        <Save size={18} />
                         Guardar Configuración
                     </button>
                 </div>
