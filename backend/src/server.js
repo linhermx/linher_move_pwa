@@ -151,13 +151,26 @@ const startServer = async () => {
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
 
-            // Setup automated backups cron
+            // Setup automated backups cron (Runs every day at midnight to check settings)
             nodeCron.schedule('0 0 * * *', async () => {
                 try {
-                    const [settings] = await pool.query('SELECT backups_enabled, backup_frequency FROM settings LIMIT 1');
-                    if (settings && settings[0].backups_enabled) {
-                        console.log('[Cron] Triggering automated daily backup...');
-                        await BackupService.generateLocalBackup(null); // System generated
+                    const [settings] = await pool.query('SELECT setting_value, setting_key FROM global_settings WHERE setting_key IN ("backups_enabled", "backup_frequency")');
+                    const config = settings.reduce((acc, curr) => {
+                        acc[curr.setting_key] = curr.setting_value;
+                        return acc;
+                    }, {});
+
+                    // backups_enabled can be 'true' (string) or true (boolean) or 1 (number)
+                    const isEnabled = config.backups_enabled === 'true' || config.backups_enabled === true || config.backups_enabled === '1' || config.backups_enabled === 1;
+
+                    if (isEnabled) {
+                        const now = new Date();
+                        const frequency = config.backup_frequency || 'daily';
+
+                        if (frequency === 'daily' || (frequency === 'weekly' && now.getDay() === 0)) { // 0 is Sunday
+                            console.log(`[Cron] Triggering automated ${frequency} backup...`);
+                            await BackupService.generateLocalBackup(null); // System generated
+                        }
                     }
                 } catch (err) {
                     console.error('[Cron] Error in automated backup:', err);

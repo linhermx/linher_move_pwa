@@ -11,11 +11,15 @@ import {
     Calendar,
     Clock,
     FileText,
-    Shield
+    History,
+    Shield,
+    Filter,
+    ChevronDown
 } from 'lucide-react';
 import { backupService } from '../services/backupService';
 import { settingsService } from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
+import CustomSelect from '../components/CustomSelect';
 import { formatDate } from '../utils/formatters';
 
 const Backups = () => {
@@ -184,27 +188,33 @@ const Backups = () => {
                         </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <p style={{ fontSize: '14px' }}>Frecuencia</p>
-                        <select
-                            value={settings?.backup_frequency || 'daily'}
-                            onChange={async (e) => {
-                                const val = e.target.value;
-                                const newSetts = { ...settings, backup_frequency: val };
-                                await settingsService.update(newSetts);
-                                setSettings(newSetts);
-                            }}
-                            style={{
-                                background: 'var(--color-bg)',
-                                color: 'white',
-                                border: '1px solid var(--color-border)',
-                                borderRadius: '4px',
-                                padding: '4px 8px',
-                                outline: 'none'
-                            }}
-                        >
-                            <option value="daily">Diario</option>
-                            <option value="weekly">Semanal</option>
-                        </select>
+                        <p style={{ fontSize: '14px', fontWeight: '500' }}>Frecuencia de respaldo</p>
+                        <div style={{
+                            width: '160px',
+                            display: 'flex',
+                            gap: '8px',
+                            alignItems: 'center',
+                            backgroundColor: 'var(--color-bg)',
+                            padding: '0 12px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--color-border)',
+                            height: '42px'
+                        }}>
+                            <CustomSelect
+                                icon={Calendar}
+                                value={settings?.backup_frequency || 'daily'}
+                                onChange={async (e) => {
+                                    const val = e.target.value;
+                                    const newSetts = { ...settings, backup_frequency: val };
+                                    await settingsService.update(newSetts);
+                                    setSettings(newSetts);
+                                }}
+                                options={[
+                                    { value: 'daily', label: 'Diario' },
+                                    { value: 'weekly', label: 'Semanal' }
+                                ]}
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -242,82 +252,95 @@ const Backups = () => {
             </div>
 
             {/* History Table */}
-            <div className="card" style={{ padding: 0 }}>
+            <div className="card" style={{ padding: 0, overflow: 'visible' }}>
                 <div style={{ padding: '16px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <FileText size={20} className="text-primary" />
-                    <h3 style={{ fontSize: '16px' }}>Historial de Respaldos</h3>
+                    <History size={20} className="text-primary" />
+                    <h3 style={{ fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Historial de Respaldos</h3>
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead>
-                        <tr style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--color-border)' }}>
-                            <th style={{ padding: '12px 16px', fontSize: '12px' }}>FECHA</th>
-                            <th style={{ padding: '12px 16px', fontSize: '12px' }}>ARCHIVO</th>
-                            <th style={{ padding: '12px 16px', fontSize: '12px' }}>TAMAÑO</th>
-                            <th style={{ padding: '12px 16px', fontSize: '12px' }}>TIPO</th>
-                            <th style={{ padding: '12px 16px', fontSize: '12px' }}>ESTADO</th>
-                            <th style={{ padding: '12px 16px', fontSize: '12px', textAlign: 'right' }}>ACCIONES</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {backups.length === 0 ? (
-                            <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center' }} className="text-muted">No hay respaldos disponibles.</td></tr>
-                        ) : (
-                            backups.map(b => (
-                                <tr key={b.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                                    <td style={{ padding: '12px 16px', fontSize: '13px' }}>
-                                        {formatDate(b.created_at)}
-                                    </td>
-                                    <td style={{ padding: '12px 16px', fontSize: '13px' }}>{b.filename}</td>
-                                    <td style={{ padding: '12px 16px', fontSize: '13px' }}>{formatSize(b.size_bytes)}</td>
-                                    <td style={{ padding: '12px 16px' }}>
-                                        <span style={{
-                                            fontSize: '10px',
-                                            backgroundColor: 'rgba(255,255,255,0.05)',
-                                            padding: '2px 6px',
-                                            borderRadius: '4px',
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '4px'
-                                        }}>
-                                            {b.type === 'local' ? <Database size={10} /> : <Cloud size={10} />}
-                                            {b.type.toUpperCase()}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '12px 16px' }}>
-                                        <span style={{
-                                            fontSize: '11px',
-                                            color: b.status === 'success' ? '#28A745' : '#FF4848',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px'
-                                        }}>
-                                            <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: b.status === 'success' ? '#28A745' : '#FF4848' }} />
-                                            {b.status === 'success' ? 'Completado' : 'Fallido'}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                            <button
-                                                onClick={() => backupService.download(b.id)}
-                                                style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer' }}
-                                                title="Descargar"
-                                            >
-                                                <Download size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => setShowConfirmDelete(b.id)}
-                                                style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer' }}
-                                                title="Eliminar"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <thead>
+                            <tr style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--color-border)' }}>
+                                <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)' }}>FECHA</th>
+                                <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)' }}>ARCHIVO</th>
+                                <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)' }}>TAMAÑO</th>
+                                <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)' }}>TIPO</th>
+                                <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)' }}>ESTADO</th>
+                                <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)', textAlign: 'right' }}>ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {backups.length === 0 ? (
+                                <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center' }} className="text-muted">No hay respaldos disponibles.</td></tr>
+                            ) : (
+                                backups.map(b => (
+                                    <tr key={b.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                                        <td style={{ padding: '16px' }}>
+                                            <div style={{ fontSize: '14px' }}>{formatDate(b.created_at)}</div>
+                                        </td>
+                                        <td style={{ padding: '16px' }}>
+                                            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.9)' }}>{b.filename}</div>
+                                        </td>
+                                        <td style={{ padding: '16px', fontSize: '14px' }}>
+                                            {formatSize(b.size_bytes)}
+                                        </td>
+                                        <td style={{ padding: '16px' }}>
+                                            <span style={{
+                                                fontSize: '10px',
+                                                backgroundColor: 'rgba(255,255,255,0.05)',
+                                                padding: '4px 8px',
+                                                borderRadius: '4px',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                fontWeight: 'bold',
+                                                textTransform: 'uppercase'
+                                            }}>
+                                                {b.type === 'local' ? <Database size={12} /> : <Cloud size={12} />}
+                                                {b.type}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '16px' }}>
+                                            <span style={{
+                                                fontSize: '11px',
+                                                color: b.status === 'success' ? '#28A745' : '#FF4848',
+                                                fontWeight: 'bold',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                            }}>
+                                                <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: b.status === 'success' ? '#28A745' : '#FF4848' }} />
+                                                {b.status === 'success' ? 'COMPLETADO' : 'FALLIDO'}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '16px', textAlign: 'right' }}>
+                                            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                                                <button
+                                                    onClick={() => backupService.download(b.id)}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', transition: 'color 0.2s' }}
+                                                    onMouseOver={(e) => e.currentTarget.style.color = 'white'}
+                                                    onMouseOut={(e) => e.currentTarget.style.color = 'var(--color-text-muted)'}
+                                                    title="Descargar"
+                                                >
+                                                    <Download size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowConfirmDelete(b.id)}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', transition: 'color 0.2s' }}
+                                                    onMouseOver={(e) => e.currentTarget.style.color = 'var(--color-primary)'}
+                                                    onMouseOut={(e) => e.currentTarget.style.color = 'var(--color-text-muted)'}
+                                                    title="Eliminar"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <ConfirmModal
