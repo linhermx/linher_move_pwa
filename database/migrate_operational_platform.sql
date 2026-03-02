@@ -8,6 +8,9 @@ ALTER TABLE `logs`
 ALTER TABLE `backups`
   MODIFY COLUMN `type` ENUM('local', 'dropbox', 'google_drive') DEFAULT 'local';
 
+ALTER TABLE `backups`
+  ADD COLUMN IF NOT EXISTS `trigger_source` ENUM('manual', 'automated') NOT NULL DEFAULT 'manual' AFTER `status`;
+
 CREATE TABLE IF NOT EXISTS `integration_connections` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `provider` VARCHAR(50) NOT NULL UNIQUE,
@@ -35,3 +38,7 @@ CREATE TABLE IF NOT EXISTS `integration_oauth_states` (
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`operator_id`) REFERENCES `users`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT IGNORE INTO `global_settings` (`setting_key`, `setting_value`, `description`) VALUES
+('backups_enabled', 'false', 'Enable automated backups from the server scheduler'),
+('backup_frequency', 'daily', 'Automatic backup frequency: daily or weekly');

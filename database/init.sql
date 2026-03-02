@@ -176,6 +176,7 @@ CREATE TABLE IF NOT EXISTS `backups` (
   `size_bytes` BIGINT NOT NULL,
   `type` ENUM('local', 'dropbox', 'google_drive') DEFAULT 'local',
   `status` ENUM('success', 'failed', 'pending') DEFAULT 'pending',
+  `trigger_source` ENUM('manual', 'automated') NOT NULL DEFAULT 'manual',
   `operator_id` INT,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`operator_id`) REFERENCES `users`(`id`)
@@ -254,6 +255,10 @@ INSERT IGNORE INTO `services` (`id`, `name`, `cost`, `time_minutes`, `descriptio
 (3, 'Comida', 150.00, 45, 'Apoyo para alimentos del operador'),
 (4, 'Hospedaje', 800.00, 480, 'Costo por noche de hospedaje'),
 (5, 'Maniobra Carga/Descarga', 1200.00, 120, 'Servicio profesional de carga y descarga');
+
+INSERT IGNORE INTO `global_settings` (`setting_key`, `setting_value`, `description`) VALUES
+('backups_enabled', 'false', 'Enable automated backups from the server scheduler'),
+('backup_frequency', 'daily', 'Automatic backup frequency: daily or weekly');
 
 -- Seed Default Admin User (Password: admin123)
 -- Note: In a real app, use hashed passwords.

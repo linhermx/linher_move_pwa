@@ -47,9 +47,15 @@ export class SettingsModel extends BaseModel {
     }
 
     async updateSetting(key, value) {
-        const query = `UPDATE ${this.tableName} SET setting_value = ? WHERE setting_key = ?`;
-        const [result] = await this.db.query(query, [value, key]);
-        return result.affectedRows > 0;
+        const normalizedValue = value === null || value === undefined ? '' : String(value);
+        const query = `
+            INSERT INTO ${this.tableName} (setting_key, setting_value)
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE
+                setting_value = VALUES(setting_value)
+        `;
+        const [result] = await this.db.query(query, [key, normalizedValue]);
+        return result.affectedRows > 0 || result.insertId > 0;
     }
 }
 

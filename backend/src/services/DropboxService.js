@@ -120,45 +120,8 @@ export const DropboxService = {
         return rows[0];
     },
 
-    async migrateLegacyTokens() {
-        const connection = await this.getConnection();
-        if (connection) {
-            return connection;
-        }
-
-        const [rows] = await pool.query(
-            'SELECT id, setting_value FROM global_settings WHERE setting_key = "dropbox_tokens" LIMIT 1'
-        );
-
-        if (!rows.length || !rows[0].setting_value) {
-            return null;
-        }
-
-        try {
-            const tokens = JSON.parse(rows[0].setting_value);
-            await this.upsertConnection({
-                status: tokens.access_token || tokens.refresh_token ? 'connected' : 'disconnected',
-                access_token: tokens.access_token || null,
-                refresh_token: tokens.refresh_token || null,
-                token_expires_at: tokens.expires_at ? new Date(tokens.expires_at) : null,
-                last_error_message: null
-            });
-
-            await pool.query('DELETE FROM global_settings WHERE id = ?', [rows[0].id]);
-            return this.getConnection();
-        } catch (error) {
-            await this.upsertConnection({
-                status: 'error',
-                last_error_at: new Date(),
-                last_error_message: `Legacy token migration failed: ${error.message}`
-            });
-            return null;
-        }
-    },
-
     async getAuth() {
         const config = this.getConfig();
-        await this.migrateLegacyTokens();
 
         const auth = new DropboxAuth({
             fetch,
@@ -311,7 +274,6 @@ export const DropboxService = {
 
     async getStatus() {
         try {
-            await this.migrateLegacyTokens();
             const connection = await this.getConnection();
             if (!connection || (!connection.access_token && !connection.refresh_token)) {
                 return { connected: false };

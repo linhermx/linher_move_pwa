@@ -115,4 +115,18 @@ export const ensureOperationalSchema = async (db) => {
         ALTER TABLE backups
         MODIFY COLUMN type ENUM('local', 'dropbox', 'google_drive') DEFAULT 'local'
     `);
+
+    if (!(await columnExists(db, 'backups', 'trigger_source'))) {
+        await db.query(`
+            ALTER TABLE backups
+            ADD COLUMN trigger_source ENUM('manual', 'automated') NOT NULL DEFAULT 'manual' AFTER status
+        `);
+    }
+
+    await db.query(`
+        INSERT IGNORE INTO global_settings (setting_key, setting_value, description)
+        VALUES
+            ('backups_enabled', 'false', 'Enable automated backups from the server scheduler'),
+            ('backup_frequency', 'daily', 'Automatic backup frequency: daily or weekly')
+    `);
 };

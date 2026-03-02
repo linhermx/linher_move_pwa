@@ -14,6 +14,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const logger = new SystemLogger(pool);
 
+const resolveMysqlDumpPath = () => {
+    const configuredPath = process.env.MYSQLDUMP_PATH?.trim();
+    if (configuredPath) {
+        return configuredPath;
+    }
+
+    const xamppDefaultPath = 'C:\\xampp\\mysql\\bin\\mysqldump.exe';
+    if (process.platform === 'win32' && fs.existsSync(xamppDefaultPath)) {
+        return xamppDefaultPath;
+    }
+
+    return 'mysqldump';
+};
+
 export const BackupService = {
     async generateLocalBackup(operatorId = null, requestContext = {}) {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -21,11 +35,12 @@ export const BackupService = {
         const backupDir = path.join(__dirname, '../../backups', backupName);
         const zipFile = `${backupDir}.zip`;
         const sqlFile = path.join(__dirname, '../../backups', `${backupName}.sql`);
+        const triggerSource = requestContext.source === 'cron' ? 'automated' : 'manual';
+        const skipCloudSync = Boolean(requestContext.skip_cloud_sync);
 
         try {
             // 1. Create SQL Dump
-            // Assuming XAMPP default path for mysqldump on Windows
-            const mysqlDumpPath = 'C:\\xampp\\mysql\\bin\\mysqldump.exe';
+            const mysqlDumpPath = resolveMysqlDumpPath();
             const { DB_HOST, DB_USER, DB_PASS, DB_NAME } = process.env;
 
             // Note: DB_PASS might be empty
@@ -63,8 +78,8 @@ export const BackupService = {
             // 4. Record in DB
             const stats = fs.statSync(zipFile);
             const [result] = await pool.query(
-                'INSERT INTO backups (filename, size_bytes, type, status, operator_id) VALUES (?, ?, ?, ?, ?)',
-                [path.basename(zipFile), stats.size, 'local', 'success', operatorId]
+                'INSERT INTO backups (filename, size_bytes, type, status, trigger_source, operator_id) VALUES (?, ?, ?, ?, ?, ?)',
+                [path.basename(zipFile), stats.size, 'local', 'success', triggerSource, operatorId]
             );
 
             await logger.system(operatorId, 'BACKUP_CREATED', {
@@ -78,35 +93,37 @@ export const BackupService = {
             await this.applyRetentionPolicy();
 
             // 6. Cloud Sync (Optional)
-            try {
-                const oauthStatus = await DropboxService.getStatus();
-                if (oauthStatus.connected) {
-                    console.log(`[Backup] Syncing ${path.basename(zipFile)} to Dropbox...`);
-                    const dropboxResponse = await DropboxService.uploadFile(zipFile);
+            if (!skipCloudSync) {
+                try {
+                    const oauthStatus = await DropboxService.getStatus();
+                    if (oauthStatus.connected) {
+                        console.log(`[Backup] Syncing ${path.basename(zipFile)} to Dropbox...`);
+                        const dropboxResponse = await DropboxService.uploadFile(zipFile);
 
-                    if (dropboxResponse && dropboxResponse.id) {
-                        await pool.query(
-                            'INSERT INTO backups (filename, size_bytes, type, status, operator_id) VALUES (?, ?, ?, ?, ?)',
-                            [path.basename(zipFile), stats.size, 'dropbox', 'success', operatorId]
-                        );
-                        await DropboxService.recordSyncSuccess();
-                        await logger.system(operatorId, 'BACKUP_SYNC_SUCCESS', {
-                            filename: path.basename(zipFile),
-                            provider: 'dropbox',
-                            external_id: dropboxResponse.id,
-                            ...sanitizeForLog(requestContext)
-                        });
-                        console.log(`[Backup] Cloud sync successful: ${dropboxResponse.id}`);
+                        if (dropboxResponse && dropboxResponse.id) {
+                            await pool.query(
+                                'INSERT INTO backups (filename, size_bytes, type, status, trigger_source, operator_id) VALUES (?, ?, ?, ?, ?, ?)',
+                                [path.basename(zipFile), stats.size, 'dropbox', 'success', triggerSource, operatorId]
+                            );
+                            await DropboxService.recordSyncSuccess();
+                            await logger.system(operatorId, 'BACKUP_SYNC_SUCCESS', {
+                                filename: path.basename(zipFile),
+                                provider: 'dropbox',
+                                external_id: dropboxResponse.id,
+                                ...sanitizeForLog(requestContext)
+                            });
+                            console.log(`[Backup] Cloud sync successful: ${dropboxResponse.id}`);
+                        }
                     }
+                } catch (cloudErr) {
+                    console.error('[Backup] Cloud sync failed:', cloudErr.message);
+                    await logger.error(operatorId, 'DROPBOX_SYNC_ERROR', {
+                        filename: path.basename(zipFile),
+                        provider: 'dropbox',
+                        ...sanitizeForLog(requestContext),
+                        error: sanitizeForLog(cloudErr)
+                    }, null, { severity: 'error', source: 'integration' });
                 }
-            } catch (cloudErr) {
-                console.error('[Backup] Cloud sync failed:', cloudErr.message);
-                await logger.error(operatorId, 'DROPBOX_SYNC_ERROR', {
-                    filename: path.basename(zipFile),
-                    provider: 'dropbox',
-                    ...sanitizeForLog(requestContext),
-                    error: sanitizeForLog(cloudErr)
-                }, null, { severity: 'error', source: 'integration' });
             }
 
             return { id: result.insertId, filename: path.basename(zipFile) };

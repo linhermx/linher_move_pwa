@@ -20,6 +20,7 @@ import { useNotification } from '../context/NotificationContext';
 
 const Backups = () => {
     const [backups, setBackups] = useState([]);
+    const [backupSummary, setBackupSummary] = useState(null);
     const [settings, setSettings] = useState(null);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
@@ -33,6 +34,70 @@ const Backups = () => {
         || settings?.backups_enabled === 1
         || settings?.backups_enabled === '1';
 
+    const getAutomationBadge = () => {
+        const health = backupSummary?.automation?.health;
+
+        if (health === 'healthy') {
+            return { variant: 'success', label: 'Operando' };
+        }
+
+        if (health === 'stale') {
+            return { variant: 'warning', label: 'Atrasado' };
+        }
+
+        if (health === 'never_run') {
+            return { variant: 'warning', label: 'Sin ejecución' };
+        }
+
+        return { variant: 'neutral', label: 'Desactivado' };
+    };
+
+    const getAutomationSummaryText = () => {
+        const frequency = backupSummary?.automation?.frequency === 'weekly' ? 'Semanal' : 'Diaria';
+
+        if (!automationEnabled) {
+            return 'La automatización está desactivada. Actívala para que el servidor genere respaldos sin intervención manual.';
+        }
+
+        if (backupSummary?.automation?.health === 'healthy') {
+            return `Automatización ${frequency.toLowerCase()} activa y operando dentro de la ventana esperada.`;
+        }
+
+        if (backupSummary?.automation?.health === 'stale') {
+            return `Automatización ${frequency.toLowerCase()} activa, pero con retraso detectado en la última ejecución.`;
+        }
+
+        if (backupSummary?.automation?.health === 'never_run') {
+            return `Automatización ${frequency.toLowerCase()} activa, pendiente de su primera ejecución automática.`;
+        }
+
+        return `Automatización ${frequency.toLowerCase()} disponible para el servidor.`;
+    };
+
+    const getCloudBadge = () => {
+        if (cloudStatus.connected) {
+            return { variant: 'success', label: 'Conectado' };
+        }
+
+        if (cloudStatus.last_error_message) {
+            return { variant: 'warning', label: 'Con incidencia' };
+        }
+
+        return { variant: 'neutral', label: 'Sin conexión' };
+    };
+
+    const getCloudSummaryText = () => {
+        if (cloudStatus.connected && cloudStatus.user?.emailAddress) {
+            return `La sincronización cloud está disponible para la cuenta ${cloudStatus.user.emailAddress}.`;
+        }
+
+        if (cloudStatus.last_error_message) {
+            return 'La integración con Dropbox reportó una incidencia y requiere revisión.';
+        }
+
+        return 'Conecta Dropbox para duplicar cada respaldo local en la nube después de su generación.';
+    };
+
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         if (params.get('sync') === 'success') {
@@ -45,13 +110,15 @@ const Backups = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [backupData, settingsData, cloudData] = await Promise.all([
+            const [backupData, summaryData, settingsData, cloudData] = await Promise.all([
                 backupService.list(),
+                backupService.summary(),
                 settingsService.get(),
                 dropboxService.getStatus()
             ]);
 
             setBackups(backupData);
+            setBackupSummary(summaryData);
             setSettings(settingsData);
             setCloudStatus(cloudData);
             setError('');
@@ -98,7 +165,7 @@ const Backups = () => {
 
         try {
             await settingsService.update(newSettings);
-            setSettings(newSettings);
+            await fetchData();
             showNotification('Automatización actualizada', 'success');
         } catch {
             setError('No se pudo actualizar la automatización.');
@@ -113,7 +180,7 @@ const Backups = () => {
 
         try {
             await settingsService.update(newSettings);
-            setSettings(newSettings);
+            await fetchData();
             showNotification('Frecuencia actualizada', 'success');
         } catch {
             setError('No se pudo actualizar la frecuencia.');
@@ -206,6 +273,44 @@ const Backups = () => {
                                 {automationEnabled ? 'Desactivar' : 'Activar'}
                             </button>
                         </div>
+                        <div className="backup-status-panel stack-sm">
+                            <div className="backup-status-panel__header">
+                                <StatusBadge variant={getAutomationBadge().variant} showDot>
+                                    {getAutomationBadge().label}
+                                </StatusBadge>
+                                <span className="backup-status-panel__window">
+                                    {backupSummary?.automation?.frequency === 'weekly' ? 'Ventana: cada 7 días' : 'Ventana: cada 24 horas'}
+                                </span>
+                            </div>
+                            <p className="backup-status-panel__summary">
+                                {getAutomationSummaryText()}
+                            </p>
+                            <dl className="backup-status-stats">
+                                <div className="backup-status-stats__item">
+                                    <dt>Frecuencia</dt>
+                                    <dd>{backupSummary?.automation?.frequency === 'weekly' ? 'Semanal' : 'Diaria'}</dd>
+                                </div>
+                                <div className="backup-status-stats__item">
+                                    <dt>Último automático</dt>
+                                    <dd>
+                                        {backupSummary?.automation?.latest_automated_backup?.created_at
+                                            ? formatDateTime(backupSummary.automation.latest_automated_backup.created_at)
+                                            : 'Sin registros automáticos'}
+                                    </dd>
+                                </div>
+                                <div className="backup-status-stats__item">
+                                    <dt>Último local</dt>
+                                    <dd>
+                                        {backupSummary?.automation?.latest_local_backup?.created_at
+                                            ? formatDateTime(backupSummary.automation.latest_local_backup.created_at)
+                                            : 'Sin registros locales'}
+                                    </dd>
+                                </div>
+                            </dl>
+                        </div>
+                        {backupSummary?.automation?.warning_message ? (
+                            <Alert type="warning">{backupSummary.automation.warning_message}</Alert>
+                        ) : null}
                         <div>
                             <label className="form-label" htmlFor="backup-frequency">FRECUENCIA</label>
                             <div className="form-select-container">
@@ -238,18 +343,37 @@ const Backups = () => {
                     </div>
 
                     <div className="stack-sm">
-                        <div className="cluster-sm">
-                            <StatusBadge variant={cloudStatus.connected ? 'success' : 'neutral'} showDot>
-                                {cloudStatus.connected ? 'Conectado' : 'Sin conexión'}
-                            </StatusBadge>
-                            {cloudStatus.user?.emailAddress ? (
-                                <span className="text-muted">{cloudStatus.user.emailAddress}</span>
-                            ) : null}
+                        <div className="backup-status-panel stack-sm">
+                            <div className="backup-status-panel__header">
+                                <StatusBadge variant={getCloudBadge().variant} showDot>
+                                    {getCloudBadge().label}
+                                </StatusBadge>
+                                <span className="backup-status-panel__window">
+                                    {cloudStatus.connected ? 'Listo para sincronizar' : 'Sin sincronización activa'}
+                                </span>
+                            </div>
+                            <p className="backup-status-panel__summary">
+                                {getCloudSummaryText()}
+                            </p>
+                            <dl className="backup-status-stats">
+                                <div className="backup-status-stats__item">
+                                    <dt>Cuenta</dt>
+                                    <dd>{cloudStatus.user?.emailAddress || 'Sin cuenta vinculada'}</dd>
+                                </div>
+                                <div className="backup-status-stats__item">
+                                    <dt>Última sincronización</dt>
+                                    <dd>
+                                        {cloudStatus.last_sync_at
+                                            ? formatDateTime(cloudStatus.last_sync_at)
+                                            : 'Sin registros de sincronización'}
+                                    </dd>
+                                </div>
+                                <div className="backup-status-stats__item">
+                                    <dt>Estado operativo</dt>
+                                    <dd>{cloudStatus.last_error_message ? 'Requiere revisión' : (cloudStatus.connected ? 'Sin incidencias' : 'Pendiente de conexión')}</dd>
+                                </div>
+                            </dl>
                         </div>
-
-                        {cloudStatus.last_sync_at ? (
-                            <p className="text-muted">Última sincronización: {formatDateTime(cloudStatus.last_sync_at)}</p>
-                        ) : null}
                         {cloudStatus.last_error_message ? (
                             <Alert type="warning">{cloudStatus.last_error_message}</Alert>
                         ) : null}

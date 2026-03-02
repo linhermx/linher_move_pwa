@@ -6,6 +6,11 @@ export const backupService = {
         return response.data;
     },
 
+    summary: async () => {
+        const response = await api.get('/backups/summary');
+        return response.data;
+    },
+
     generate: async (operatorId) => {
         const response = await api.post('/backups/generate', { operator_id: operatorId });
         return response.data;

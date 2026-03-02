@@ -15,6 +15,7 @@ import {
     BackupController
 } from './controllers/Controllers.js';
 import { BackupService } from './services/BackupService.js';
+import { BackupSchedulerService } from './services/BackupSchedulerService.js';
 import nodeCron from 'node-cron';
 import { UserModel } from './models/UserModel.js';
 import multer from 'multer';
@@ -33,6 +34,11 @@ const logger = new SystemLogger(pool);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'http://localhost:5173',
+    'http://127.0.0.1:5173'
+].filter(Boolean);
 
 // Multer configuration
 const storage = multer.diskStorage({
@@ -51,7 +57,17 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-app.use(cors());
+app.use(cors({
+    origin(origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+        }
+
+        callback(new Error('CORS_NOT_ALLOWED'));
+    },
+    credentials: true
+}));
 app.use(express.json());
 app.use(requestContextMiddleware);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -126,6 +142,7 @@ v1.get('/dashboard', dashCtrl.stats);
 
 // Backups
 v1.get('/backups', backupCtrl.list);
+v1.get('/backups/summary', backupCtrl.summary);
 v1.post('/backups/generate', backupCtrl.generate);
 v1.get('/backups/download/:id', backupCtrl.download);
 v1.delete('/backups/:id', backupCtrl.delete);
@@ -153,27 +170,17 @@ const startServer = async () => {
             // Setup automated backups cron (Runs every day at midnight to check settings)
             nodeCron.schedule('0 0 * * *', async () => {
                 try {
-                    const [settings] = await pool.query('SELECT setting_value, setting_key FROM global_settings WHERE setting_key IN ("backups_enabled", "backup_frequency")');
-                    const config = settings.reduce((acc, curr) => {
-                        acc[curr.setting_key] = curr.setting_value;
-                        return acc;
-                    }, {});
+                    const execution = await BackupSchedulerService.runScheduledBackupCycle({
+                        now: new Date(),
+                        requestId: 'cron-backup'
+                    });
 
-                    // backups_enabled can be 'true' (string) or true (boolean) or 1 (number)
-                    const isEnabled = config.backups_enabled === 'true' || config.backups_enabled === true || config.backups_enabled === '1' || config.backups_enabled === 1;
-
-                    if (isEnabled) {
-                        const now = new Date();
-                        const frequency = config.backup_frequency || 'daily';
-
-                        if (frequency === 'daily' || (frequency === 'weekly' && now.getDay() === 0)) { // 0 is Sunday
-                            console.log(`[Cron] Triggering automated ${frequency} backup...`);
-                            await BackupService.generateLocalBackup(null, {
-                                request_id: 'cron-backup',
-                                source: 'cron',
-                                frequency
-                            });
-                        }
+                    if (execution.executed) {
+                        console.log(`[Cron] Automated ${execution.settings.frequency} backup completed.`);
+                    } else if (execution.reason === 'not_due') {
+                        console.log('[Cron] Weekly backup skipped because today is outside the scheduled window.');
+                    } else if (execution.reason === 'disabled') {
+                        console.log('[Cron] Automated backups are disabled.');
                     }
                 } catch (err) {
                     console.error('[Cron] Error in automated backup:', err);

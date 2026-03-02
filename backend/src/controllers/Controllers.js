@@ -107,19 +107,28 @@ export const SettingsController = (db) => {
         update: async (req, res) => {
             try {
                 const settings = req.body;
+                const reservedKeys = new Set(['operator_id']);
                 // Support both single key-value and object bulk update
                 if (settings.key && settings.value !== undefined) {
+                    if (reservedKeys.has(settings.key)) {
+                        return res.status(400).json({ message: 'Invalid setting key' });
+                    }
                     await model.updateSetting(settings.key, settings.value);
                 } else {
                     // Bulk update
                     for (const [key, value] of Object.entries(settings)) {
+                        if (reservedKeys.has(key)) {
+                            continue;
+                        }
                         await model.updateSetting(key, value);
                     }
                 }
                 res.json({ message: "Settings updated" });
 
                 // Log action
-                await logger.config(req.body.operator_id, 'UPDATE_SETTINGS', { keys: Object.keys(settings) });
+                await logger.config(req.body.operator_id, 'UPDATE_SETTINGS', {
+                    keys: Object.keys(settings).filter((key) => !reservedKeys.has(key))
+                });
             } catch (error) {
                 await handleApiError(logger, req, res, error, 'SETTINGS_UPDATE_ERROR');
             }
@@ -768,6 +777,30 @@ export const DashboardController = (db) => {
 
 export const BackupController = (db) => {
     const logger = new SystemLogger(db);
+    const parseBooleanSetting = (value) => (
+        value === true
+        || value === 'true'
+        || value === 1
+        || value === '1'
+    );
+
+    const toBackupSummary = (backup) => {
+        if (!backup) {
+            return null;
+        }
+
+        return {
+            id: backup.id,
+            filename: backup.filename,
+            size_bytes: backup.size_bytes,
+            type: backup.type,
+            status: backup.status,
+            trigger_source: backup.trigger_source,
+            operator_id: backup.operator_id,
+            created_at: backup.created_at
+        };
+    };
+
     return {
         list: async (req, res) => {
             try {
@@ -775,6 +808,82 @@ export const BackupController = (db) => {
                 res.json(rows);
             } catch (error) {
                 await handleApiError(logger, req, res, error, 'BACKUPS_LIST_ERROR');
+            }
+        },
+
+        summary: async (req, res) => {
+            try {
+                const [settingsRows] = await db.query(
+                    `
+                        SELECT setting_key, setting_value
+                        FROM global_settings
+                        WHERE setting_key IN ('backups_enabled', 'backup_frequency')
+                    `
+                );
+                const [latestLocalRows] = await db.query(
+                    `
+                        SELECT *
+                        FROM backups
+                        WHERE type = 'local'
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    `
+                );
+                const [latestAutomatedRows] = await db.query(
+                    `
+                        SELECT *
+                        FROM backups
+                        WHERE type = 'local'
+                          AND trigger_source = 'automated'
+                        ORDER BY created_at DESC
+                        LIMIT 1
+                    `
+                );
+
+                const settings = settingsRows.reduce((accumulator, setting) => {
+                    accumulator[setting.setting_key] = setting.setting_value;
+                    return accumulator;
+                }, {});
+
+                const automationEnabled = parseBooleanSetting(settings.backups_enabled);
+                const frequency = settings.backup_frequency || 'daily';
+                const expectedWindowHours = frequency === 'weekly' ? 168 : 24;
+                const latestAutomatedBackup = latestAutomatedRows[0] || null;
+                const latestLocalBackup = latestLocalRows[0] || null;
+
+                let health = 'disabled';
+                let warningMessage = null;
+
+                if (automationEnabled) {
+                    if (!latestAutomatedBackup) {
+                        health = 'never_run';
+                        warningMessage = 'La automatización está activa, pero todavía no existe un respaldo automático registrado.';
+                    } else {
+                        const ageInHours = (Date.now() - new Date(latestAutomatedBackup.created_at).getTime()) / (1000 * 60 * 60);
+                        if (ageInHours > expectedWindowHours) {
+                            health = 'stale';
+                            warningMessage = frequency === 'weekly'
+                                ? 'El respaldo automático semanal no se ha ejecutado dentro de la ventana esperada.'
+                                : 'El respaldo automático diario no se ha ejecutado en las últimas 24 horas.';
+                        } else {
+                            health = 'healthy';
+                        }
+                    }
+                }
+
+                res.json({
+                    automation: {
+                        enabled: automationEnabled,
+                        frequency,
+                        health,
+                        expected_window_hours: expectedWindowHours,
+                        latest_automated_backup: toBackupSummary(latestAutomatedBackup),
+                        latest_local_backup: toBackupSummary(latestLocalBackup),
+                        warning_message: warningMessage
+                    }
+                });
+            } catch (error) {
+                await handleApiError(logger, req, res, error, 'BACKUPS_SUMMARY_ERROR');
             }
         },
 
