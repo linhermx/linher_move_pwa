@@ -8,6 +8,7 @@ import CustomSelect from '../components/CustomSelect';
 import CustomMenu from '../components/CustomMenu';
 import Pagination from '../components/Pagination';
 import PageHeader from '../components/PageHeader';
+import StatusBadge from '../components/StatusBadge';
 
 const History = () => {
     const navigate = useNavigate();
@@ -72,13 +73,13 @@ const History = () => {
         return () => clearTimeout(timer);
     }, [search, statusFilter, period, dateFrom, dateTo, limit, offset]);
 
-    const getStatusStyle = (status) => {
+    const getStatusBadge = (status) => {
         switch (status) {
-            case 'completada': return { bg: 'rgba(40, 167, 69, 0.1)', color: '#28A745', text: 'Completada' };
-            case 'pendiente': return { bg: 'rgba(255, 215, 0, 0.1)', color: '#FFD700', text: 'Pendiente' };
-            case 'en_proceso': return { bg: 'rgba(0, 123, 255, 0.1)', color: '#007BFF', text: 'En Proceso' };
-            case 'cancelada': return { bg: 'rgba(108, 117, 125, 0.1)', color: '#6C757D', text: 'Cancelada' };
-            default: return { bg: 'transparent', color: 'white', text: status };
+            case 'completada': return { variant: 'success', text: 'Completada' };
+            case 'pendiente': return { variant: 'warning', text: 'Pendiente' };
+            case 'en_proceso': return { variant: 'info', text: 'En Proceso' };
+            case 'cancelada': return { variant: 'neutral', text: 'Cancelada' };
+            default: return { variant: 'neutral', text: status };
         }
     };
 
@@ -236,7 +237,7 @@ const History = () => {
                             <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center' }} className="text-muted">No se encontraron cotizaciones.</td></tr>
                         ) : (
                             quotes.map(q => {
-                                const status = getStatusStyle(q.status);
+                                const status = getStatusBadge(q.status);
                                 return (
                                     <tr key={q.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                                         <td style={{ padding: '16px', fontWeight: 'bold', color: 'var(--color-primary)', fontSize: '14px' }}>{q.folio}</td>
@@ -252,7 +253,7 @@ const History = () => {
                                         </td>
                                         <td style={{ padding: '16px', fontWeight: 'bold', fontSize: '14px' }}>${Number(q.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                         <td style={{ padding: '16px' }}>
-                                            <span style={{ fontSize: '10px', padding: '4px 10px', borderRadius: '12px', backgroundColor: status.bg, color: status.color, textTransform: 'uppercase', fontWeight: 'bold' }}>{status.text}</span>
+                                            <StatusBadge variant={status.variant}>{status.text}</StatusBadge>
                                         </td>
                                         <td style={{ padding: '16px', textAlign: 'right' }}>
                                             <CustomMenu

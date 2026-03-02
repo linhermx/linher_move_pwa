@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { dashboardService } from '../services/api';
 import PageHeader from '../components/PageHeader';
+import StatusBadge from '../components/StatusBadge';
 
 // ── Chart color palette aligned with the design system ───────────────────
 const C = {
@@ -49,6 +50,13 @@ const FLEET_LABEL = {
     available: 'Disponible',
     in_route: 'En Ruta',
     maintenance: 'Mantenimiento',
+};
+
+const STATUS_VARIANT = {
+    completada: 'success',
+    pendiente: 'warning',
+    en_proceso: 'info',
+    cancelada: 'neutral',
 };
 
 // ── Formatters ─────────────────────────────────────────────────────────────
@@ -508,9 +516,6 @@ const OperadorDashboard = ({ data }) => {
         cotizaciones: r.count,
     }));
 
-    const getStatusColor = (s) =>
-        ({ completada: C.success, pendiente: C.warning, en_proceso: C.info, cancelada: C.muted }[s] || C.muted);
-
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--spacing-md)' }}>
@@ -582,9 +587,9 @@ const OperadorDashboard = ({ data }) => {
                                         <td style={{ padding: '11px 0', color: 'var(--dashboard-subtext)', fontSize: '12px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.border}` }}>{q.destination_address}</td>
                                         <td style={{ padding: '11px 0', textAlign: 'right', fontWeight: '700', fontSize: '13px', borderBottom: `1px solid ${C.border}` }}>{formatMXN(q.total)}</td>
                                         <td style={{ padding: '11px 0', textAlign: 'center', borderBottom: `1px solid ${C.border}` }}>
-                                            <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: '700', background: `${getStatusColor(q.status)}18`, color: getStatusColor(q.status), border: `1px solid ${getStatusColor(q.status)}30` }}>
+                                            <StatusBadge variant={STATUS_VARIANT[q.status] || 'neutral'}>
                                                 {STATUS_LABEL[q.status] || q.status}
-                                            </span>
+                                            </StatusBadge>
                                         </td>
                                     </tr>
                                 ))}

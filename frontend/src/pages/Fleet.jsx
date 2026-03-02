@@ -3,10 +3,10 @@ import { Truck, Plus, Edit2, Trash2, Search, Gauge } from 'lucide-react';
 import { vehicleService } from '../services/api';
 import VehicleModal from '../components/VehicleModal';
 import ConfirmModal from '../components/ConfirmModal';
-import StatusView from '../components/StatusView';
 import { useNotification } from '../context/NotificationContext';
 import CustomMenu from '../components/CustomMenu';
 import PageHeader from '../components/PageHeader';
+import StatusBadge from '../components/StatusBadge';
 
 const getEfficiency = (vehicle) => {
     if (vehicle.status === 'maintenance') {
@@ -15,10 +15,26 @@ const getEfficiency = (vehicle) => {
     if (!vehicle.rendimiento_real || !vehicle.rendimiento_teorico) {
         return { label: 'Sin datos', color: 'var(--color-text-muted)', pct: null };
     }
+
     const pct = (vehicle.rendimiento_real / vehicle.rendimiento_teorico) * 100;
+
     if (pct >= 90) return { label: `Óptima (${pct.toFixed(0)}%)`, color: '#28A745', pct };
     if (pct >= 70) return { label: `Regular (${pct.toFixed(0)}%)`, color: '#FFC107', pct };
+
     return { label: `Crítica (${pct.toFixed(0)}%)`, color: '#DC3545', pct };
+};
+
+const getVehicleStatusBadge = (status) => {
+    switch (status) {
+        case 'available':
+            return { variant: 'success', label: 'Disponible' };
+        case 'maintenance':
+            return { variant: 'warning', label: 'Mantenimiento' };
+        case 'in_route':
+            return { variant: 'info', label: 'En Ruta' };
+        default:
+            return { variant: 'neutral', label: status || 'Sin estatus' };
+    }
 };
 
 const Fleet = () => {
@@ -38,7 +54,6 @@ const Fleet = () => {
             setVehicles(data);
         } catch (err) {
             console.error('Error fetching vehicles:', err);
-            // Fallback to mock if API fails
             setVehicles([
                 { id: 1, name: 'Tracto Volvo 2023', plate: 'ABC-123', rendimiento_real: 1.8, status: 'available' },
                 { id: 2, name: 'Camioneta Toyota', plate: 'XYZ-789', rendimiento_real: 8.5, status: 'in_route' }
@@ -69,6 +84,7 @@ const Fleet = () => {
 
     const confirmDelete = async () => {
         if (!vehicleToDelete) return;
+
         try {
             await vehicleService.delete(vehicleToDelete);
             fetchVehicles();
@@ -79,10 +95,13 @@ const Fleet = () => {
         } finally {
             setVehicleToDelete(null);
         }
-    }; const filteredVehicles = vehicles.filter(v =>
-        v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        v.plate.toLowerCase().includes(searchTerm.toLowerCase())
+    };
+
+    const filteredVehicles = vehicles.filter((vehicle) =>
+        vehicle.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicle.plate.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
     return (
         <div className="page-shell fade-in">
             <PageHeader
@@ -142,85 +161,83 @@ const Fleet = () => {
                 <div style={{ textAlign: 'center', padding: '40px' }} className="text-muted">No se encontraron vehículos.</div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--spacing-lg)' }}>
-                    {filteredVehicles.map(v => (
-                        <div key={v.id} className="card" style={{ position: 'relative', overflow: 'visible' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-md)' }}>
-                                <div style={{
-                                    width: '40px', height: '40px', borderRadius: '10px',
-                                    backgroundColor: 'rgba(255, 72, 72, 0.1)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    color: 'var(--color-primary)',
-                                    overflow: 'hidden'
-                                }}>
-                                    {v.photo_path ? (
-                                        <img
-                                            src={`http://localhost:3000/${v.photo_path}`}
-                                            alt={v.name}
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                        />
-                                    ) : (
-                                        <Truck size={24} />
-                                    )}
+                    {filteredVehicles.map((vehicle) => {
+                        const efficiency = getEfficiency(vehicle);
+                        const statusBadge = getVehicleStatusBadge(vehicle.status);
+
+                        return (
+                            <div key={vehicle.id} className="card" style={{ position: 'relative', overflow: 'visible' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-md)' }}>
+                                    <div style={{
+                                        width: '40px',
+                                        height: '40px',
+                                        borderRadius: '10px',
+                                        backgroundColor: 'rgba(255, 72, 72, 0.1)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: 'var(--color-primary)',
+                                        overflow: 'hidden'
+                                    }}>
+                                        {vehicle.photo_path ? (
+                                            <img
+                                                src={`http://localhost:3000/${vehicle.photo_path}`}
+                                                alt={vehicle.name}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            />
+                                        ) : (
+                                            <Truck size={24} />
+                                        )}
+                                    </div>
+                                    <CustomMenu
+                                        options={[
+                                            {
+                                                label: 'Editar',
+                                                icon: <Edit2 />,
+                                                onClick: () => handleEdit(vehicle)
+                                            },
+                                            {
+                                                label: 'Eliminar',
+                                                icon: <Trash2 />,
+                                                variant: 'danger',
+                                                onClick: () => handleDeleteClick(vehicle.id)
+                                            }
+                                        ]}
+                                    />
                                 </div>
-                                <CustomMenu
-                                    options={[
-                                        {
-                                            label: 'Editar',
-                                            icon: <Edit2 />,
-                                            onClick: () => handleEdit(v)
-                                        },
-                                        {
-                                            label: 'Eliminar',
-                                            icon: <Trash2 />,
-                                            variant: 'danger',
-                                            onClick: () => handleDeleteClick(v.id)
-                                        }
-                                    ]}
-                                />
-                            </div>
 
-                            <h3 style={{ fontSize: '18px', marginBottom: '4px' }}>{v.name}</h3>
-                            <p className="text-muted" style={{ fontSize: '13px', marginBottom: 'var(--spacing-md)' }}>
-                                Placas: <strong>{v.plate}</strong>
-                            </p>
+                                <h3 style={{ fontSize: '18px', marginBottom: '4px' }}>{vehicle.name}</h3>
+                                <p className="text-muted" style={{ fontSize: '13px', marginBottom: 'var(--spacing-md)' }}>
+                                    Placas: <strong>{vehicle.plate}</strong>
+                                </p>
 
-                            <div style={{ display: 'flex', gap: 'var(--spacing-md)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-md)' }}>
-                                <div style={{ flex: 1 }}>
-                                    <span className="form-label">RENDIMIENTO REAL</span>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
-                                        <Gauge size={14} />
-                                        <span>{v.rendimiento_real} km/L</span>
+                                <div style={{ display: 'flex', gap: 'var(--spacing-md)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-md)' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <span className="form-label">RENDIMIENTO REAL</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
+                                            <Gauge size={14} />
+                                            <span>{vehicle.rendimiento_real} km/L</span>
+                                        </div>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <span className="form-label">EFICIENCIA</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
+                                            <Gauge size={14} style={{ color: efficiency.color }} />
+                                            <span style={{ color: efficiency.color, fontSize: '12px' }}>
+                                                {efficiency.label}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div style={{ flex: 1 }}>
-                                    <span className="form-label">EFICIENCIA</span>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
-                                        <Gauge size={14} style={{ color: getEfficiency(v).color }} />
-                                        <span style={{ color: getEfficiency(v).color, fontSize: '12px' }}>
-                                            {getEfficiency(v).label}
-                                        </span>
-                                    </div>
+
+                                <div style={{ marginTop: '12px' }}>
+                                    <StatusBadge variant={statusBadge.variant} showDot>
+                                        {statusBadge.label}
+                                    </StatusBadge>
                                 </div>
                             </div>
-
-                            <div style={{
-                                marginTop: '12px', fontSize: '11px',
-                                display: 'inline-block', padding: '2px 8px', borderRadius: '10px',
-                                backgroundColor: v.status === 'available'
-                                    ? 'rgba(40, 167, 69, 0.1)'
-                                    : v.status === 'maintenance'
-                                        ? 'rgba(255, 193, 7, 0.1)'
-                                        : 'rgba(0, 123, 255, 0.1)',
-                                color: v.status === 'available'
-                                    ? '#28A745'
-                                    : v.status === 'maintenance'
-                                        ? '#FFC107'
-                                        : '#007BFF'
-                            }}>
-                                {v.status === 'available' ? '● Disponible' : v.status === 'maintenance' ? '● Mantenimiento' : '● En Ruta'}
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

@@ -1012,6 +1012,8 @@ input:-webkit-autofill:active {
 
 [data-theme='light'] .status-badge--warning {
   border-color: rgba(184, 130, 0, 0.26);
+  background: rgba(214, 160, 0, 0.16);
+  color: #8f6200;
 }
 
 [data-theme='light'] .status-badge--info {
