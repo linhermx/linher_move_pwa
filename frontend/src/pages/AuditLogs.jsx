@@ -54,7 +54,7 @@ const getSeverityVariant = (severity) => {
     switch (severity) {
         case 'critical':
         case 'error':
-            return 'danger';
+            return 'error';
         case 'warning':
             return 'warning';
         case 'info':
@@ -71,7 +71,7 @@ const getTypeVariant = (type) => {
         case 'business':
             return 'info';
         case 'error':
-            return 'danger';
+            return 'error';
         default:
             return 'neutral';
     }

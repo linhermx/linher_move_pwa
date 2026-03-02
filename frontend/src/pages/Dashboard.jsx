@@ -59,6 +59,14 @@ const STATUS_VARIANT = {
     cancelada: 'neutral',
 };
 
+const LOG_TYPE_VARIANT = {
+    system: 'neutral',
+    business: 'info',
+    auth: 'warning',
+    config: 'warning',
+    error: 'error',
+};
+
 // ── Formatters ─────────────────────────────────────────────────────────────
 
 // Full currency with 2 decimal places — for tables and detailed views
@@ -198,8 +206,6 @@ const AdminDashboard = ({ data }) => {
     const maxBar = Math.max(...barData.map(d => d.total), 1);
     const effVal = parseFloat(fleet_efficiency || 0);
     const effColor = effVal >= 90 ? C.success : effVal >= 70 ? C.warning : C.primary;
-
-    const logTypeColor = { system: C.muted, business: C.info, auth: C.primary, config: C.warning };
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
@@ -356,15 +362,9 @@ const AdminDashboard = ({ data }) => {
                             borderBottom: i < recent_logs.length - 1 ? `1px solid ${C.border}` : 'none',
                         }}>
                             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                <span style={{
-                                    padding: '3px 8px', borderRadius: '4px', fontSize: '10px',
-                                    fontWeight: '700', letterSpacing: '0.5px', textTransform: 'uppercase',
-                                    background: `${logTypeColor[log.log_type] || C.primary}18`,
-                                    color: logTypeColor[log.log_type] || C.primary,
-                                    border: `1px solid ${logTypeColor[log.log_type] || C.primary}30`,
-                                }}>
+                                <StatusBadge variant={LOG_TYPE_VARIANT[log.log_type] || 'neutral'}>
                                     {log.log_type}
-                                </span>
+                                </StatusBadge>
                                 <span style={{ fontSize: '13px', color: 'var(--dashboard-row-text)' }}>{log.action}</span>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
