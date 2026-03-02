@@ -36,6 +36,7 @@ const App = () => {
   return (
     <NotificationProvider>
       <Router>
+        <a href="#app-main" className="skip-link">Saltar al contenido principal</a>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route
@@ -44,7 +45,7 @@ const App = () => {
               user ? (
                 <div className="layout-container">
                   <Sidebar />
-                  <main className="main-content">
+                  <main id="app-main" className="main-content" tabIndex="-1">
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
                       <Route path="/new-quote" element={<NewQuote />} />

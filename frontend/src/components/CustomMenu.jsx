@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MoreVertical } from 'lucide-react';
 
-const CustomMenu = ({ options, icon: Icon = MoreVertical }) => {
+const CustomMenu = ({ options, icon }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [openUpward, setOpenUpward] = useState(false);
     const containerRef = useRef(null);
+    const MenuIcon = icon || MoreVertical;
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -46,7 +47,7 @@ const CustomMenu = ({ options, icon: Icon = MoreVertical }) => {
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
-                <Icon size={18} />
+                <MenuIcon size={18} />
             </button>
 
             {isOpen && (

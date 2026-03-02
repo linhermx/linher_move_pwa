@@ -1,10 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
-const CustomSelect = ({ options, value, onChange, placeholder = 'Seleccionar...', icon: Icon }) => {
+const CustomSelect = ({
+    options,
+    value,
+    onChange,
+    placeholder = 'Seleccionar...',
+    icon: Icon,
+    id,
+    name,
+    ariaLabel,
+    labelledBy,
+    describedBy
+}) => {
     const [isOpen, setIsOpen] = useState(false);
     const [openUpward, setOpenUpward] = useState(false);
     const containerRef = useRef(null);
+    const generatedId = useId();
+    const triggerId = id || `custom-select-${generatedId}`;
+    const listboxId = `${triggerId}-listbox`;
 
     const selectedOption = options.find(opt => opt.value === value) || null;
 
@@ -35,24 +49,22 @@ const CustomSelect = ({ options, value, onChange, placeholder = 'Seleccionar...'
     };
 
     return (
-        <div ref={containerRef} style={{ position: 'relative', width: '100%', userSelect: 'none' }}>
-            <div
+        <div ref={containerRef} className="custom-select">
+            <button
+                type="button"
+                id={triggerId}
+                name={name}
                 onClick={handleToggle}
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    backgroundColor: 'transparent',
-                    color: 'white',
-                    fontSize: '13px',
-                    cursor: 'pointer',
-                    width: '100%',
-                    height: '100%',
-                    minHeight: '20px'
-                }}
+                className="custom-select__trigger"
+                aria-haspopup="listbox"
+                aria-expanded={isOpen}
+                aria-controls={listboxId}
+                aria-label={ariaLabel}
+                aria-labelledby={labelledBy}
+                aria-describedby={describedBy}
             >
                 {Icon && <Icon size={16} className="text-muted" />}
-                <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span className="custom-select__value">
                     {selectedOption ? selectedOption.label : placeholder}
                 </span>
                 <ChevronDown
@@ -63,23 +75,28 @@ const CustomSelect = ({ options, value, onChange, placeholder = 'Seleccionar...'
                         transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)'
                     }}
                 />
-            </div>
+            </button>
 
             {isOpen && (
                 <div
+                    id={listboxId}
+                    role="listbox"
                     className="dropdown-menu custom-scrollbar"
                     style={{
                         [openUpward ? 'bottom' : 'top']: 'calc(100% + 8px)',
                     }}
                 >
                     {options.map((opt) => (
-                        <div
+                        <button
+                            type="button"
                             key={opt.value}
                             onClick={() => handleSelect(opt.value)}
+                            role="option"
+                            aria-selected={value === opt.value}
                             className={`dropdown-item ${value === opt.value ? 'active' : ''}`}
                         >
                             {opt.label}
-                        </div>
+                        </button>
                     ))}
                 </div>
             )}

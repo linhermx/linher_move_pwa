@@ -20,8 +20,6 @@ const StatusView = ({
         width: '100%'
     };
 
-    const iconColor = type === 'error' ? 'var(--color-primary)' : 'var(--color-text-muted)';
-
     const renderIcon = () => {
         switch (type) {
             case 'loading':
