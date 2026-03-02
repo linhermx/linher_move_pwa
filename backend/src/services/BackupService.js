@@ -105,6 +105,18 @@ export const BackupService = {
                                 'INSERT INTO backups (filename, size_bytes, type, status, trigger_source, operator_id) VALUES (?, ?, ?, ?, ?, ?)',
                                 [path.basename(zipFile), stats.size, 'dropbox', 'success', triggerSource, operatorId]
                             );
+
+                            try {
+                                await DropboxService.applyRetentionPolicy();
+                            } catch (retentionError) {
+                                await logger.error(operatorId, 'DROPBOX_RETENTION_ERROR', {
+                                    filename: path.basename(zipFile),
+                                    provider: 'dropbox',
+                                    ...sanitizeForLog(requestContext),
+                                    error: sanitizeForLog(retentionError)
+                                }, null, { severity: 'warning', source: 'integration' });
+                            }
+
                             await DropboxService.recordSyncSuccess();
                             await logger.system(operatorId, 'BACKUP_SYNC_SUCCESS', {
                                 filename: path.basename(zipFile),

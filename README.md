@@ -62,8 +62,9 @@ Cada respaldo local genera un `.zip` con:
 Después:
 
 - se registra en la tabla `backups`
-- se conserva historial local
+- se conservan los 7 respaldos locales más recientes
 - si Dropbox está conectado, se intenta sincronizar el mismo `.zip`
+- Dropbox también conserva los 7 respaldos cloud más recientes
 
 ## Estados operativos visibles en la UI
 
@@ -122,6 +123,7 @@ Eventos relevantes:
 - `BACKUP_CREATED`
 - `BACKUP_SYNC_SUCCESS`
 - `DROPBOX_SYNC_ERROR`
+- `DROPBOX_RETENTION_ERROR`
 
 ## Restauración de respaldos
 

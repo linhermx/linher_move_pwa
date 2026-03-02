@@ -14,12 +14,14 @@ import ConfirmModal from '../components/ConfirmModal';
 import Alert from '../components/Alert';
 import CustomSelect from '../components/CustomSelect';
 import PageHeader from '../components/PageHeader';
+import Pagination from '../components/Pagination';
 import StatusBadge from '../components/StatusBadge';
 import { formatDateTime } from '../utils/formatters';
 import { useNotification } from '../context/NotificationContext';
 
 const Backups = () => {
     const [backups, setBackups] = useState([]);
+    const [pagination, setPagination] = useState({ total: 0, limit: 10, pages: 1, current_page: 1 });
     const [backupSummary, setBackupSummary] = useState(null);
     const [settings, setSettings] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -27,6 +29,8 @@ const Backups = () => {
     const [showConfirmDelete, setShowConfirmDelete] = useState(null);
     const [cloudStatus, setCloudStatus] = useState({ connected: false });
     const [error, setError] = useState('');
+    const [limit, setLimit] = useState(10);
+    const [offset, setOffset] = useState(0);
     const { showNotification } = useNotification();
     const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
     const automationEnabled = settings?.backups_enabled === true
@@ -104,20 +108,24 @@ const Backups = () => {
             showNotification('Dropbox se vinculó correctamente', 'success');
             window.history.replaceState({}, document.title, window.location.pathname);
         }
-        fetchData();
     }, []);
+
+    useEffect(() => {
+        fetchData();
+    }, [offset, limit]);
 
     const fetchData = async () => {
         setLoading(true);
         try {
             const [backupData, summaryData, settingsData, cloudData] = await Promise.all([
-                backupService.list(),
+                backupService.list({ limit, offset }),
                 backupService.summary(),
                 settingsService.get(),
                 dropboxService.getStatus()
             ]);
 
-            setBackups(backupData);
+            setBackups(backupData.data || []);
+            setPagination(backupData.pagination || { total: 0, limit, pages: 1, current_page: 1 });
             setBackupSummary(summaryData);
             setSettings(settingsData);
             setCloudStatus(cloudData);
@@ -150,7 +158,11 @@ const Backups = () => {
         try {
             await backupService.delete(showConfirmDelete);
             setShowConfirmDelete(null);
-            await fetchData();
+            if (backups.length === 1 && offset > 0) {
+                setOffset(Math.max(0, offset - limit));
+            } else {
+                await fetchData();
+            }
             showNotification('Respaldo eliminado', 'success');
         } catch {
             setError('No se pudo eliminar el respaldo.');
@@ -465,6 +477,15 @@ const Backups = () => {
                         </tbody>
                     </table>
                 </div>
+
+                <Pagination
+                    pagination={pagination}
+                    onPageChange={(newPage) => setOffset((newPage - 1) * limit)}
+                    onLimitChange={(newLimit) => {
+                        setLimit(newLimit);
+                        setOffset(0);
+                    }}
+                />
             </section>
 
             <ConfirmModal

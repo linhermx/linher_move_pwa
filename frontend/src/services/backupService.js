@@ -1,8 +1,8 @@
 import api from './api';
 
 export const backupService = {
-    list: async () => {
-        const response = await api.get('/backups');
+    list: async (params = {}) => {
+        const response = await api.get('/backups', { params });
         return response.data;
     },
 

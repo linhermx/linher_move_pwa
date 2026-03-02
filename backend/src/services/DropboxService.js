@@ -8,6 +8,7 @@ import { sanitizeForLog } from '../utils/RequestContext.js';
 
 export const DropboxService = {
     provider: 'dropbox',
+    backupRetentionLimit: 7,
 
     getConfig() {
         const {
@@ -240,6 +241,42 @@ export const DropboxService = {
         } catch (error) {
             await this.recordSyncError(error);
             throw error;
+        }
+    },
+
+    async applyRetentionPolicy() {
+        const dbx = await this.getClient();
+        const remoteFiles = [];
+        let cursor = null;
+        let hasMore = true;
+
+        while (hasMore) {
+            const response = cursor
+                ? await dbx.filesListFolderContinue({ cursor })
+                : await dbx.filesListFolder({ path: '' });
+
+            const entries = response.result.entries.filter((entry) => (
+                entry['.tag'] === 'file'
+                && /^backup_.*\.zip$/i.test(entry.name)
+            ));
+
+            remoteFiles.push(...entries);
+            hasMore = response.result.has_more;
+            cursor = response.result.cursor;
+        }
+
+        const filesToDelete = remoteFiles
+            .sort((left, right) => (
+                new Date(right.server_modified).getTime() - new Date(left.server_modified).getTime()
+            ))
+            .slice(this.backupRetentionLimit);
+
+        for (const file of filesToDelete) {
+            await dbx.filesDeleteV2({ path: file.path_lower || file.path_display });
+            await pool.query(
+                'DELETE FROM backups WHERE type = "dropbox" AND filename = ?',
+                [file.name]
+            );
         }
     },
 

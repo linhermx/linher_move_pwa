@@ -804,8 +804,26 @@ export const BackupController = (db) => {
     return {
         list: async (req, res) => {
             try {
-                const [rows] = await db.query('SELECT * FROM backups ORDER BY created_at DESC');
-                res.json(rows);
+                const limit = parseInt(req.query.limit, 10) || 10;
+                const offset = parseInt(req.query.offset, 10) || 0;
+                const [[{ total }]] = await db.query('SELECT COUNT(*) AS total FROM backups');
+                const pages = Math.max(1, Math.ceil(total / limit));
+                const currentPage = Math.min(Math.floor(offset / limit) + 1, pages);
+                const normalizedOffset = Math.max(0, (currentPage - 1) * limit);
+                const [rows] = await db.query(
+                    'SELECT * FROM backups ORDER BY created_at DESC LIMIT ? OFFSET ?',
+                    [limit, normalizedOffset]
+                );
+
+                res.json({
+                    data: rows,
+                    pagination: {
+                        total,
+                        limit,
+                        pages,
+                        current_page: currentPage
+                    }
+                });
             } catch (error) {
                 await handleApiError(logger, req, res, error, 'BACKUPS_LIST_ERROR');
             }
