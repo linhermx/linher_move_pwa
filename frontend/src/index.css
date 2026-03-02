@@ -996,6 +996,28 @@ input:-webkit-autofill:active {
   border-color: rgba(23, 144, 255, 0.24);
 }
 
+[data-theme='light'] .status-badge--neutral {
+  background: rgba(31, 40, 54, 0.06);
+  color: #5f6f83;
+  border-color: rgba(31, 40, 54, 0.12);
+}
+
+[data-theme='light'] .status-badge--success {
+  border-color: rgba(33, 132, 59, 0.24);
+}
+
+[data-theme='light'] .status-badge--danger {
+  border-color: rgba(255, 72, 72, 0.24);
+}
+
+[data-theme='light'] .status-badge--warning {
+  border-color: rgba(184, 130, 0, 0.26);
+}
+
+[data-theme='light'] .status-badge--info {
+  border-color: rgba(15, 115, 216, 0.24);
+}
+
 .surface-note {
   padding: 0.75rem;
   border-radius: var(--radius-md);

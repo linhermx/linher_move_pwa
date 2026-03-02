@@ -16,14 +16,14 @@ import PageHeader from '../components/PageHeader';
 const C = {
     primary: '#FF4848',
     success: '#28A745',
-    info: '#4A90E2',      // softer blue than #007BFF
-    warning: '#FFC107',
-    purple: '#9B59B6',
-    muted: '#6C757D',
-    grid: 'rgba(255,255,255,0.04)',
-    axis: 'rgba(255,255,255,0.25)',
-    tooltip: '#1a1a1a',
-    border: 'rgba(255,255,255,0.08)',
+    info: '#2F7DE1',
+    warning: '#C79100',
+    purple: '#8E62C2',
+    muted: '#7A8696',
+    grid: 'var(--dashboard-grid)',
+    axis: 'var(--dashboard-axis)',
+    tooltip: 'var(--dashboard-tooltip-bg)',
+    border: 'var(--dashboard-tooltip-border)',
 };
 
 const STATUS_COLORS = {
@@ -95,10 +95,10 @@ const CustomTooltip = ({ active, payload, label }) => {
             backdropFilter: 'blur(8px)',
             boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
         }}>
-            {label && <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '6px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</p>}
+            {label && <p style={{ color: 'var(--dashboard-tooltip-label)', marginBottom: '6px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</p>}
             {payload.map((p, i) => (
                 <p key={i} style={{ color: p.color || 'white', fontWeight: '600', margin: '2px 0' }}>
-                    {p.name}: <span style={{ color: 'white' }}>{p.value}</span>
+                    {p.name}: <span style={{ color: 'var(--dashboard-tooltip-text)' }}>{p.value}</span>
                 </p>
             ))}
         </div>
@@ -107,7 +107,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 // ── Shared legend formatter ────────────────────────────────────────────────
 const legendFmt = (v) => (
-    <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '11px' }}>{v}</span>
+    <span style={{ color: 'var(--dashboard-legend)', fontSize: '11px' }}>{v}</span>
 );
 
 // ── KPI Card ────────────────────────────────────────────────────────────────
@@ -126,7 +126,7 @@ const KpiCard = ({ icon, label, value, color = C.primary, sub }) => (
         <div>
             <p style={{ fontSize: '11px', fontWeight: '600', letterSpacing: '0.5px', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>{label}</p>
             <p style={{ fontSize: '26px', fontWeight: '600', lineHeight: 1, letterSpacing: '-0.5px' }}>{value}</p>
-            {sub && <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>{sub}</p>}
+            {sub && <p style={{ fontSize: '11px', color: 'var(--dashboard-subtext)', marginTop: '4px' }}>{sub}</p>}
         </div>
     </div>
 );
@@ -135,7 +135,7 @@ const KpiCard = ({ icon, label, value, color = C.primary, sub }) => (
 const Section = ({ title, children, style }) => (
     <div className="card" style={style}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px', borderBottom: '1px solid var(--color-border)', paddingBottom: '12px', marginTop: '-4px' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.7)' }}>{title}</h3>
+            <h3 style={{ fontSize: '15px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--dashboard-title)' }}>{title}</h3>
         </div>
         {children}
     </div>
@@ -208,7 +208,7 @@ const AdminDashboard = ({ data }) => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-lg)' }}>
                 <Section title="Distribución de cotizaciones">
                     {pieData.length === 0
-                        ? <p style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Sin datos en el período</p>
+                        ? <p style={{ textAlign: 'center', padding: '60px 0', color: 'var(--dashboard-empty)', fontSize: '13px' }}>Sin datos en el período</p>
                         : <ResponsiveContainer width="100%" height={220}>
                             <PieChart>
                                 <defs>
@@ -242,7 +242,7 @@ const AdminDashboard = ({ data }) => {
 
                 <Section title="Top operadores">
                     {barData.length === 0
-                        ? <p style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Sin datos en el período</p>
+                        ? <p style={{ textAlign: 'center', padding: '60px 0', color: 'var(--dashboard-empty)', fontSize: '13px' }}>Sin datos en el período</p>
                         : <ResponsiveContainer width="100%" height={220}>
                             <BarChart data={barData} layout="vertical" margin={{ left: 4, right: 16, top: 4, bottom: 4 }}>
                                 <CartesianGrid strokeDasharray="2 4" stroke={C.grid} horizontal={false} />
@@ -259,7 +259,7 @@ const AdminDashboard = ({ data }) => {
                                     width={64}
                                     {...axisProps}
                                 />
-                                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.02)' }} />
+                                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--dashboard-cursor-fill)' }} />
                                 <Bar dataKey="total" name="Completadas" radius={[0, 8, 8, 0]} maxBarSize={14} fill="transparent">
                                     {barData.map((_, i) => (
                                         <Cell key={i} fill={`url(#barGrad${i})`} />
@@ -283,7 +283,7 @@ const AdminDashboard = ({ data }) => {
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--spacing-lg)' }}>
                 <Section title="Actividad en el período">
                     {areaData.length === 0
-                        ? <p style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Sin actividad en el período</p>
+                        ? <p style={{ textAlign: 'center', padding: '60px 0', color: 'var(--dashboard-empty)', fontSize: '13px' }}>Sin actividad en el período</p>
                         : <ResponsiveContainer width="100%" height={200}>
                             <AreaChart data={areaData} margin={{ top: 4, right: 12, bottom: 0, left: 0 }}>
                                 <defs>
@@ -331,7 +331,7 @@ const AdminDashboard = ({ data }) => {
                         </PieChart>
                     </ResponsiveContainer>
                     <div style={{ textAlign: 'center', marginTop: '4px' }}>
-                        <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>Eficiencia promedio: </span>
+                        <span style={{ fontSize: '11px', color: 'var(--dashboard-subtext)' }}>Eficiencia promedio: </span>
                         <span style={{ fontSize: '13px', fontWeight: '700', color: effColor }}>{effVal.toFixed(1)}%</span>
                     </div>
                 </Section>
@@ -340,7 +340,7 @@ const AdminDashboard = ({ data }) => {
             {/* Recent logs */}
             <Section title="Actividad reciente del sistema">
                 {(recent_logs || []).length === 0
-                    ? <p style={{ textAlign: 'center', padding: '24px 0', color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Sin registros recientes</p>
+                    ? <p style={{ textAlign: 'center', padding: '24px 0', color: 'var(--dashboard-empty)', fontSize: '13px' }}>Sin registros recientes</p>
                     : (recent_logs || []).map((log, i) => (
                         <div key={i} style={{
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -357,11 +357,11 @@ const AdminDashboard = ({ data }) => {
                                 }}>
                                     {log.log_type}
                                 </span>
-                                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)' }}>{log.action}</span>
+                                <span style={{ fontSize: '13px', color: 'var(--dashboard-row-text)' }}>{log.action}</span>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
                                 <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{log.user_name || 'Sistema'}</span>
-                                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)' }}>{formatDate(log.created_at)}</span>
+                                <span style={{ fontSize: '11px', color: 'var(--dashboard-subtext)' }}>{formatDate(log.created_at)}</span>
                             </div>
                         </div>
                     ))
@@ -451,14 +451,14 @@ const SupervisorDashboard = ({ data }) => {
                             <RadialBar
                                 dataKey="value"
                                 cornerRadius={10}
-                                background={{ fill: 'rgba(255,255,255,0.04)', cornerRadius: 10 }}
+                                background={{ fill: 'var(--dashboard-radial-track)', cornerRadius: 10 }}
                             />
                             <text x="50%" y="52%" textAnchor="middle" dominantBaseline="middle"
                                 style={{ fill: effColor, fontSize: '28px', fontWeight: '800' }}>
                                 {eff.toFixed(0)}%
                             </text>
                             <text x="50%" y="66%" textAnchor="middle" dominantBaseline="middle"
-                                style={{ fill: 'rgba(255,255,255,0.3)', fontSize: '10px', letterSpacing: '1px' }}>
+                                style={{ fill: 'var(--dashboard-subtext)', fontSize: '10px', letterSpacing: '1px' }}>
                                 REAL / TEÓRICO
                             </text>
                             <Tooltip content={<CustomTooltip />} />
@@ -469,7 +469,7 @@ const SupervisorDashboard = ({ data }) => {
 
             <Section title="Cotizaciones pendientes recientes">
                 {(pending_quotes || []).length === 0
-                    ? <p style={{ textAlign: 'center', padding: '24px 0', color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Sin cotizaciones pendientes</p>
+                    ? <p style={{ textAlign: 'center', padding: '24px 0', color: 'var(--dashboard-empty)', fontSize: '13px' }}>Sin cotizaciones pendientes</p>
                     : (pending_quotes || []).map((q, i) => (
                         <div key={i} style={{
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -478,7 +478,7 @@ const SupervisorDashboard = ({ data }) => {
                         }}>
                             <div>
                                 <p style={{ fontWeight: '700', fontSize: '13px' }}>{q.folio}</p>
-                                <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>{q.operator}</p>
+                                <p style={{ fontSize: '11px', color: 'var(--dashboard-subtext)', marginTop: '2px' }}>{q.operator}</p>
                             </div>
                             <p style={{ fontWeight: '700', color: C.warning, fontSize: '14px' }}>{formatKpi(q.total)}</p>
                         </div>
@@ -523,7 +523,7 @@ const OperadorDashboard = ({ data }) => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 'var(--spacing-lg)' }}>
                 <Section title="Mis cotizaciones por estado">
                     {pieMine.length === 0
-                        ? <p style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Sin cotizaciones aún</p>
+                        ? <p style={{ textAlign: 'center', padding: '60px 0', color: 'var(--dashboard-empty)', fontSize: '13px' }}>Sin cotizaciones aún</p>
                         : <ResponsiveContainer width="100%" height={220}>
                             <PieChart>
                                 <Pie data={pieMine} cx="50%" cy="50%" innerRadius={50} outerRadius={78} paddingAngle={4} dataKey="value" strokeWidth={0}>
@@ -565,13 +565,13 @@ const OperadorDashboard = ({ data }) => {
 
             <Section title="Mis últimas cotizaciones">
                 {(my_recent || []).length === 0
-                    ? <p style={{ textAlign: 'center', padding: '24px 0', color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>Sin cotizaciones aún</p>
+                    ? <p style={{ textAlign: 'center', padding: '24px 0', color: 'var(--dashboard-empty)', fontSize: '13px' }}>Sin cotizaciones aún</p>
                     : (
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr>
                                     {['Folio', 'Destino', 'Total', 'Estado'].map(h => (
-                                        <th key={h} style={{ textAlign: h === 'Total' ? 'right' : h === 'Estado' ? 'center' : 'left', padding: '6px 0', fontSize: '9px', fontWeight: '700', letterSpacing: '0.8px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                                        <th key={h} style={{ textAlign: h === 'Total' ? 'right' : h === 'Estado' ? 'center' : 'left', padding: '6px 0', fontSize: '9px', fontWeight: '700', letterSpacing: '0.8px', color: 'var(--dashboard-subtext)', textTransform: 'uppercase', borderBottom: `1px solid ${C.border}` }}>{h}</th>
                                     ))}
                                 </tr>
                             </thead>
@@ -579,7 +579,7 @@ const OperadorDashboard = ({ data }) => {
                                 {(my_recent || []).map((q, i) => (
                                     <tr key={i}>
                                         <td style={{ padding: '11px 0', fontWeight: '700', fontSize: '13px', borderBottom: `1px solid ${C.border}` }}>{q.folio}</td>
-                                        <td style={{ padding: '11px 0', color: 'rgba(255,255,255,0.5)', fontSize: '12px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.border}` }}>{q.destination_address}</td>
+                                        <td style={{ padding: '11px 0', color: 'var(--dashboard-subtext)', fontSize: '12px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderBottom: `1px solid ${C.border}` }}>{q.destination_address}</td>
                                         <td style={{ padding: '11px 0', textAlign: 'right', fontWeight: '700', fontSize: '13px', borderBottom: `1px solid ${C.border}` }}>{formatMXN(q.total)}</td>
                                         <td style={{ padding: '11px 0', textAlign: 'center', borderBottom: `1px solid ${C.border}` }}>
                                             <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: '700', background: `${getStatusColor(q.status)}18`, color: getStatusColor(q.status), border: `1px solid ${getStatusColor(q.status)}30` }}>
@@ -707,7 +707,7 @@ const Dashboard = () => {
                         animation: 'spin 0.8s linear infinite',
                         margin: '0 auto 12px',
                     }} />
-                    <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)' }}>Cargando analytics...</p>
+                    <p style={{ fontSize: '13px', color: 'var(--dashboard-empty)' }}>Cargando analytics...</p>
                 </div>
             )}
 
