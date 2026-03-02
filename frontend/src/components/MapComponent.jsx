@@ -22,17 +22,25 @@ const MapComponent = ({ points = [], routeData = null, onMarkerDrag, readOnly = 
     const routeLayer = useRef(null);
     const tileLayer = useRef(null);
 
-    const getTileLayerUrl = () => (
+    const getTileLayerConfig = () => (
         theme === 'light'
-            ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-            : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+            ? {
+                url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                options: {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains: 'abcd',
+                    maxZoom: 20
+                }
+            }
+            : {
+                url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                options: {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains: 'abcd',
+                    maxZoom: 20
+                }
+            }
     );
-
-    const getTileLayerOptions = () => ({
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 20
-    });
 
     const createCustomIcon = (colorClass) => {
         return L.divIcon({
@@ -45,8 +53,9 @@ const MapComponent = ({ points = [], routeData = null, onMarkerDrag, readOnly = 
 
     useEffect(() => {
         if (!mapInstance.current) {
+            const tileConfig = getTileLayerConfig();
             mapInstance.current = L.map(mapRef.current).setView([19.0414, -98.2063], 13); // Default to Puebla, MX
-            tileLayer.current = L.tileLayer(getTileLayerUrl(), getTileLayerOptions()).addTo(mapInstance.current);
+            tileLayer.current = L.tileLayer(tileConfig.url, tileConfig.options).addTo(mapInstance.current);
         }
 
         const mapContainer = mapRef.current;
@@ -79,7 +88,8 @@ const MapComponent = ({ points = [], routeData = null, onMarkerDrag, readOnly = 
             mapInstance.current.removeLayer(tileLayer.current);
         }
 
-        tileLayer.current = L.tileLayer(getTileLayerUrl(), getTileLayerOptions()).addTo(mapInstance.current);
+        const tileConfig = getTileLayerConfig();
+        tileLayer.current = L.tileLayer(tileConfig.url, tileConfig.options).addTo(mapInstance.current);
     }, [theme]);
 
     useEffect(() => {
@@ -143,7 +153,7 @@ const MapComponent = ({ points = [], routeData = null, onMarkerDrag, readOnly = 
 
     }, [routeData]);
 
-    return <div ref={mapRef} style={{ height: '100%', width: '100%', borderRadius: 'var(--radius-md)' }} />;
+    return <div ref={mapRef} className="map-canvas" />;
 };
 
 export default MapComponent;
