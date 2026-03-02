@@ -7,13 +7,34 @@ import { CalculationMotor } from '../utils/CalculationMotor.js';
 import { LogModel } from '../models/LogModel.js';
 import { SystemLogger } from '../utils/Logger.js';
 import { BackupService } from '../services/BackupService.js';
+import { DropboxService } from '../services/DropboxService.js';
+import pool from '../config/db.js';
 import bcrypt from 'bcryptjs';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { buildRequestContext, getOperatorIdFromRequest, logHandledError, sanitizeForLog } from '../utils/RequestContext.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const handleApiError = async (logger, req, res, error, action, response) => {
+    await logHandledError({
+        logger,
+        req,
+        action,
+        error,
+        details: response?.details || {}
+    });
+
+    if (response?.send) {
+        return res.status(response.status || 500).send(response.send);
+    }
+
+    return res.status(response?.status || 500).json({
+        message: response?.message || 'Error interno del servidor'
+    });
+};
 
 
 export const VehicleController = (db) => {
@@ -80,7 +101,7 @@ export const SettingsController = (db) => {
                 }, {});
                 res.json(flatSettings);
             } catch (error) {
-                res.status(500).json({ message: error.message });
+                await handleApiError(logger, req, res, error, 'SETTINGS_FETCH_ERROR');
             }
         },
         update: async (req, res) => {
@@ -100,7 +121,7 @@ export const SettingsController = (db) => {
                 // Log action
                 await logger.config(req.body.operator_id, 'UPDATE_SETTINGS', { keys: Object.keys(settings) });
             } catch (error) {
-                res.status(500).json({ message: error.message });
+                await handleApiError(logger, req, res, error, 'SETTINGS_UPDATE_ERROR');
             }
         }
     };
@@ -108,6 +129,7 @@ export const SettingsController = (db) => {
 
 export const MapsController = () => {
     const proxy = new ProxyService();
+    const logger = new SystemLogger(pool);
 
     // Helper to format address nicely
     const formatAddress = (p) => {
@@ -261,7 +283,7 @@ export const QuotationController = (db) => {
                 await logger.business(req.body.operator_id, 'CREATE_QUOTATION', { quote_id: quoteId, folio, total: req.body.total });
             } catch (error) {
                 console.error(error);
-                res.status(500).json({ message: "Internal server error" });
+                await handleApiError(logger, req, res, error, 'QUOTATION_CREATE_ERROR');
             }
         },
         show: async (req, res) => {
@@ -271,7 +293,7 @@ export const QuotationController = (db) => {
                 res.json(quote);
             } catch (error) {
                 console.error(error);
-                res.status(500).json({ message: "Internal server error" });
+                await handleApiError(logger, req, res, error, 'QUOTATION_SHOW_ERROR');
             }
         },
         update: async (req, res) => {
@@ -288,7 +310,7 @@ export const QuotationController = (db) => {
                 });
             } catch (error) {
                 console.error(error);
-                res.status(500).json({ message: "Internal server error" });
+                await handleApiError(logger, req, res, error, 'QUOTATION_UPDATE_ERROR');
             }
         }
     };
@@ -390,7 +412,9 @@ export const AuthController = (db) => {
                 await logger.auth(fullUser.id, 'LOGIN', { email: fullUser.email }, req.ip);
             } catch (error) {
                 console.error(error);
-                res.status(500).json({ message: "Error en el servidor" });
+                await handleApiError(logger, req, res, error, 'AUTH_LOGIN_ERROR', {
+                    message: 'Error en el servidor'
+                });
             }
         }
     };
@@ -530,6 +554,7 @@ export const UserController = (db) => {
 
 export const LogController = (pool) => {
     const model = new LogModel(pool);
+    const logger = new SystemLogger(pool);
     return {
         list: async (req, res) => {
             try {
@@ -547,13 +572,38 @@ export const LogController = (pool) => {
                     }
                 });
             } catch (error) {
-                res.status(500).json({ message: error.message });
+                await handleApiError(logger, req, res, error, 'LOGS_FETCH_ERROR');
+            }
+        },
+        clientError: async (req, res) => {
+            try {
+                const operatorId = getOperatorIdFromRequest(req);
+                const payload = sanitizeForLog(req.body || {});
+
+                await logger.error(
+                    operatorId,
+                    payload.action || 'FRONTEND_RUNTIME_ERROR',
+                    {
+                        ...payload,
+                        ...buildRequestContext(req)
+                    },
+                    req.ip,
+                    {
+                        severity: payload.severity || 'error',
+                        source: payload.source || 'frontend'
+                    }
+                );
+
+                res.status(201).json({ message: 'Error registrado' });
+            } catch (error) {
+                await handleApiError(logger, req, res, error, 'CLIENT_ERROR_LOGGING_ERROR');
             }
         }
     };
 };
 
 export const DashboardController = (db) => {
+    const logger = new SystemLogger(db);
     return {
         stats: async (req, res) => {
             try {
@@ -710,7 +760,7 @@ export const DashboardController = (db) => {
 
             } catch (error) {
                 console.error('Dashboard error:', error);
-                res.status(500).json({ message: error.message });
+                await handleApiError(logger, req, res, error, 'DASHBOARD_STATS_ERROR');
             }
         }
     };
@@ -724,20 +774,18 @@ export const BackupController = (db) => {
                 const [rows] = await db.query('SELECT * FROM backups ORDER BY created_at DESC');
                 res.json(rows);
             } catch (error) {
-                res.status(500).json({ message: error.message });
+                await handleApiError(logger, req, res, error, 'BACKUPS_LIST_ERROR');
             }
         },
 
         generate: async (req, res) => {
             try {
                 const { operator_id } = req.body;
-                const result = await BackupService.generateLocalBackup(operator_id);
-
-                await logger.system(operator_id, 'BACKUP_CREATED', { filename: result.filename });
+                const result = await BackupService.generateLocalBackup(operator_id, buildRequestContext(req));
 
                 res.json({ message: 'Backup generated successfully', ...result });
             } catch (error) {
-                res.status(500).json({ message: error.message });
+                await handleApiError(logger, req, res, error, 'BACKUP_GENERATE_ERROR');
             }
         },
 
@@ -752,7 +800,7 @@ export const BackupController = (db) => {
 
                 res.download(filePath);
             } catch (error) {
-                res.status(500).json({ message: error.message });
+                await handleApiError(logger, req, res, error, 'BACKUP_DOWNLOAD_ERROR');
             }
         },
 
@@ -766,9 +814,74 @@ export const BackupController = (db) => {
                 if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
                 await db.query('DELETE FROM backups WHERE id = ?', [id]);
+                await logger.system(getOperatorIdFromRequest(req), 'BACKUP_DELETED', {
+                    backup_id: id,
+                    filename: rows[0].filename,
+                    ...buildRequestContext(req)
+                });
                 res.json({ message: 'Backup deleted successfully' });
             } catch (error) {
-                res.status(500).json({ message: error.message });
+                await handleApiError(logger, req, res, error, 'BACKUP_DELETE_ERROR');
+            }
+        },
+
+        authUrl: async (req, res) => {
+            try {
+                const operatorId = req.query.operator_id || getOperatorIdFromRequest(req);
+                const url = await DropboxService.getAuthUrl(operatorId);
+                res.json({ url });
+            } catch (error) {
+                await handleApiError(logger, req, res, error, 'DROPBOX_AUTH_URL_ERROR');
+            }
+        },
+
+        callback: async (req, res) => {
+            try {
+                const { code, state } = req.query;
+                if (!code) return res.status(400).send('Authorization code missing');
+                if (!state) return res.status(400).send('Authorization state missing');
+
+                const result = await DropboxService.saveTokens(code, state);
+                await logger.system(result.operator_id, 'BACKUP_SYNC_CONNECTED', {
+                    provider: 'dropbox',
+                    user: result.user
+                });
+
+                const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+                res.redirect(`${frontendUrl}/backups?sync=success`);
+            } catch (error) {
+                console.error('Dropbox Auth Callback Error:', error);
+                await logHandledError({
+                    logger,
+                    req,
+                    action: 'DROPBOX_AUTH_CALLBACK_ERROR',
+                    error,
+                    details: { provider: 'dropbox' }
+                });
+                res.status(500).send('Authentication failed');
+            }
+        },
+
+        status: async (req, res) => {
+            try {
+                const status = await DropboxService.getStatus();
+                res.json(status);
+            } catch (error) {
+                await handleApiError(logger, req, res, error, 'DROPBOX_STATUS_ERROR');
+            }
+        },
+
+        disconnect: async (req, res) => {
+            try {
+                const { operator_id } = req.body;
+                await DropboxService.disconnect();
+                await logger.system(operator_id, 'BACKUP_SYNC_DISCONNECTED', {
+                    provider: 'dropbox',
+                    ...buildRequestContext(req)
+                });
+                res.json({ message: 'Dropbox disconnected' });
+            } catch (error) {
+                await handleApiError(logger, req, res, error, 'DROPBOX_DISCONNECT_ERROR');
             }
         }
     };

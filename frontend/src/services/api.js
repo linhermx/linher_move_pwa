@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { reportClientError } from './clientLogger';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
@@ -6,25 +7,49 @@ const apiClient = axios.create({
     baseURL: API_BASE_URL
 });
 
-// Interceptor — auto-inject operator_id; reads from localStorage or sessionStorage
-apiClient.interceptors.request.use(config => {
+const getCurrentUser = () => {
     const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
-    const user = raw ? JSON.parse(raw) : null;
+    return raw ? JSON.parse(raw) : null;
+};
+
+apiClient.interceptors.request.use((config) => {
+    const user = getCurrentUser();
 
     if (user && user.id && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
         if (config.data instanceof FormData) {
-            if (!config.data.has('operator_id')) config.data.append('operator_id', user.id);
-        } else {
-            if (typeof config.data === 'object' && config.data !== null) {
-                config.data.operator_id = user.id;
-            } else if (!config.data) {
-                config.data = { operator_id: user.id };
+            if (!config.data.has('operator_id')) {
+                config.data.append('operator_id', user.id);
             }
+        } else if (typeof config.data === 'object' && config.data !== null) {
+            config.data.operator_id = user.id;
+        } else if (!config.data) {
+            config.data = { operator_id: user.id };
         }
     }
-    return config;
-}, error => Promise.reject(error));
 
+    return config;
+}, (error) => Promise.reject(error));
+
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const requestUrl = error.config?.url || '';
+        if (!requestUrl.includes('/logs/error')) {
+            reportClientError({
+                action: 'API_RESPONSE_ERROR',
+                message: error.response?.data?.message || error.message,
+                severity: error.response?.status >= 500 ? 'error' : 'warning',
+                details: {
+                    method: error.config?.method,
+                    url: requestUrl,
+                    status: error.response?.status || null
+                }
+            });
+        }
+
+        return Promise.reject(error);
+    }
+);
 
 export const mapsService = {
     autocomplete: async (text) => {
@@ -124,7 +149,6 @@ export const authService = {
     }
 };
 
-
 export const userService = {
     list: async (params) => {
         const response = await apiClient.get('/users', { params });
@@ -177,5 +201,22 @@ export const dashboardService = {
     }
 };
 
-export default apiClient;
+export const dropboxService = {
+    getStatus: async () => {
+        const response = await apiClient.get('/backups/dropbox/status');
+        return response.data;
+    },
+    getAuthUrl: async () => {
+        const user = getCurrentUser();
+        const response = await apiClient.get('/backups/dropbox/url', {
+            params: { operator_id: user?.id || null }
+        });
+        return response.data;
+    },
+    disconnect: async () => {
+        const response = await apiClient.post('/backups/dropbox/disconnect');
+        return response.data;
+    }
+};
 
+export default apiClient;

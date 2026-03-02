@@ -5,13 +5,17 @@ import archiver from 'archiver';
 import { fileURLToPath } from 'url';
 import pool from '../config/db.js';
 import { promisify } from 'util';
+import { DropboxService } from './DropboxService.js';
+import { SystemLogger } from '../utils/Logger.js';
+import { sanitizeForLog } from '../utils/RequestContext.js';
 
 const execPromise = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const logger = new SystemLogger(pool);
 
 export const BackupService = {
-    async generateLocalBackup(operatorId = null) {
+    async generateLocalBackup(operatorId = null, requestContext = {}) {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const backupName = `backup_${timestamp}`;
         const backupDir = path.join(__dirname, '../../backups', backupName);
@@ -63,13 +67,57 @@ export const BackupService = {
                 [path.basename(zipFile), stats.size, 'local', 'success', operatorId]
             );
 
+            await logger.system(operatorId, 'BACKUP_CREATED', {
+                filename: path.basename(zipFile),
+                size_bytes: stats.size,
+                type: 'local',
+                ...sanitizeForLog(requestContext)
+            });
+
             // 5. Retention Policy (keep last 7)
             await this.applyRetentionPolicy();
+
+            // 6. Cloud Sync (Optional)
+            try {
+                const oauthStatus = await DropboxService.getStatus();
+                if (oauthStatus.connected) {
+                    console.log(`[Backup] Syncing ${path.basename(zipFile)} to Dropbox...`);
+                    const dropboxResponse = await DropboxService.uploadFile(zipFile);
+
+                    if (dropboxResponse && dropboxResponse.id) {
+                        await pool.query(
+                            'INSERT INTO backups (filename, size_bytes, type, status, operator_id) VALUES (?, ?, ?, ?, ?)',
+                            [path.basename(zipFile), stats.size, 'dropbox', 'success', operatorId]
+                        );
+                        await DropboxService.recordSyncSuccess();
+                        await logger.system(operatorId, 'BACKUP_SYNC_SUCCESS', {
+                            filename: path.basename(zipFile),
+                            provider: 'dropbox',
+                            external_id: dropboxResponse.id,
+                            ...sanitizeForLog(requestContext)
+                        });
+                        console.log(`[Backup] Cloud sync successful: ${dropboxResponse.id}`);
+                    }
+                }
+            } catch (cloudErr) {
+                console.error('[Backup] Cloud sync failed:', cloudErr.message);
+                await logger.error(operatorId, 'DROPBOX_SYNC_ERROR', {
+                    filename: path.basename(zipFile),
+                    provider: 'dropbox',
+                    ...sanitizeForLog(requestContext),
+                    error: sanitizeForLog(cloudErr)
+                }, null, { severity: 'error', source: 'integration' });
+            }
 
             return { id: result.insertId, filename: path.basename(zipFile) };
         } catch (error) {
             console.error('Backup Error:', error);
             if (fs.existsSync(sqlFile)) fs.unlinkSync(sqlFile);
+            await logger.error(operatorId, 'BACKUP_CREATE_ERROR', {
+                provider: 'local',
+                ...sanitizeForLog(requestContext),
+                error: sanitizeForLog(error)
+            }, null, { severity: 'critical', source: 'backup' });
             throw error;
         }
     },

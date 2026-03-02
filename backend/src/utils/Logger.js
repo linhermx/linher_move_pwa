@@ -14,9 +14,11 @@ export class SystemLogger {
     async auth(userId, action, details, ip = null) {
         return this.model.create({
             log_type: 'auth',
+            severity: 'info',
             user_id: userId,
             action,
             details,
+            source: 'auth',
             ip_address: ip
         });
     }
@@ -27,9 +29,11 @@ export class SystemLogger {
     async config(userId, action, details, ip = null) {
         return this.model.create({
             log_type: 'config',
+            severity: 'info',
             user_id: userId,
             action,
             details,
+            source: 'settings',
             ip_address: ip
         });
     }
@@ -40,9 +44,11 @@ export class SystemLogger {
     async business(userId, action, details, ip = null) {
         return this.model.create({
             log_type: 'business',
+            severity: 'info',
             user_id: userId,
             action,
             details,
+            source: 'business',
             ip_address: ip
         });
     }
@@ -53,9 +59,26 @@ export class SystemLogger {
     async system(userId, action, details, ip = null) {
         return this.model.create({
             log_type: 'system',
+            severity: 'info',
             user_id: userId,
             action,
             details,
+            source: 'system',
+            ip_address: ip
+        });
+    }
+
+    /**
+     * Log an application error with severity and source metadata
+     */
+    async error(userId, action, details, ip = null, options = {}) {
+        return this.model.create({
+            log_type: 'error',
+            severity: options.severity || 'error',
+            user_id: userId,
+            action,
+            details,
+            source: options.source || 'server',
             ip_address: ip
         });
     }

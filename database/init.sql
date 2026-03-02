@@ -152,9 +152,11 @@ CREATE TABLE IF NOT EXISTS `quotation_services` (
 -- 7. Logs & Auditing
 CREATE TABLE IF NOT EXISTS `logs` (
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-  `log_type` ENUM('system', 'config', 'business', 'auth') NOT NULL,
+  `log_type` ENUM('system', 'config', 'business', 'auth', 'error') NOT NULL,
+  `severity` ENUM('info', 'warning', 'error', 'critical') NOT NULL DEFAULT 'info',
   `user_id` INT,
   `action` VARCHAR(255) NOT NULL,
+  `source` VARCHAR(100) NOT NULL DEFAULT 'server',
   `details` JSON,
   `ip_address` VARCHAR(45),
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -172,9 +174,37 @@ CREATE TABLE IF NOT EXISTS `backups` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `filename` VARCHAR(255) NOT NULL,
   `size_bytes` BIGINT NOT NULL,
-  `type` ENUM('local', 'google_drive') DEFAULT 'local',
+  `type` ENUM('local', 'dropbox', 'google_drive') DEFAULT 'local',
   `status` ENUM('success', 'failed', 'pending') DEFAULT 'pending',
   `operator_id` INT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`operator_id`) REFERENCES `users`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `integration_connections` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `provider` VARCHAR(50) NOT NULL UNIQUE,
+  `status` ENUM('connected', 'disconnected', 'error') DEFAULT 'disconnected',
+  `account_email` VARCHAR(255),
+  `account_name` VARCHAR(255),
+  `access_token` TEXT,
+  `refresh_token` TEXT,
+  `token_expires_at` DATETIME,
+  `connected_by_user_id` INT,
+  `last_sync_at` DATETIME,
+  `last_error_at` DATETIME,
+  `last_error_message` TEXT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`connected_by_user_id`) REFERENCES `users`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `integration_oauth_states` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `provider` VARCHAR(50) NOT NULL,
+  `state_token` VARCHAR(255) NOT NULL UNIQUE,
+  `operator_id` INT,
+  `expires_at` DATETIME NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`operator_id`) REFERENCES `users`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

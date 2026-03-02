@@ -8,18 +8,22 @@ export class LogModel extends BaseModel {
     /**
      * Create a new audit log
      * @param {Object} data 
-     * @param {string} data.log_type - 'system', 'config', 'business', 'auth'
+     * @param {string} data.log_type - 'system', 'config', 'business', 'auth', 'error'
+     * @param {string} data.severity - 'info', 'warning', 'error', 'critical'
      * @param {number} data.user_id 
      * @param {string} data.action - Action name (e.g., 'CREATE_QUOTATION')
      * @param {Object} data.details - JSON details
+     * @param {string} data.source
      * @param {string} data.ip_address 
      */
     async create(data) {
-        const query = `INSERT INTO ${this.tableName} (log_type, user_id, action, details, ip_address) VALUES (?, ?, ?, ?, ?)`;
+        const query = `INSERT INTO ${this.tableName} (log_type, severity, user_id, action, source, details, ip_address) VALUES (?, ?, ?, ?, ?, ?, ?)`;
         const params = [
             data.log_type,
+            data.severity || 'info',
             data.user_id || null,
             data.action,
+            data.source || 'server',
             data.details ? JSON.stringify(data.details) : null,
             data.ip_address || null
         ];
@@ -58,9 +62,19 @@ export class LogModel extends BaseModel {
             queryParams.push(params.user_id);
         }
 
+        if (params.severity) {
+            query += ` AND l.severity = ?`;
+            queryParams.push(params.severity);
+        }
+
+        if (params.source) {
+            query += ` AND l.source = ?`;
+            queryParams.push(params.source);
+        }
+
         if (params.search) {
-            query += ` AND (l.action LIKE ? OR u.name LIKE ?)`;
-            queryParams.push(`%${params.search}%`, `%${params.search}%`);
+            query += ` AND (l.action LIKE ? OR u.name LIKE ? OR l.source LIKE ?)`;
+            queryParams.push(`%${params.search}%`, `%${params.search}%`, `%${params.search}%`);
         }
 
         if (params.date_from) {
@@ -101,9 +115,19 @@ export class LogModel extends BaseModel {
             queryParams.push(params.user_id);
         }
 
+        if (params.severity) {
+            query += ` AND l.severity = ?`;
+            queryParams.push(params.severity);
+        }
+
+        if (params.source) {
+            query += ` AND l.source = ?`;
+            queryParams.push(params.source);
+        }
+
         if (params.search) {
-            query += ` AND (l.action LIKE ? OR u.name LIKE ?)`;
-            queryParams.push(`%${params.search}%`, `%${params.search}%`);
+            query += ` AND (l.action LIKE ? OR u.name LIKE ? OR l.source LIKE ?)`;
+            queryParams.push(`%${params.search}%`, `%${params.search}%`, `%${params.search}%`);
         }
 
         if (params.date_from) {

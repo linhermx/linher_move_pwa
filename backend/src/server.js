@@ -21,11 +21,15 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { SystemLogger } from './utils/Logger.js';
+import { ensureOperationalSchema } from './utils/SchemaManager.js';
+import { requestContextMiddleware, logRuntimeError } from './utils/RequestContext.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const logger = new SystemLogger(pool);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,6 +53,7 @@ const upload = multer({ storage: storage });
 
 app.use(cors());
 app.use(express.json());
+app.use(requestContextMiddleware);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
@@ -114,6 +119,7 @@ v1.post('/users/:id/permissions', userCtrl.updatePermissions);
 
 // Logs
 v1.get('/logs', logCtrl.list);
+v1.post('/logs/error', logCtrl.clientError);
 
 // Dashboard analytics
 v1.get('/dashboard', dashCtrl.stats);
@@ -124,6 +130,12 @@ v1.post('/backups/generate', backupCtrl.generate);
 v1.get('/backups/download/:id', backupCtrl.download);
 v1.delete('/backups/:id', backupCtrl.delete);
 
+// Dropbox Sync
+v1.get('/backups/dropbox/url', backupCtrl.authUrl);
+v1.get('/backups/dropbox/callback', backupCtrl.callback);
+v1.get('/backups/dropbox/status', backupCtrl.status);
+v1.post('/backups/dropbox/disconnect', backupCtrl.disconnect);
+
 // Mount
 app.use('/api/v1', v1);
 
@@ -132,21 +144,8 @@ const startServer = async () => {
     try {
         await pool.query('SELECT 1');
         console.log('Database connected successfully');
-
-        // Ensure backups table exists
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS backups (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                filename VARCHAR(255) NOT NULL,
-                size_bytes BIGINT NOT NULL,
-                type ENUM('local', 'google_drive') DEFAULT 'local',
-                status ENUM('success', 'failed', 'pending') DEFAULT 'pending',
-                operator_id INT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (operator_id) REFERENCES users(id)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        `);
-        console.log('Backups table ensured.');
+        await ensureOperationalSchema(pool);
+        console.log('Operational schema ensured.');
 
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
@@ -169,17 +168,37 @@ const startServer = async () => {
 
                         if (frequency === 'daily' || (frequency === 'weekly' && now.getDay() === 0)) { // 0 is Sunday
                             console.log(`[Cron] Triggering automated ${frequency} backup...`);
-                            await BackupService.generateLocalBackup(null); // System generated
+                            await BackupService.generateLocalBackup(null, {
+                                request_id: 'cron-backup',
+                                source: 'cron',
+                                frequency
+                            });
                         }
                     }
                 } catch (err) {
                     console.error('[Cron] Error in automated backup:', err);
+                    void logRuntimeError({
+                        logger,
+                        action: 'CRON_BACKUP_ERROR',
+                        error: err,
+                        details: { source: 'cron' },
+                        source: 'cron',
+                        severity: 'critical'
+                    });
                 }
             });
             console.log('Automated backup scheduler initialized.');
         });
     } catch (error) {
         console.error('Failed to connect to the database:', error.message);
+        void logRuntimeError({
+            logger,
+            action: 'SERVER_STARTUP_DB_ERROR',
+            error,
+            details: { port: PORT },
+            source: 'startup',
+            severity: 'critical'
+        });
         console.log('Make sure XAMPP (MySQL) is running and configured correctly.');
         // Still start the server for health checks, or exit? 
         // Let's start it so the user can see the health check if possible, 
@@ -189,5 +208,28 @@ const startServer = async () => {
         });
     }
 };
+
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught exception:', error);
+    void logRuntimeError({
+        logger,
+        action: 'UNCAUGHT_EXCEPTION',
+        error,
+        source: 'runtime',
+        severity: 'critical'
+    });
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled rejection:', reason);
+    void logRuntimeError({
+        logger,
+        action: 'UNHANDLED_REJECTION',
+        error: reason instanceof Error ? reason : new Error(String(reason)),
+        details: { reason: String(reason) },
+        source: 'runtime',
+        severity: 'critical'
+    });
+});
 
 startServer();
