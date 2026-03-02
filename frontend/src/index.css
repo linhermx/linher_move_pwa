@@ -1099,6 +1099,13 @@ input:-webkit-autofill:active {
   margin-bottom: var(--spacing-xl);
 }
 
+.sidebar__brand-link {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
 .sidebar__logo {
   display: block;
   width: auto;

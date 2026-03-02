@@ -126,7 +126,14 @@ const Sidebar = () => {
     return (
         <aside className={`sidebar ${isCollapsed ? 'sidebar--collapsed' : ''}`} aria-label="Navegación principal">
             <div className="sidebar__brand">
-                <img src={logoSource} alt="LINHER Move" className="sidebar__logo" />
+                <NavLink
+                    to="/"
+                    className="sidebar__brand-link"
+                    aria-label="Ir al Dashboard"
+                    onClick={() => setIsProfileOpen(false)}
+                >
+                    <img src={logoSource} alt="LINHER Move" className="sidebar__logo" />
+                </NavLink>
             </div>
 
             <nav className="sidebar__nav custom-scrollbar">
