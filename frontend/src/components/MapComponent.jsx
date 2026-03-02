@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useTheme } from '../context/ThemeContext';
 
 // Fix for default marker icons in Leaflet with React
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -15,9 +16,23 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 const MapComponent = ({ points = [], routeData = null, onMarkerDrag, readOnly = false }) => {
+    const { theme } = useTheme();
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
     const routeLayer = useRef(null);
+    const tileLayer = useRef(null);
+
+    const getTileLayerUrl = () => (
+        theme === 'light'
+            ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+            : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    );
+
+    const getTileLayerOptions = () => ({
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+    });
 
     const createCustomIcon = (colorClass) => {
         return L.divIcon({
@@ -31,9 +46,7 @@ const MapComponent = ({ points = [], routeData = null, onMarkerDrag, readOnly = 
     useEffect(() => {
         if (!mapInstance.current) {
             mapInstance.current = L.map(mapRef.current).setView([19.0414, -98.2063], 13); // Default to Puebla, MX
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            }).addTo(mapInstance.current);
+            tileLayer.current = L.tileLayer(getTileLayerUrl(), getTileLayerOptions()).addTo(mapInstance.current);
         }
 
         const mapContainer = mapRef.current;
@@ -56,6 +69,18 @@ const MapComponent = ({ points = [], routeData = null, onMarkerDrag, readOnly = 
             }
         };
     }, []);
+
+    useEffect(() => {
+        if (!mapInstance.current) {
+            return;
+        }
+
+        if (tileLayer.current) {
+            mapInstance.current.removeLayer(tileLayer.current);
+        }
+
+        tileLayer.current = L.tileLayer(getTileLayerUrl(), getTileLayerOptions()).addTo(mapInstance.current);
+    }, [theme]);
 
     useEffect(() => {
         if (!mapInstance.current) return;

@@ -83,7 +83,8 @@ const CustomSelect = ({
                     role="listbox"
                     className="dropdown-menu custom-scrollbar"
                     style={{
-                        [openUpward ? 'bottom' : 'top']: 'calc(100% + 8px)',
+                        top: openUpward ? 'auto' : 'calc(100% + 8px)',
+                        bottom: openUpward ? 'calc(100% + 8px)' : 'auto'
                     }}
                 >
                     {options.map((opt) => (

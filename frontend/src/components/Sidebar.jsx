@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
+    ChevronDown,
     ChevronLeft,
     ChevronRight,
     ChevronUp,
@@ -30,6 +31,8 @@ const Sidebar = () => {
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(localStorage.getItem('sidebarCollapsed') === 'true');
     const userPermissions = user.permissions || [];
+    const profileMenuRef = useRef(null);
+    const profileTriggerRef = useRef(null);
 
     useEffect(() => {
         const handleStorageChange = () => {
@@ -40,6 +43,37 @@ const Sidebar = () => {
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
+
+    useEffect(() => {
+        if (!isProfileOpen) {
+            return undefined;
+        }
+
+        const handlePointerDown = (event) => {
+            const menuElement = profileMenuRef.current;
+            const triggerElement = profileTriggerRef.current;
+
+            if (menuElement?.contains(event.target) || triggerElement?.contains(event.target)) {
+                return;
+            }
+
+            setIsProfileOpen(false);
+        };
+
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                setIsProfileOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handlePointerDown);
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.removeEventListener('mousedown', handlePointerDown);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isProfileOpen]);
 
     const currentMenuGroups = useMemo(() => ([
         {
@@ -147,6 +181,7 @@ const Sidebar = () => {
 
                 {isProfileOpen ? (
                     <div
+                        ref={profileMenuRef}
                         className={`sidebar__menu fade-in-up ${isCollapsed ? 'sidebar__menu--floating' : ''}`.trim()}
                         role="menu"
                         aria-label="Opciones de cuenta"
@@ -178,11 +213,12 @@ const Sidebar = () => {
                 ) : null}
 
                 <button
+                    ref={profileTriggerRef}
                     type="button"
                     className="sidebar__profile-trigger"
                     onClick={() => setIsProfileOpen((currentState) => !currentState)}
                     aria-expanded={isProfileOpen}
-                    aria-label="Abrir opciones de cuenta"
+                    aria-label={isProfileOpen ? 'Cerrar opciones de cuenta' : 'Abrir opciones de cuenta'}
                 >
                     <span className="avatar">
                         {user.photo_path ? (
@@ -198,7 +234,11 @@ const Sidebar = () => {
                                 <span className="sidebar__profile-name">{user.name || 'Usuario'}</span>
                                 <span className="sidebar__profile-role">{user.role_name || 'Miembro'}</span>
                             </span>
-                            <ChevronUp size={16} className={isProfileOpen ? 'text-primary' : 'text-muted'} />
+                            {isProfileOpen ? (
+                                <ChevronUp size={16} className="text-primary" />
+                            ) : (
+                                <ChevronDown size={16} className="text-muted" />
+                            )}
                         </>
                     ) : null}
                 </button>
