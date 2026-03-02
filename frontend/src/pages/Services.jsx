@@ -6,6 +6,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import StatusView from '../components/StatusView';
 import { useNotification } from '../context/NotificationContext';
 import CustomMenu from '../components/CustomMenu';
+import PageHeader from '../components/PageHeader';
 
 const Services = () => {
     const [services, setServices] = useState([]);
@@ -15,7 +16,6 @@ const Services = () => {
     const [editingService, setEditingService] = useState(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [serviceToDelete, setServiceToDelete] = useState(null);
-    const [activeMenu, setActiveMenu] = useState(null);
     const { showNotification } = useNotification();
 
     const fetchServices = async () => {
@@ -40,7 +40,7 @@ const Services = () => {
             await serviceService.delete(serviceToDelete);
             showNotification('Servicio eliminado', 'success');
             fetchServices();
-        } catch (err) {
+        } catch {
             showNotification('Error al eliminar servicio', 'error');
         } finally {
             setIsConfirmOpen(false);
@@ -53,34 +53,27 @@ const Services = () => {
     );
 
     return (
-        <div className="fade-in">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-xl)' }}>
-                <div>
-                    <h1 style={{ fontSize: '24px' }}>Servicios</h1>
-                    <p className="text-muted">Gestiona los servicios adicionales y maniobras</p>
-                </div>
-                <button
-                    onClick={() => { setEditingService(null); setIsModalOpen(true); }}
-                    style={{
-                        backgroundColor: 'var(--color-primary)',
-                        color: 'white',
-                        border: 'none',
-                        padding: '10px 20px',
-                        borderRadius: 'var(--radius-md)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        cursor: 'pointer'
-                    }}
-                >
-                    <Plus size={18} />
-                    Nuevo Servicio
-                </button>
-            </div>
+        <div className="page-shell fade-in">
+            <PageHeader
+                title="Servicios"
+                subtitle="Gestiona los servicios adicionales y maniobras."
+                actions={(
+                    <button
+                        onClick={() => { setEditingService(null); setIsModalOpen(true); }}
+                        className="btn btn-primary"
+                    >
+                        <Plus size={18} />
+                        Nuevo Servicio
+                    </button>
+                )}
+            />
 
             <div className="form-field-group" style={{ marginBottom: 'var(--spacing-lg)' }}>
+                <label className="sr-only" htmlFor="services-search">Buscar servicios</label>
                 <Search size={18} className="text-muted" />
                 <input
+                    id="services-search"
+                    name="services_search"
                     type="text"
                     placeholder="Buscar servicios..."
                     value={searchTerm}

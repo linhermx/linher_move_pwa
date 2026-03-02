@@ -7,6 +7,7 @@ import { formatDate } from '../utils/formatters';
 import CustomSelect from '../components/CustomSelect';
 import CustomMenu from '../components/CustomMenu';
 import Pagination from '../components/Pagination';
+import PageHeader from '../components/PageHeader';
 
 const History = () => {
     const navigate = useNavigate();
@@ -35,8 +36,7 @@ const History = () => {
                 const now = new Date();
                 const start = new Date();
 
-                if (period === 'today') {
-                } else if (period === 'week') {
+                if (period === 'week') {
                     const day = now.getDay() || 7;
                     if (day !== 1) start.setDate(now.getDate() - (day - 1));
                 } else if (period === 'month') {
@@ -93,12 +93,11 @@ const History = () => {
     };
 
     return (
-        <div className="fade-in">
-            {/* Header */}
-            <div style={{ marginBottom: 'var(--spacing-xl)' }}>
-                <h1 style={{ fontSize: '24px' }}>Historial de Cotizaciones</h1>
-                <p className="text-muted">Consulta y gestiona todos los registros previos</p>
-            </div>
+        <div className="page-shell fade-in">
+            <PageHeader
+                title="Historial de Cotizaciones"
+                subtitle="Consulta y gestiona todos los registros previos."
+            />
 
             {/* Filters Bar */}
             <div className="card" style={{ marginBottom: 'var(--spacing-lg)', padding: '15px' }}>
@@ -107,8 +106,11 @@ const History = () => {
                     {/* Search */}
                     <div style={{ flex: '2', minWidth: '220px' }}>
                         <div className="form-field-group">
+                            <label className="sr-only" htmlFor="history-search">Buscar cotizaciones por folio</label>
                             <Search size={18} className="text-muted" />
                             <input
+                                id="history-search"
+                                name="history_search"
                                 type="text"
                                 placeholder="Buscar por folio..."
                                 value={search}
@@ -120,6 +122,9 @@ const History = () => {
                     {/* Period Selector */}
                     <div style={{ flex: '1', minWidth: '150px', display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '0 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', height: '42px' }}>
                         <CustomSelect
+                            id="history-period"
+                            name="period"
+                            ariaLabel="Filtrar historial por periodo"
                             icon={Calendar}
                             value={period}
                             onChange={(e) => setPeriod(e.target.value)}
@@ -137,17 +142,25 @@ const History = () => {
                     {/* Custom Range (Inline) */}
                     {period === 'custom' && (
                         <div className="fade-in" style={{ display: 'flex', gap: '10px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '0 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', height: '42px' }}>
+                            <label className="sr-only" htmlFor="history-date-from">Fecha desde</label>
                             <input
+                                id="history-date-from"
+                                name="date_from"
                                 type="date"
                                 value={dateFrom}
                                 onChange={(e) => setDateFrom(e.target.value)}
+                                aria-label="Fecha desde"
                                 style={{ backgroundColor: 'transparent', border: 'none', color: 'white', fontSize: '14px', outline: 'none', width: '130px', height: '100%' }}
                             />
                             <span style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>-</span>
+                            <label className="sr-only" htmlFor="history-date-to">Fecha hasta</label>
                             <input
+                                id="history-date-to"
+                                name="date_to"
                                 type="date"
                                 value={dateTo}
                                 onChange={(e) => setDateTo(e.target.value)}
+                                aria-label="Fecha hasta"
                                 style={{ backgroundColor: 'transparent', border: 'none', color: 'white', fontSize: '14px', outline: 'none', width: '130px', height: '100%' }}
                             />
                         </div>
@@ -156,6 +169,9 @@ const History = () => {
                     {/* Status */}
                     <div style={{ flex: '1', minWidth: '150px', display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '0 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', height: '42px' }}>
                         <CustomSelect
+                            id="history-status"
+                            name="status"
+                            ariaLabel="Filtrar historial por estatus"
                             icon={Filter}
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}

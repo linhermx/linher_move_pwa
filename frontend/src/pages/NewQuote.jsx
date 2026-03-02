@@ -2,25 +2,43 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MapComponent from '../components/MapComponent';
 import { mapsService, vehicleService, serviceService, settingsService, quotationService } from '../services/api';
-import ConfirmModal from '../components/ConfirmModal';
 import { useNotification } from '../context/NotificationContext';
 import CustomSelect from '../components/CustomSelect';
 import { MapPin, Trash2, Plus, Loader2, Calculator, Truck, Package, ChevronRight, ChevronDown, Info, Clock, Check, Printer, X, Link as LinkIcon } from 'lucide-react';
 import { CalculationMotor } from '../utils/CalculationMotor';
 
-const NewQuote = () => {
-    const navigate = useNavigate();
-    const [points, setPoints] = useState([
+const DEFAULT_EXPANDED_SECTIONS = ['ruta', 'logistica', 'servicios'];
+
+const createInitialPoints = (settings = {}) => {
+    if (settings.default_origin_address && settings.default_origin_lat && settings.default_origin_lng) {
+        return [
+            {
+                id: 'origin',
+                label: 'Origen',
+                address: settings.default_origin_address,
+                lat: parseFloat(settings.default_origin_lat),
+                lng: parseFloat(settings.default_origin_lng)
+            },
+            { id: 'destination', label: 'Destino', address: '', lat: null, lng: null }
+        ];
+    }
+
+    return [
         { id: 'origin', label: 'Origen', address: '', lat: null, lng: null },
         { id: 'destination', label: 'Destino', address: '', lat: null, lng: null }
-    ]);
+    ];
+};
+
+const NewQuote = () => {
+    const navigate = useNavigate();
+    const [points, setPoints] = useState(() => createInitialPoints());
     const [routeData, setRouteData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [activeSearchIdx, setActiveSearchIdx] = useState(null);
     const { showNotification } = useNotification();
     const [suggestions, setSuggestions] = useState([]);
     const [summary, setSummary] = useState({ distance: 0, duration: 0 });
-    const [alertConfig, setAlertConfig] = useState({ isOpen: false, title: '', message: '' });
+    const [_alertConfig, setAlertConfig] = useState({ isOpen: false, title: '', message: '' });
     const [searchLoading, setSearchLoading] = useState(null); // idx of searching input
     const searchTimeoutRef = useRef(null);
     const [showMapsUrl, setShowMapsUrl] = useState(false);
@@ -36,7 +54,9 @@ const NewQuote = () => {
     const [numTolls, setNumTolls] = useState(0);
     const [costPerToll, setCostPerToll] = useState(0);
     const [numTrips, setNumTrips] = useState(1);
-    const [expandedSections, setExpandedSections] = useState(['ruta', 'logistica', 'servicios']);
+    const [expandedSections, setExpandedSections] = useState(DEFAULT_EXPANDED_SECTIONS);
+    const [isFabOpen, setIsFabOpen] = useState(false);
+    const fabRef = useRef(null);
 
     const toggleSection = (section) => {
         setExpandedSections(prev =>
@@ -61,19 +81,7 @@ const NewQuote = () => {
 
                 setGlobalSettings(settsData);
 
-                // Set default origin if available
-                if (settsData.default_origin_address && settsData.default_origin_lat && settsData.default_origin_lng) {
-                    setPoints(prev => {
-                        const newPoints = [...prev];
-                        newPoints[0] = {
-                            ...newPoints[0],
-                            address: settsData.default_origin_address,
-                            lat: parseFloat(settsData.default_origin_lat),
-                            lng: parseFloat(settsData.default_origin_lng)
-                        };
-                        return newPoints;
-                    });
-                }
+                setPoints(createInitialPoints(settsData));
             } catch (err) {
                 console.error('Error fetching metadata:', err);
                 showNotification('Error al cargar datos necesarios', 'error');
@@ -81,6 +89,38 @@ const NewQuote = () => {
         };
         fetchMetadata();
     }, []);
+
+    useEffect(() => {
+        if (!isFabOpen) {
+            return undefined;
+        }
+
+        const handlePointerDown = (event) => {
+            if (fabRef.current && !fabRef.current.contains(event.target)) {
+                setIsFabOpen(false);
+            }
+        };
+
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                setIsFabOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handlePointerDown);
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.removeEventListener('mousedown', handlePointerDown);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isFabOpen]);
+
+    useEffect(() => {
+        if (!breakdown) {
+            setIsFabOpen(false);
+        }
+    }, [breakdown]);
 
     // Real-time calculation when route, vehicle or services change
     useEffect(() => {
@@ -311,7 +351,7 @@ const NewQuote = () => {
         }
     };
 
-    const toggleConfirm = () => {
+    const _toggleConfirm = () => {
         if (!breakdown || !selectedVehicle) {
             showNotification('Calcula la ruta y selecciona un vehículo primero', 'info');
             return;
@@ -323,12 +363,36 @@ const NewQuote = () => {
         });
     };
 
+    const resetQuotation = () => {
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+
+        setPoints(createInitialPoints(globalSettings));
+        setRouteData(null);
+        setSummary({ distance: 0, duration: 0 });
+        setSelectedVehicle(null);
+        setSelectedServices([]);
+        setBreakdown(null);
+        setMapsUrl('');
+        setNumTolls(0);
+        setCostPerToll(0);
+        setNumTrips(1);
+        setShowMapsUrl(false);
+        setSuggestions([]);
+        setActiveSearchIdx(null);
+        setSearchLoading(null);
+        setExpandedSections(DEFAULT_EXPANDED_SECTIONS);
+        setIsFabOpen(false);
+    };
+
     const handleSave = async (status = 'pendiente') => {
         if (!breakdown || !selectedVehicle) {
             showNotification('Calcula la ruta y selecciona un vehículo primero', 'info');
             return;
         }
 
+        setIsFabOpen(false);
         setLoading(true);
         try {
             const rawU = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -380,7 +444,7 @@ const NewQuote = () => {
     };
 
     return (
-        <div style={{ display: 'flex', gap: 'var(--spacing-lg)', height: '100%', overflow: 'hidden' }}>
+        <div className="page-shell page-shell--workspace fade-in" style={{ display: 'flex', gap: 'var(--spacing-lg)', height: '100%', overflow: 'hidden' }}>
             {/* Sidebar with Fixed Distribution */}
             <div style={{ width: '400px', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
                 {/* Scrollable Body area for Accordions - Unified Scrolling */}
@@ -405,7 +469,7 @@ const NewQuote = () => {
                                     {points.map((p, idx) => (
                                         <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <label className="form-label">
+                                                <label className="form-label" htmlFor={`quote-point-${p.id}`}>
                                                     {p.label}
                                                 </label>
                                                 {p.id !== 'origin' && p.id !== 'destination' && (
@@ -419,6 +483,8 @@ const NewQuote = () => {
                                                     <MapPin size={16} className={idx === 0 ? 'text-primary' : (idx === points.length - 1 ? 'text-primary' : 'text-muted')} />
                                                 )}
                                                 <input
+                                                    id={`quote-point-${p.id}`}
+                                                    name={`quote_point_${p.id}`}
                                                     type="text"
                                                     value={p.address}
                                                     onChange={(e) => handleSearch(idx, e.target.value)}
@@ -480,7 +546,7 @@ const NewQuote = () => {
                                                     ) : (
                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', animation: 'fadeIn 0.3s ease-in-out' }}>
                                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                <label className="form-label">LINK DE GOOGLE MAPS (DESTINO)</label>
+                                                                <label className="form-label" htmlFor="quote-maps-url">LINK DE GOOGLE MAPS (DESTINO)</label>
                                                                 <button
                                                                     onClick={() => setShowMapsUrl(false)}
                                                                     style={{ background: 'transparent', border: 'none', color: 'var(--color-text-dim)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
@@ -494,6 +560,8 @@ const NewQuote = () => {
                                                                 backgroundColor: 'rgba(255, 72, 72, 0.05)'
                                                             }}>
                                                                 <input
+                                                                    id="quote-maps-url"
+                                                                    name="google_maps_link"
                                                                     type="text"
                                                                     value={mapsUrl}
                                                                     onChange={(e) => setMapsUrl(e.target.value)}
@@ -533,9 +601,11 @@ const NewQuote = () => {
                         {expandedSections.includes('logistica') && (
                             <div className="accordion-content">
                                 <div>
-                                    <label className="form-label">VEHÍCULO</label>
+                                    <label className="form-label" htmlFor="quote-vehicle">VEHÍCULO</label>
                                     <div className="form-select-container">
                                         <CustomSelect
+                                            id="quote-vehicle"
+                                            name="vehicle_id"
                                             placeholder="Seleccionar vehículo..."
                                             value={selectedVehicle?.id || ''}
                                             onChange={(e) => {
@@ -549,8 +619,10 @@ const NewQuote = () => {
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
                                     <div style={{ gridColumn: 'span 2' }}>
-                                        <label className="form-label">NÚMERO DE TRAYECTOS (RECORRIDO)</label>
+                                        <label className="form-label" htmlFor="quote-num-trips">NÚMERO DE TRAYECTOS (RECORRIDO)</label>
                                         <input
+                                            id="quote-num-trips"
+                                            name="num_trips"
                                             className="form-field"
                                             type="number"
                                             value={numTrips || ''}
@@ -559,8 +631,10 @@ const NewQuote = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="form-label">NÚM. CASETAS (IDA)</label>
+                                        <label className="form-label" htmlFor="quote-num-tolls">NÚM. CASETAS (IDA)</label>
                                         <input
+                                            id="quote-num-tolls"
+                                            name="num_tolls"
                                             className="form-field"
                                             type="number"
                                             value={numTolls || ''}
@@ -569,8 +643,10 @@ const NewQuote = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="form-label">COSTO C/U ($)</label>
+                                        <label className="form-label" htmlFor="quote-cost-per-toll">COSTO C/U ($)</label>
                                         <input
+                                            id="quote-cost-per-toll"
+                                            name="cost_per_toll"
                                             className="form-field"
                                             type="number"
                                             value={costPerToll || ''}
@@ -764,24 +840,56 @@ const NewQuote = () => {
                             </p>
                         </div>
                     )}
-                </div>
-            </div>
 
-            {/* Floating Action Button - Direct Save as Pending */}
-            {breakdown && (
-                <div className="fab-container">
-                    <div className="fab-item">
-                        <span className="fab-item-label">Guardar como Pendiente</span>
-                        <button
-                            className="fab-main fab-pulse"
-                            onClick={() => handleSave('pendiente')}
-                            title="Guardar como Pendiente"
-                        >
-                            <Clock size={28} />
-                        </button>
-                    </div>
                 </div>
-            )}
+
+                {breakdown && (
+                    <div className="fab-container" ref={fabRef}>
+                        <div className="fab-speed-dial">
+                            {isFabOpen ? (
+                                <div className="fab-speed-dial__actions fade-in-up" id="quote-speed-dial-menu" role="menu" aria-label="Acciones de cotización">
+                                    <div className="fab-item" role="none">
+                                        <span className="fab-item-label">Nueva cotización</span>
+                                        <button
+                                            type="button"
+                                            className="fab-action-button"
+                                            onClick={resetQuotation}
+                                            title="Nueva cotización"
+                                            role="menuitem"
+                                        >
+                                            <Plus size={20} />
+                                        </button>
+                                    </div>
+                                    <div className="fab-item" role="none">
+                                        <span className="fab-item-label">Guardar como pendiente</span>
+                                        <button
+                                            type="button"
+                                            className="fab-action-button fab-action-button--primary"
+                                            onClick={() => handleSave('pendiente')}
+                                            title="Guardar como pendiente"
+                                            role="menuitem"
+                                        >
+                                            <Clock size={20} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            <button
+                                type="button"
+                                className={`fab-main ${isFabOpen ? '' : 'fab-pulse'}`.trim()}
+                                onClick={() => setIsFabOpen((currentState) => !currentState)}
+                                title={isFabOpen ? 'Cerrar acciones de cotización' : 'Abrir acciones de cotización'}
+                                aria-expanded={isFabOpen}
+                                aria-haspopup="menu"
+                                aria-controls="quote-speed-dial-menu"
+                            >
+                                {isFabOpen ? <X size={26} /> : <Plus size={28} />}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

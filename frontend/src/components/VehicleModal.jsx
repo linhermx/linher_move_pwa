@@ -3,6 +3,7 @@ import { X, Save, AlertCircle, Image as ImageIcon } from 'lucide-react';
 import { vehicleService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import CustomSelect from './CustomSelect';
+import useModalAccessibility from '../hooks/useModalAccessibility';
 
 const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) => {
     const isEdit = !!editData;
@@ -18,6 +19,18 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const { showNotification } = useNotification();
+    const dialogRef = React.useRef(null);
+    const closeButtonRef = React.useRef(null);
+    const labelledBy = 'vehicle-modal-title';
+    const describedBy = 'vehicle-modal-description';
+    const fieldIds = {
+        photo: 'vehicle-photo',
+        name: 'vehicle-name',
+        plate: 'vehicle-plate',
+        rendimientoTeorico: 'vehicle-rendimiento-teorico',
+        rendimientoReal: 'vehicle-rendimiento-real',
+        status: 'vehicle-status'
+    };
 
     React.useEffect(() => {
         if (editData) {
@@ -41,6 +54,13 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
             setPhotoPreview(null);
         }
     }, [editData, isOpen]);
+
+    useModalAccessibility({
+        isOpen,
+        onClose,
+        dialogRef,
+        initialFocusRef: closeButtonRef
+    });
 
     if (!isOpen) return null;
 
@@ -122,8 +142,17 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
             alignItems: 'center',
             zIndex: 1000,
             backdropFilter: 'blur(4px)'
-        }}>
-            <div className="card" style={{
+        }} onClick={onClose}>
+            <div
+                ref={dialogRef}
+                className="card"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={labelledBy}
+                aria-describedby={describedBy}
+                tabIndex={-1}
+                onClick={(event) => event.stopPropagation()}
+                style={{
                 width: '100%',
                 maxWidth: '500px',
                 padding: 'var(--spacing-xl)',
@@ -131,6 +160,7 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                 animation: 'modal-appear 0.3s ease-out'
             }}>
                 <button
+                    ref={closeButtonRef}
                     onClick={onClose}
                     style={{
                         position: 'absolute',
@@ -145,9 +175,13 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                     <X size={24} />
                 </button>
 
-                <h2 style={{ marginBottom: 'var(--spacing-lg)', fontSize: '20px' }}>
+                <h2 id={labelledBy} style={{ marginBottom: 'var(--spacing-sm)', fontSize: '20px' }}>
                     {isEdit ? 'Editar Vehículo' : 'Nuevo Vehículo'}
                 </h2>
+
+                <p id={describedBy} className="text-muted" style={{ marginBottom: 'var(--spacing-lg)' }}>
+                    Registra la unidad y sus datos operativos para usarla en cotizaciones.
+                </p>
 
                 {error && (
                     <div style={{
@@ -169,7 +203,7 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--spacing-md)' }}>
                         <div
-                            onClick={() => document.getElementById('vehicle-photo').click()}
+                            onClick={() => document.getElementById(fieldIds.photo).click()}
                             style={{
                                 width: '120px',
                                 height: '120px',
@@ -186,7 +220,7 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                             }}
                         >
                             {photoPreview ? (
-                                <img src={photoPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={photoPreview} alt="Vista previa del vehículo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
                                 <>
                                     <ImageIcon size={32} className="text-muted" style={{ marginBottom: '8px' }} />
@@ -194,18 +228,21 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                                 </>
                             )}
                             <input
-                                id="vehicle-photo"
+                                id={fieldIds.photo}
+                                name="photo"
                                 type="file"
                                 accept="image/*"
                                 onChange={handlePhotoChange}
+                                aria-label="Subir foto del vehículo"
                                 style={{ display: 'none' }}
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="form-label">NOMBRE DEL VEHÍCULO</label>
+                        <label className="form-label" htmlFor={fieldIds.name}>NOMBRE DEL VEHÍCULO</label>
                         <input
+                            id={fieldIds.name}
                             type="text"
                             name="name"
                             value={formData.name}
@@ -216,8 +253,9 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                     </div>
 
                     <div>
-                        <label className="form-label">PLACAS</label>
+                        <label className="form-label" htmlFor={fieldIds.plate}>PLACAS</label>
                         <input
+                            id={fieldIds.plate}
                             type="text"
                             name="plate"
                             value={formData.plate}
@@ -229,8 +267,9 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
                         <div>
-                            <label className="form-label">REND. TEÓRICO (km/L)</label>
+                            <label className="form-label" htmlFor={fieldIds.rendimientoTeorico}>REND. TEÓRICO (km/L)</label>
                             <input
+                                id={fieldIds.rendimientoTeorico}
                                 type="number"
                                 step="0.1"
                                 name="rendimiento_teorico"
@@ -241,8 +280,9 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                             />
                         </div>
                         <div>
-                            <label className="form-label">REND. REAL (km/L)</label>
+                            <label className="form-label" htmlFor={fieldIds.rendimientoReal}>REND. REAL (km/L)</label>
                             <input
+                                id={fieldIds.rendimientoReal}
                                 type="number"
                                 step="0.1"
                                 name="rendimiento_real"
@@ -255,9 +295,11 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                     </div>
 
                     <div>
-                        <label className="form-label">ESTATUS INICIAL</label>
+                        <label className="form-label" htmlFor={fieldIds.status}>ESTATUS INICIAL</label>
                         <div className="form-select-container">
                             <CustomSelect
+                                id={fieldIds.status}
+                                name="status"
                                 value={formData.status}
                                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                                 options={[

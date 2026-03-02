@@ -3,6 +3,7 @@ import { Save, Info, MapPin } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
 import { settingsService, mapsService } from '../services/api';
 import MapComponent from '../components/MapComponent';
+import PageHeader from '../components/PageHeader';
 
 const Settings = () => {
     const [settings, setSettings] = useState({
@@ -117,11 +118,11 @@ const Settings = () => {
     };
 
     return (
-        <div style={{ maxWidth: '100%', paddingBottom: 'var(--spacing-xxl)' }} className="fade-in">
-            <div style={{ marginBottom: 'var(--spacing-xl)' }}>
-                <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Parámetros Globales</h1>
-                <p className="text-muted">Configura los valores base y reglas de negocio para las cotizaciones</p>
-            </div>
+        <div className="page-shell fade-in">
+            <PageHeader
+                title="Parámetros Globales"
+                subtitle="Configura los valores base y reglas de negocio para las cotizaciones."
+            />
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--spacing-lg)' }}>
                 {/* SECCIÓN 1: UBICACIÓN POR DEFECTO - OCUPA TODO EL ANCHO */}
@@ -135,9 +136,11 @@ const Settings = () => {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-lg)', minHeight: '350px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                             <div style={{ position: 'relative' }}>
-                                <label className="text-muted" style={{ display: 'block', marginBottom: '8px', fontSize: '12px' }}>BUSCAR DIRECCIÓN</label>
+                                <label className="text-muted" htmlFor="settings-default-origin-address" style={{ display: 'block', marginBottom: '8px', fontSize: '12px' }}>BUSCAR DIRECCIÓN</label>
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '8px' }}>
                                     <input
+                                        id="settings-default-origin-address"
+                                        name="default_origin_address"
                                         type="text"
                                         value={settings.default_origin_address}
                                         onChange={(e) => handleAddressSearch(e.target.value)}
@@ -175,8 +178,9 @@ const Settings = () => {
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
                                 <div>
-                                    <label className="form-label">LATITUD</label>
+                                    <label className="form-label" htmlFor="settings-default-origin-lat">LATITUD</label>
                                     <input
+                                        id="settings-default-origin-lat"
                                         type="text"
                                         name="default_origin_lat"
                                         className="form-field"
@@ -185,8 +189,9 @@ const Settings = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="form-label">LONGITUD</label>
+                                    <label className="form-label" htmlFor="settings-default-origin-lng">LONGITUD</label>
                                     <input
+                                        id="settings-default-origin-lng"
                                         type="text"
                                         name="default_origin_lng"
                                         className="form-field"
@@ -218,16 +223,18 @@ const Settings = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                         <div>
-                            <label className="form-label">PRECIO GASOLINA ($/L)</label>
+                            <label className="form-label" htmlFor="settings-gasoline-price">PRECIO GASOLINA ($/L)</label>
                             <input
+                                id="settings-gasoline-price"
                                 type="number" name="gasoline_price" value={settings.gasoline_price} onChange={handleChange}
                                 className="form-field"
                                 placeholder="24.50"
                             />
                         </div>
                         <div>
-                            <label className="form-label">FACTOR EFICIENCIA BASE</label>
+                            <label className="form-label" htmlFor="settings-base-efficiency">FACTOR EFICIENCIA BASE</label>
                             <input
+                                id="settings-base-efficiency"
                                 type="number" step="0.1" name="base_efficiency" value={settings.base_efficiency} onChange={handleChange}
                                 className="form-field"
                                 placeholder="1.0"
@@ -244,16 +251,18 @@ const Settings = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                         <div>
-                            <label className="form-label">FACTOR MANIOBRA (MULTIPLICADOR)</label>
+                            <label className="form-label" htmlFor="settings-maneuver-factor">FACTOR MANIOBRA (MULTIPLICADOR)</label>
                             <input
+                                id="settings-maneuver-factor"
                                 type="number" step="0.1" name="maneuver_factor" value={settings.maneuver_factor} onChange={handleChange}
                                 className="form-field"
                                 placeholder="1.2"
                             />
                         </div>
                         <div>
-                            <label className="form-label">FACTOR TRÁFICO (TIEMPO)</label>
+                            <label className="form-label" htmlFor="settings-traffic-factor">FACTOR TRÁFICO (TIEMPO)</label>
                             <input
+                                id="settings-traffic-factor"
                                 type="number" step="0.1" name="traffic_factor" value={settings.traffic_factor} onChange={handleChange}
                                 className="form-field"
                                 placeholder="1.5"
@@ -274,16 +283,18 @@ const Settings = () => {
                         {[1, 2, 3].map(tier => (
                             <div key={`lodging-tier-${tier}`} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
                                 <div>
-                                    <label className="form-label">UMBRAL NIVEL {tier} (HORAS IDA)</label>
+                                    <label className="form-label" htmlFor={`settings-lodging-tier${tier}-hours`}>UMBRAL NIVEL {tier} (HORAS IDA)</label>
                                     <input
+                                        id={`settings-lodging-tier${tier}-hours`}
                                         type="number" name={`lodging_tier${tier}_hours`} value={settings[`lodging_tier${tier}_hours`]} onChange={handleChange}
                                         className="form-field"
                                         placeholder={`${tier === 1 ? '6' : tier === 2 ? '11' : '17'}`}
                                     />
                                 </div>
                                 <div>
-                                    <label className="form-label">COSTO ASIGNADO ($)</label>
+                                    <label className="form-label" htmlFor={`settings-lodging-tier${tier}-cost`}>COSTO ASIGNADO ($)</label>
                                     <input
+                                        id={`settings-lodging-tier${tier}-cost`}
                                         type="number" name={`lodging_tier${tier}_cost`} value={settings[`lodging_tier${tier}_cost`]} onChange={handleChange}
                                         className="form-field"
                                         placeholder={`${tier === 1 ? '1500' : tier === 2 ? '2400' : '3600'}`}
@@ -305,16 +316,18 @@ const Settings = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
                             <div>
-                                <label className="form-label">UMBRAL NIVEL 1 - JORNADA (HORAS)</label>
+                                <label className="form-label" htmlFor="settings-meal-tier1-hours">UMBRAL NIVEL 1 - JORNADA (HORAS)</label>
                                 <input
+                                    id="settings-meal-tier1-hours"
                                     type="number" name="meal_tier1_hours" value={settings.meal_tier1_hours} onChange={handleChange}
                                     className="form-field"
                                     placeholder="8"
                                 />
                             </div>
                             <div>
-                                <label className="text-muted" style={{ display: 'block', marginBottom: '6px', fontSize: '10px', fontWeight: 'bold' }}>COSTO ASIGNADO ($)</label>
+                                <label className="text-muted" htmlFor="settings-meal-tier1-cost" style={{ display: 'block', marginBottom: '6px', fontSize: '10px', fontWeight: 'bold' }}>COSTO ASIGNADO ($)</label>
                                 <input
+                                    id="settings-meal-tier1-cost"
                                     type="number" name="meal_tier1_cost" value={settings.meal_tier1_cost} onChange={handleChange}
                                     className="form-field"
                                     placeholder="200"
@@ -324,16 +337,18 @@ const Settings = () => {
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
                             <div>
-                                <label className="form-label">UMBRAL NIVEL 2 - VIAJE LARGO (HORAS TOTAL)</label>
+                                <label className="form-label" htmlFor="settings-meal-tier2-hours">UMBRAL NIVEL 2 - VIAJE LARGO (HORAS TOTAL)</label>
                                 <input
+                                    id="settings-meal-tier2-hours"
                                     type="number" name="meal_tier2_hours" value={settings.meal_tier2_hours} onChange={handleChange}
                                     className="form-field"
                                     placeholder="12"
                                 />
                             </div>
                             <div>
-                                <label className="text-muted" style={{ display: 'block', marginBottom: '6px', fontSize: '10px', fontWeight: 'bold' }}>COSTO ASIGNADO ($)</label>
+                                <label className="text-muted" htmlFor="settings-meal-tier2-cost" style={{ display: 'block', marginBottom: '6px', fontSize: '10px', fontWeight: 'bold' }}>COSTO ASIGNADO ($)</label>
                                 <input
+                                    id="settings-meal-tier2-cost"
                                     type="number" name="meal_tier2_cost" value={settings.meal_tier2_cost} onChange={handleChange}
                                     className="form-field"
                                     placeholder="300"
@@ -342,8 +357,9 @@ const Settings = () => {
                         </div>
 
                         <div style={{ padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
-                            <label className="form-label">COSTO ASIGNADO CUANDO APLICA HOSPEDAJE ($)</label>
+                            <label className="form-label" htmlFor="settings-meal-tier3-cost">COSTO ASIGNADO CUANDO APLICA HOSPEDAJE ($)</label>
                             <input
+                                id="settings-meal-tier3-cost"
                                 type="number" name="meal_tier3_cost" value={settings.meal_tier3_cost} onChange={handleChange}
                                 className="form-field"
                                 placeholder="500"

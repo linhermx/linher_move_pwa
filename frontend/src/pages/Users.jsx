@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { UserPlus, Search, Shield, Edit2, Trash2, Key, Check, X, Camera, MoreVertical } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Check, Edit2, Search, Shield, Trash2, UserPlus, X } from 'lucide-react';
 import { userService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import ConfirmModal from '../components/ConfirmModal';
 import UserModal from '../components/UserModal';
-import { formatDate } from '../utils/formatters';
 import CustomMenu from '../components/CustomMenu';
 import Pagination from '../components/Pagination';
+import PageHeader from '../components/PageHeader';
+import StatusBadge from '../components/StatusBadge';
+import ModalShell from '../components/ModalShell';
+import { formatDate } from '../utils/formatters';
 
 const Users = () => {
     const [users, setUsers] = useState([]);
@@ -21,31 +24,29 @@ const Users = () => {
     const [editingUser, setEditingUser] = useState(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState(null);
-
-    // Modal state for permissions
     const [selectedUserForPerms, setSelectedUserForPerms] = useState(null);
     const [userIndividualPerms, setUserIndividualPerms] = useState([]);
-
     const { showNotification } = useNotification();
 
     const fetchData = async () => {
         setLoading(true);
         try {
             const params = { limit, offset };
-            if (search) params.search = search;
+            if (search) {
+                params.search = search;
+            }
 
-            const [usersRes, rolesData, permsData] = await Promise.all([
+            const [usersResponse, rolesData, permissionsData] = await Promise.all([
                 userService.list(params),
                 userService.listRoles(),
                 userService.listPermissions()
             ]);
 
-            setUsers(usersRes.data || []);
-            setPagination(usersRes.pagination || { current_page: 1, pages: 1, total: 0 });
+            setUsers(usersResponse.data || []);
+            setPagination(usersResponse.pagination || { current_page: 1, pages: 1, total: 0, limit });
             setRoles(rolesData);
-            setPermissions(permsData);
-        } catch (err) {
-            console.error('Error fetching data:', err);
+            setPermissions(permissionsData);
+        } catch {
             showNotification('Error al cargar datos de usuarios', 'error');
         } finally {
             setLoading(false);
@@ -53,23 +54,16 @@ const Users = () => {
     };
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            fetchData();
-        }, 300);
+        const timer = setTimeout(fetchData, 250);
         return () => clearTimeout(timer);
     }, [limit, offset, search]);
-
-    const handleDeleteClick = (user) => {
-        setUserToDelete(user);
-        setIsConfirmOpen(true);
-    };
 
     const confirmDelete = async () => {
         try {
             await userService.delete(userToDelete.id);
             showNotification('Usuario eliminado exitosamente', 'success');
-            fetchData();
-        } catch (err) {
+            await fetchData();
+        } catch {
             showNotification('Error al eliminar usuario', 'error');
         } finally {
             setIsConfirmOpen(false);
@@ -82,15 +76,17 @@ const Users = () => {
             const fullUser = await userService.get(user.id);
             setSelectedUserForPerms(fullUser);
             setUserIndividualPerms(fullUser.individual_permissions || []);
-        } catch (err) {
+        } catch {
             showNotification('Error al cargar permisos', 'error');
         }
     };
 
     const togglePermission = (slug) => {
-        setUserIndividualPerms(prev =>
-            prev.includes(slug) ? prev.filter(s => s !== slug) : [...prev, slug]
-        );
+        setUserIndividualPerms((currentPermissions) => (
+            currentPermissions.includes(slug)
+                ? currentPermissions.filter((currentSlug) => currentSlug !== slug)
+                : [...currentPermissions, slug]
+        ));
     };
 
     const savePermissions = async () => {
@@ -98,144 +94,139 @@ const Users = () => {
             await userService.updatePermissions(selectedUserForPerms.id, userIndividualPerms);
             showNotification('Permisos actualizados correctamente', 'success');
             setSelectedUserForPerms(null);
-            fetchData();
-        } catch (err) {
+            await fetchData();
+        } catch {
             showNotification('Error al actualizar permisos', 'error');
         }
     };
 
-    // Modifying the loop to use users directly since they are now filtered on backend
-    const userList = users;
-
     return (
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-xl)' }}>
-                <div>
-                    <h1 style={{ fontSize: '24px' }}>Gestión de Usuarios</h1>
-                    <p className="text-muted">Administra el acceso y permisos granulares del equipo</p>
-                </div>
-                <button
-                    onClick={() => {
-                        setEditingUser(null);
-                        setIsModalOpen(true);
-                    }}
-                    style={{
-                        backgroundColor: 'var(--color-primary)',
-                        color: 'white',
-                        border: 'none',
-                        padding: '10px 20px',
-                        borderRadius: 'var(--radius-md)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        cursor: 'pointer'
-                    }}
-                >
-                    <UserPlus size={18} />
-                    Nuevo Usuario
-                </button>
-            </div>
+        <div className="page-shell stack-lg">
+            <PageHeader
+                title="Gestión de usuarios"
+                subtitle="Administra acceso, roles y permisos especiales del equipo."
+                actions={(
+                    <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => {
+                            setEditingUser(null);
+                            setIsModalOpen(true);
+                        }}
+                    >
+                        <UserPlus size={18} />
+                        Nuevo usuario
+                    </button>
+                )}
+            />
 
-            {/* Toolbar */}
-            <div className="form-field-group" style={{ marginBottom: 'var(--spacing-lg)' }}>
+            <section className="form-field-group" aria-label="Búsqueda de usuarios">
+                <label className="sr-only" htmlFor="users-search">Buscar usuarios</label>
                 <Search size={18} className="text-muted" />
                 <input
+                    id="users-search"
+                    name="users_search"
                     type="text"
-                    placeholder="Buscar por nombre o email..."
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Buscar por nombre o email..."
+                    onChange={(event) => setSearch(event.target.value)}
                 />
-            </div>
+            </section>
 
-            {/* Users Table */}
-            <div className="card" style={{ padding: 0, overflow: 'visible' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead>
-                        <tr style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--color-border)' }}>
-                            <th style={{ padding: '16px' }}>USUARIO</th>
-                            <th style={{ padding: '16px' }}>ROL</th>
-                            <th style={{ padding: '16px' }}>ESTATUS</th>
-                            <th style={{ padding: '16px' }}>CREADO</th>
-                            <th style={{ padding: '16px', textAlign: 'right' }}>ACCIONES</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading ? (
-                            <tr><td colSpan="5" style={{ padding: '40px', textAlign: 'center' }}>Cargando usuarios...</td></tr>
-                        ) : userList.length === 0 ? (
-                            <tr><td colSpan="5" style={{ padding: '40px', textAlign: 'center' }} className="text-muted">No se encontraron usuarios</td></tr>
-                        ) : (
-                            userList.map(u => (
-                                <tr key={u.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                                    <td style={{ padding: '16px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                                {u.photo_path ? (
-                                                    <img src={`http://localhost:3000/${u.photo_path}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                ) : (
-                                                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{u.name.charAt(0)}</span>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <p style={{ fontWeight: 'bold', fontSize: '14px' }}>{u.name}</p>
-                                                <p className="text-muted" style={{ fontSize: '12px' }}>{u.email}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '16px' }}>
-                                        <span style={{
-                                            fontSize: '11px',
-                                            textTransform: 'uppercase',
-                                            backgroundColor: 'rgba(255,255,255,0.05)',
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            fontWeight: 'bold'
-                                        }}>
-                                            {u.role_name}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '16px' }}>
-                                        <span style={{
-                                            fontSize: '11px',
-                                            color: u.status === 'active' ? '#28A745' : '#6C757D',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px'
-                                        }}>
-                                            <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: u.status === 'active' ? '#28A745' : '#6C757D' }} />
-                                            {u.status === 'active' ? 'ACTIVO' : 'INACTIVO'}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '16px', fontSize: '13px' }} className="text-muted">
-                                        {formatDate(u.created_at)}
-                                    </td>
-                                    <td style={{ padding: '16px', textAlign: 'right' }}>
-                                        <CustomMenu
-                                            options={[
-                                                {
-                                                    label: 'Permisos',
-                                                    icon: <Shield />,
-                                                    onClick: () => handleEditPermissions(u)
-                                                },
-                                                {
-                                                    label: 'Editar Usuario',
-                                                    icon: <Edit2 />,
-                                                    onClick: () => { setEditingUser(u); setIsModalOpen(true); }
-                                                },
-                                                {
-                                                    label: 'Eliminar',
-                                                    icon: <Trash2 />,
-                                                    variant: 'danger',
-                                                    onClick: () => handleDeleteClick(u)
-                                                }
-                                            ]}
-                                        />
-                                    </td>
+            <section className="card card--flush table-shell" aria-labelledby="users-table-title">
+                <div className="card-header">
+                    <div>
+                        <div className="card-header__title" id="users-table-title">
+                            <Shield size={18} className="text-primary" />
+                            <span>Usuarios registrados</span>
+                        </div>
+                        <p className="card-header__subtitle">{pagination.total} registros encontrados.</p>
+                    </div>
+                </div>
+
+                <div className="table-scroll">
+                    <table className="table">
+                        <caption className="sr-only">Tabla de usuarios</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">USUARIO</th>
+                                <th scope="col">ROL</th>
+                                <th scope="col">ESTATUS</th>
+                                <th scope="col">CREADO</th>
+                                <th scope="col" align="right">ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="5" className="table__empty">Cargando usuarios...</td>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                            ) : users.length === 0 ? (
+                                <tr>
+                                    <td colSpan="5" className="table__empty">No se encontraron usuarios.</td>
+                                </tr>
+                            ) : (
+                                users.map((user) => (
+                                    <tr key={user.id}>
+                                        <td>
+                                            <div className="table__entity">
+                                                <span className="table__entity-media">
+                                                    {user.photo_path ? (
+                                                        <img src={`http://localhost:3000/${user.photo_path}`} alt={user.name} />
+                                                    ) : (
+                                                        <strong>{user.name.charAt(0)}</strong>
+                                                    )}
+                                                </span>
+                                                <div>
+                                                    <p className="table__entity-title">{user.name}</p>
+                                                    <p className="table__entity-subtitle">{user.email}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <StatusBadge variant="neutral">{user.role_name}</StatusBadge>
+                                        </td>
+                                        <td>
+                                            <StatusBadge variant={user.status === 'active' ? 'success' : 'warning'} showDot>
+                                                {user.status === 'active' ? 'Activo' : 'Inactivo'}
+                                            </StatusBadge>
+                                        </td>
+                                        <td>{formatDate(user.created_at)}</td>
+                                        <td className="table__cell--actions">
+                                            <CustomMenu
+                                                options={[
+                                                    {
+                                                        label: 'Permisos',
+                                                        icon: <Shield />,
+                                                        onClick: () => handleEditPermissions(user)
+                                                    },
+                                                    {
+                                                        label: 'Editar usuario',
+                                                        icon: <Edit2 />,
+                                                        onClick: () => {
+                                                            setEditingUser(user);
+                                                            setIsModalOpen(true);
+                                                        }
+                                                    },
+                                                    {
+                                                        label: 'Eliminar',
+                                                        icon: <Trash2 />,
+                                                        variant: 'danger',
+                                                        onClick: () => {
+                                                            setUserToDelete(user);
+                                                            setIsConfirmOpen(true);
+                                                        }
+                                                    }
+                                                ]}
+                                            />
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
                 <Pagination
                     pagination={pagination}
                     onPageChange={(newPage) => setOffset((newPage - 1) * limit)}
@@ -244,93 +235,66 @@ const Users = () => {
                         setOffset(0);
                     }}
                 />
-            </div>
+            </section>
 
-            {/* Permissions Modal */}
-            {selectedUserForPerms && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-                }}>
-                    <div className="card" style={{ width: '100%', maxWidth: '500px', padding: '24px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <div>
-                                <h2 style={{ fontSize: '18px' }}>Permisos Especiales</h2>
-                                <p className="text-muted" style={{ fontSize: '12px' }}>Usuario: {selectedUserForPerms.name}</p>
-                            </div>
-                            <X size={20} cursor="pointer" onClick={() => setSelectedUserForPerms(null)} />
-                        </div>
+            <ModalShell
+                isOpen={Boolean(selectedUserForPerms)}
+                onClose={() => setSelectedUserForPerms(null)}
+                title="Permisos especiales"
+                subtitle={selectedUserForPerms ? `Usuario: ${selectedUserForPerms.name}` : ''}
+                size="md"
+                labelledBy="user-permissions-title"
+                describedBy="user-permissions-description"
+                footer={(
+                    <>
+                        <button type="button" className="btn btn-secondary" onClick={() => setSelectedUserForPerms(null)}>
+                            Cancelar
+                        </button>
+                        <button type="button" className="btn btn-primary" onClick={savePermissions}>
+                            Guardar permisos
+                        </button>
+                    </>
+                )}
+            >
+                <div className="stack-sm custom-scrollbar">
+                    {permissions.map((permission) => {
+                        const isFromRole = selectedUserForPerms?.role_permissions?.includes(permission.slug);
+                        const isIndividual = userIndividualPerms.includes(permission.slug);
+                        const isActive = isFromRole || isIndividual;
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto', marginBottom: '24px', paddingRight: '10px' }}>
-                            {permissions.map(p => {
-                                const isFromRole = selectedUserForPerms.role_permissions?.includes(p.slug);
-                                const isIndividual = userIndividualPerms.includes(p.slug);
-                                const isActive = isFromRole || isIndividual;
-
-                                return (
-                                    <div
-                                        key={p.id}
-                                        onClick={() => !isFromRole && togglePermission(p.slug)}
-                                        style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            padding: '12px 16px',
-                                            backgroundColor: isFromRole ? 'rgba(255,255,255,0.01)' : 'rgba(255,255,255,0.03)',
-                                            borderRadius: 'var(--radius-md)',
-                                            border: `1px solid ${isActive ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                                            cursor: isFromRole ? 'not-allowed' : 'pointer',
-                                            opacity: isFromRole ? 0.7 : 1,
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        <div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{p.name}</p>
-                                                {isFromRole && (
-                                                    <span style={{ fontSize: '9px', backgroundColor: 'var(--color-primary)', color: 'white', padding: '1px 5px', borderRadius: '4px', fontWeight: 'bold' }}>
-                                                        ROL
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="text-muted" style={{ fontSize: '11px' }}>{isFromRole ? 'Heredado del rol del sistema' : 'Permiso asignable individualmente'}</p>
+                        return (
+                            <button
+                                key={permission.id}
+                                type="button"
+                                className="card card--tight"
+                                onClick={() => !isFromRole && togglePermission(permission.slug)}
+                                disabled={isFromRole}
+                            >
+                                <div className="cluster-md justify-between">
+                                    <div className="stack-xs">
+                                        <div className="cluster-sm">
+                                            <strong>{permission.name}</strong>
+                                            {isFromRole ? <StatusBadge variant="info">Rol</StatusBadge> : null}
                                         </div>
-                                        <div style={{
-                                            width: '20px', height: '20px', borderRadius: '4px',
-                                            border: '1px solid var(--color-border)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            backgroundColor: isActive ? 'var(--color-primary)' : 'transparent'
-                                        }}>
-                                            {isActive && <Check size={14} color="white" />}
-                                        </div>
+                                        <span className="text-muted">
+                                            {isFromRole ? 'Heredado del rol del sistema' : 'Permiso asignable individualmente'}
+                                        </span>
                                     </div>
-                                );
-                            })}
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                            <button
-                                onClick={() => setSelectedUserForPerms(null)}
-                                style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', background: 'none', color: 'white', cursor: 'pointer' }}
-                            >
-                                Cancelar
+                                    <StatusBadge variant={isActive ? 'success' : 'neutral'}>
+                                        {isActive ? <Check size={14} /> : <X size={14} />}
+                                    </StatusBadge>
+                                </div>
                             </button>
-                            <button
-                                onClick={savePermissions}
-                                style={{ flex: 1, padding: '12px', borderRadius: 'var(--radius-md)', border: 'none', backgroundColor: 'var(--color-primary)', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}
-                            >
-                                Guardar Permisos
-                            </button>
-                        </div>
-                    </div>
+                        );
+                    })}
                 </div>
-            )}
+            </ModalShell>
 
             <ConfirmModal
                 isOpen={isConfirmOpen}
                 onClose={() => setIsConfirmOpen(false)}
                 onConfirm={confirmDelete}
-                title="Eliminar Usuario"
+                title="Eliminar usuario"
                 message={`¿Estás seguro de que deseas eliminar a ${userToDelete?.name}? Esta acción no se puede deshacer.`}
                 confirmText="Eliminar"
                 type="danger"

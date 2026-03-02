@@ -10,6 +10,7 @@ import {
     RadialBarChart, RadialBar
 } from 'recharts';
 import { dashboardService } from '../services/api';
+import PageHeader from '../components/PageHeader';
 
 // ── Chart color palette aligned with the design system ───────────────────
 const C = {
@@ -659,7 +660,7 @@ const Dashboard = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [period, setPeriod] = useState('month');
+    const [period, setPeriod] = useState('year');
 
     const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
     const roleName = (user.role_name || 'OPERADOR').toUpperCase();
@@ -688,15 +689,11 @@ const Dashboard = () => {
     useEffect(() => { load(period); }, [period]);
 
     return (
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-xl)' }}>
-                <div>
-                    <h1 style={{ fontSize: '24px' }}>Panel de Control</h1>
-                    <p className="text-muted">
-                        {ROLE_SUBTITLE[roleName] || 'Resumen de operaciones'}
-                    </p>
-                </div>
-            </div>
+        <div className="page-shell fade-in">
+            <PageHeader
+                title="Panel de Control"
+                subtitle={ROLE_SUBTITLE[roleName] || 'Resumen de operaciones.'}
+            />
 
             <PeriodBar value={period} onChange={setPeriod} />
 

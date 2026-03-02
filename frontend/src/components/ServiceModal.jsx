@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, AlertCircle } from 'lucide-react';
 import { serviceService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import CustomSelect from './CustomSelect';
+import useModalAccessibility from '../hooks/useModalAccessibility';
 
 const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
     const isEdit = !!editData;
@@ -16,6 +17,17 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const dialogRef = useRef(null);
+    const closeButtonRef = useRef(null);
+    const labelledBy = 'service-modal-title';
+    const describedBy = 'service-modal-description';
+    const fieldIds = {
+        name: 'service-name',
+        cost: 'service-cost',
+        timeMinutes: 'service-time-minutes',
+        description: 'service-description',
+        status: 'service-status'
+    };
 
     useEffect(() => {
         if (editData) {
@@ -36,6 +48,13 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
             });
         }
     }, [editData, isOpen]);
+
+    useModalAccessibility({
+        isOpen,
+        onClose,
+        dialogRef,
+        initialFocusRef: closeButtonRef
+    });
 
     if (!isOpen) return null;
 
@@ -79,21 +98,33 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
             backgroundColor: 'rgba(0, 0, 0, 0.7)',
             display: 'flex', justifyContent: 'center', alignItems: 'center',
             zIndex: 1000, backdropFilter: 'blur(4px)'
-        }}>
-            <div className="card" style={{
+        }} onClick={onClose}>
+            <div
+                ref={dialogRef}
+                className="card"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={labelledBy}
+                aria-describedby={describedBy}
+                tabIndex={-1}
+                onClick={(event) => event.stopPropagation()}
+                style={{
                 width: '100%', maxWidth: '500px', padding: 'var(--spacing-xl)',
                 position: 'relative', animation: 'modal-appear 0.3s ease-out'
             }}>
-                <button onClick={onClose} style={{
+                <button ref={closeButtonRef} onClick={onClose} style={{
                     position: 'absolute', top: '20px', right: '20px',
                     background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer'
                 }}>
                     <X size={24} />
                 </button>
 
-                <h2 style={{ marginBottom: 'var(--spacing-lg)', fontSize: '20px' }}>
+                <h2 id={labelledBy} style={{ marginBottom: 'var(--spacing-sm)', fontSize: '20px' }}>
                     {isEdit ? 'Editar Servicio' : 'Nuevo Servicio'}
                 </h2>
+                <p id={describedBy} className="text-muted" style={{ marginBottom: 'var(--spacing-lg)' }}>
+                    Define el servicio, su costo y el tiempo operativo asociado.
+                </p>
 
                 {error && (
                     <div style={{
@@ -108,8 +139,9 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                     <div>
-                        <label className="form-label">NOMBRE DEL SERVICIO</label>
+                        <label className="form-label" htmlFor={fieldIds.name}>NOMBRE DEL SERVICIO</label>
                         <input
+                            id={fieldIds.name}
                             type="text" name="name" value={formData.name} onChange={handleChange}
                             placeholder="Ej. Maniobra Especial"
                             className="form-field"
@@ -118,16 +150,18 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
                         <div>
-                            <label className="form-label">COSTO ($)</label>
+                            <label className="form-label" htmlFor={fieldIds.cost}>COSTO ($)</label>
                             <input
+                                id={fieldIds.cost}
                                 type="number" step="0.01" name="cost" value={formData.cost} onChange={handleChange}
                                 placeholder="0.00"
                                 className="form-field"
                             />
                         </div>
                         <div>
-                            <label className="form-label">TIEMPO (MIN)</label>
+                            <label className="form-label" htmlFor={fieldIds.timeMinutes}>TIEMPO (MIN)</label>
                             <input
+                                id={fieldIds.timeMinutes}
                                 type="number" name="time_minutes" value={formData.time_minutes} onChange={handleChange}
                                 placeholder="0"
                                 className="form-field"
@@ -136,8 +170,9 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
                     </div>
 
                     <div>
-                        <label className="form-label">DESCRIPCIÓN (OPCIONAL)</label>
+                        <label className="form-label" htmlFor={fieldIds.description}>DESCRIPCIÓN (OPCIONAL)</label>
                         <textarea
+                            id={fieldIds.description}
                             name="description" value={formData.description} onChange={handleChange}
                             rows="3"
                             className="form-field"
@@ -146,9 +181,11 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
                     </div>
 
                     <div>
-                        <label className="form-label">ESTADO</label>
+                        <label className="form-label" htmlFor={fieldIds.status}>ESTADO</label>
                         <div className="form-select-container">
                             <CustomSelect
+                                id={fieldIds.status}
+                                name="status"
                                 value={formData.status}
                                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                                 options={[

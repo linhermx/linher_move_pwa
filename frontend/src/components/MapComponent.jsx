@@ -93,11 +93,14 @@ const MapComponent = ({ points = [], routeData = null, onMarkerDrag, readOnly = 
     }, [points]);
 
     useEffect(() => {
-        if (!mapInstance.current || !routeData) return;
+        if (!mapInstance.current) return;
 
         if (routeLayer.current) {
             mapInstance.current.removeLayer(routeLayer.current);
+            routeLayer.current = null;
         }
+
+        if (!routeData) return;
 
         routeLayer.current = L.geoJSON(routeData, {
             style: { color: '#FF4848', weight: 5, opacity: 0.7 }

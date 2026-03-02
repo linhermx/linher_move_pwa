@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, AlertCircle, User, Shield, Camera } from 'lucide-react';
 import { userService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import CustomSelect from './CustomSelect';
+import useModalAccessibility from '../hooks/useModalAccessibility';
 
 const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }) => {
     const isEdit = !!editData;
@@ -18,6 +19,18 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const { showNotification } = useNotification();
+    const dialogRef = useRef(null);
+    const closeButtonRef = useRef(null);
+    const labelledBy = 'user-modal-title';
+    const describedBy = 'user-modal-description';
+    const fieldIds = {
+        photo: 'user-photo',
+        name: 'user-name',
+        email: 'user-email',
+        password: 'user-password',
+        role: 'user-role',
+        status: 'user-status'
+    };
 
     useEffect(() => {
         if (editData) {
@@ -41,6 +54,13 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
             setPhotoPreview(null);
         }
     }, [editData, isOpen, roles]);
+
+    useModalAccessibility({
+        isOpen,
+        onClose,
+        dialogRef,
+        initialFocusRef: closeButtonRef
+    });
 
     if (!isOpen) return null;
 
@@ -109,8 +129,17 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
             display: 'flex', justifyContent: 'center', alignItems: 'center',
             zIndex: 1000,
             backdropFilter: 'blur(4px)'
-        }}>
-            <div className="card" style={{
+        }} onClick={onClose}>
+            <div
+                ref={dialogRef}
+                className="card"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={labelledBy}
+                aria-describedby={describedBy}
+                tabIndex={-1}
+                onClick={(event) => event.stopPropagation()}
+                style={{
                 width: '100%',
                 maxWidth: '450px',
                 padding: 'var(--spacing-xl)',
@@ -118,6 +147,7 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                 animation: 'modal-appear 0.3s ease-out'
             }}>
                 <button
+                    ref={closeButtonRef}
                     onClick={onClose}
                     style={{
                         position: 'absolute', top: '20px', right: '20px',
@@ -127,10 +157,13 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                     <X size={24} />
                 </button>
 
-                <h2 style={{ marginBottom: 'var(--spacing-lg)', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h2 id={labelledBy} style={{ marginBottom: 'var(--spacing-sm)', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <Shield size={20} className="text-primary" />
                     {isEdit ? 'Editar Usuario' : 'Nuevo Usuario'}
                 </h2>
+                <p id={describedBy} className="text-muted" style={{ marginBottom: 'var(--spacing-lg)' }}>
+                    Completa los datos del usuario y define su rol dentro del sistema.
+                </p>
 
                 {error && (
                     <div style={{
@@ -146,22 +179,23 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--spacing-sm)' }}>
                         <div
-                            onClick={() => document.getElementById('user-photo').click()}
+                            onClick={() => document.getElementById(fieldIds.photo).click()}
                             style={{
                                 width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.05)',
                                 border: '2px dashed var(--color-border)', display: 'flex', flexDirection: 'column',
                                 alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden'
                             }}>
                             {photoPreview ? (
-                                <img src={photoPreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={photoPreview} alt="Vista previa del usuario" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
                                 <Camera size={24} className="text-muted" />
                             )}
-                            <input id="user-photo" type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
+                            <input id={fieldIds.photo} name="photo" type="file" accept="image/*" onChange={handlePhotoChange} aria-label="Subir foto del usuario" style={{ display: 'none' }} />
                         </div>
                     </div>                    <div>
-                        <label className="form-label">NOMBRE COMPLETO</label>
+                        <label className="form-label" htmlFor={fieldIds.name}>NOMBRE COMPLETO</label>
                         <input
+                            id={fieldIds.name}
                             type="text"
                             name="name"
                             className="form-field"
@@ -172,8 +206,9 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                     </div>
 
                     <div>
-                        <label className="form-label">CORREO ELECTRÓNICO</label>
+                        <label className="form-label" htmlFor={fieldIds.email}>CORREO ELECTRÓNICO</label>
                         <input
+                            id={fieldIds.email}
                             type="email"
                             name="email"
                             className="form-field"
@@ -184,8 +219,9 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                     </div>
 
                     <div>
-                        <label className="form-label">CONTRASEÑA {isEdit && '(Dejar en blanco para no cambiar)'}</label>
+                        <label className="form-label" htmlFor={fieldIds.password}>CONTRASEÑA {isEdit && '(Dejar en blanco para no cambiar)'}</label>
                         <input
+                            id={fieldIds.password}
                             type="password"
                             name="password"
                             className="form-field"
@@ -197,9 +233,11 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 'var(--spacing-md)' }}>
                         <div>
-                            <label className="form-label">ROL DEL SISTEMA</label>
+                            <label className="form-label" htmlFor={fieldIds.role}>ROL DEL SISTEMA</label>
                             <div className="form-select-container">
                                 <CustomSelect
+                                    id={fieldIds.role}
+                                    name="role_id"
                                     placeholder="Seleccionar rol"
                                     value={formData.role_id}
                                     onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
@@ -208,9 +246,11 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                             </div>
                         </div>
                         <div>
-                            <label className="form-label">ESTATUS</label>
+                            <label className="form-label" htmlFor={fieldIds.status}>ESTATUS</label>
                             <div className="form-select-container">
                                 <CustomSelect
+                                    id={fieldIds.status}
+                                    name="status"
                                     value={formData.status}
                                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                                     options={[

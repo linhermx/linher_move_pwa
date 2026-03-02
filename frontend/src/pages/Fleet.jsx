@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Truck, Plus, Edit2, Trash2, Search, Gauge } from 'lucide-react';
 import { vehicleService } from '../services/api';
 import VehicleModal from '../components/VehicleModal';
@@ -7,6 +6,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import StatusView from '../components/StatusView';
 import { useNotification } from '../context/NotificationContext';
 import CustomMenu from '../components/CustomMenu';
+import PageHeader from '../components/PageHeader';
 
 const getEfficiency = (vehicle) => {
     if (vehicle.status === 'maintenance') {
@@ -84,33 +84,23 @@ const Fleet = () => {
         v.plate.toLowerCase().includes(searchTerm.toLowerCase())
     );
     return (
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-xl)' }}>
-                <div>
-                    <h1 style={{ fontSize: '24px' }}>Gestión de Flota</h1>
-                    <p className="text-muted">Administra los vehículos y sus rendimientos</p>
-                </div>
-                <button
-                    onClick={() => {
-                        setEditingVehicle(null);
-                        setIsModalOpen(true);
-                    }}
-                    style={{
-                        backgroundColor: 'var(--color-primary)',
-                        color: 'white',
-                        border: 'none',
-                        padding: '10px 20px',
-                        borderRadius: 'var(--radius-md)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        cursor: 'pointer'
-                    }}
-                >
-                    <Plus size={18} />
-                    Nuevo Vehículo
-                </button>
-            </div>
+        <div className="page-shell fade-in">
+            <PageHeader
+                title="Gestión de Flota"
+                subtitle="Administra los vehículos y sus rendimientos."
+                actions={(
+                    <button
+                        onClick={() => {
+                            setEditingVehicle(null);
+                            setIsModalOpen(true);
+                        }}
+                        className="btn btn-primary"
+                    >
+                        <Plus size={18} />
+                        Nuevo Vehículo
+                    </button>
+                )}
+            />
 
             <VehicleModal
                 isOpen={isModalOpen}
@@ -134,8 +124,11 @@ const Fleet = () => {
             />
 
             <div className="form-field-group" style={{ marginBottom: 'var(--spacing-lg)' }}>
+                <label className="sr-only" htmlFor="fleet-search">Buscar vehículos</label>
                 <Search size={18} className="text-muted" />
                 <input
+                    id="fleet-search"
+                    name="fleet_search"
                     type="text"
                     placeholder="Buscar vehículos por nombre o placas..."
                     value={searchTerm}
@@ -193,14 +186,14 @@ const Fleet = () => {
 
                             <div style={{ display: 'flex', gap: 'var(--spacing-md)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-md)' }}>
                                 <div style={{ flex: 1 }}>
-                                    <label className="form-label">RENDIMIENTO REAL</label>
+                                    <span className="form-label">RENDIMIENTO REAL</span>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
                                         <Gauge size={14} />
                                         <span>{v.rendimiento_real} km/L</span>
                                     </div>
                                 </div>
                                 <div style={{ flex: 1 }}>
-                                    <label className="form-label">EFICIENCIA</label>
+                                    <span className="form-label">EFICIENCIA</span>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
                                         <Gauge size={14} style={{ color: getEfficiency(v).color }} />
                                         <span style={{ color: getEfficiency(v).color, fontSize: '12px' }}>

@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { PDFService } from '../services/PDFService';
 import { formatDate } from '../utils/formatters';
+import PageHeader from '../components/PageHeader';
+import StatusBadge from '../components/StatusBadge';
 
 const QuoteDetail = () => {
     const { id } = useParams();
@@ -37,7 +39,7 @@ const QuoteDetail = () => {
 
     const [currentBreakdown, setCurrentBreakdown] = useState(null);
     const [vehicles, setVehicles] = useState([]);
-    const [globalSettings, setGlobalSettings] = useState({});
+    const [_globalSettings, setGlobalSettings] = useState({});
     const [services, setServices] = useState([]);
     const [routeData, setRouteData] = useState(null);
     const [selectedServiceIds, setSelectedServiceIds] = useState([]);
@@ -198,11 +200,11 @@ const QuoteDetail = () => {
 
     const getStatusInfo = (status) => {
         switch (status) {
-            case 'completada': return { color: '#28A745', text: 'Completada', icon: <CheckCircle size={16} /> };
-            case 'pendiente': return { color: '#FFD700', text: 'Pendiente', icon: <Calculator size={16} /> };
-            case 'en_proceso': return { color: '#007BFF', text: 'En Proceso', icon: <Loader2 size={16} /> };
-            case 'cancelada': return { color: '#6C757D', text: 'Cancelada', icon: <XCircle size={16} /> };
-            default: return { color: 'white', text: status, icon: null };
+            case 'completada': return { color: '#28A745', text: 'Completada', icon: <CheckCircle size={16} />, variant: 'success' };
+            case 'pendiente': return { color: '#FFD700', text: 'Pendiente', icon: <Calculator size={16} />, variant: 'warning' };
+            case 'en_proceso': return { color: '#007BFF', text: 'En Proceso', icon: <Loader2 size={16} />, variant: 'info' };
+            case 'cancelada': return { color: '#6C757D', text: 'Cancelada', icon: <XCircle size={16} />, variant: 'neutral' };
+            default: return { color: 'white', text: status, icon: null, variant: 'neutral' };
         }
     };
 
@@ -210,41 +212,24 @@ const QuoteDetail = () => {
     const isLocked = ['completada', 'cancelada'].includes(quote.status);
 
     return (
-        <div>
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-xl)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <div className="page-shell fade-in">
+            <PageHeader
+                leading={(
                     <button
+                        type="button"
                         onClick={() => navigate('/history')}
-                        style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'white', padding: '8px', borderRadius: '50%', cursor: 'pointer' }}
+                        className="icon-button"
+                        aria-label="Volver al historial"
                     >
                         <ChevronLeft size={20} />
                     </button>
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <h1 style={{ fontSize: '24px', margin: 0 }}>Cotización {quote.folio}</h1>
-                            <div style={{
-                                backgroundColor: `${statusInfo.color}20`,
-                                color: statusInfo.color,
-                                padding: '4px 12px',
-                                borderRadius: '20px',
-                                fontSize: '11px',
-                                fontWeight: 'bold',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                border: `1px solid ${statusInfo.color}40`
-                            }}>
-                                {statusInfo.icon}
-                                {statusInfo.text.toUpperCase()}
-                            </div>
-                        </div>
-                        <p className="text-muted" style={{ margin: '4px 0 0 0' }}>Creada el {formatDate(quote.created_at)}</p>
-                    </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    {/* New Status Selector Design */}
+                )}
+                title={`Cotización ${quote.folio}`}
+                titleMeta={<StatusBadge variant={statusInfo.variant}>{statusInfo.text}</StatusBadge>}
+                subtitle={`Creada el ${formatDate(quote.created_at)}`}
+                actions={(
+                    <>
+                        {/* New Status Selector Design */}
                     <div style={{
                         display: 'flex',
                         backgroundColor: 'var(--color-surface)',
@@ -292,16 +277,10 @@ const QuoteDetail = () => {
 
                     {!isLocked && (
                         <button
+                            type="button"
                             onClick={handleSaveUpdates}
                             disabled={saving}
-                            className="btn-primary"
-                            style={{
-                                padding: '10px 20px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                fontWeight: 'bold',
-                            }}
+                            className="btn btn-primary"
                         >
                             {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
                             Guardar Ajustes
@@ -309,25 +288,16 @@ const QuoteDetail = () => {
                     )}
 
                     <button
+                        type="button"
                         onClick={() => PDFService.generateQuotationPDF(quote)}
-                        style={{
-                            backgroundColor: 'rgba(255,255,255,0.05)',
-                            color: 'white',
-                            border: '1px solid var(--color-border)',
-                            padding: '10px 20px',
-                            borderRadius: 'var(--radius-md)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer'
-                        }}
+                        className="btn btn-secondary"
                     >
                         <Download size={18} />
                         PDF
                     </button>
-                </div>
-            </div>
+                    </>
+                )}
+            />
 
             {/* Main Content Layout */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
@@ -595,8 +565,10 @@ const QuoteDetail = () => {
                         <h3 style={{ fontSize: '14px', marginBottom: '20px', color: 'white' }}>Ajustes de Revisión</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                             <div>
-                                <label className="form-label">VIÁTICOS HOSPEDAJE ($)</label>
+                                <label className="form-label" htmlFor="quote-detail-lodging-cost">VIÁTICOS HOSPEDAJE ($)</label>
                                 <input
+                                    id="quote-detail-lodging-cost"
+                                    name="lodging_cost"
                                     className="form-field"
                                     type="number"
                                     value={manualAdjustments.lodging_cost}
@@ -610,8 +582,10 @@ const QuoteDetail = () => {
                                 />
                             </div>
                             <div>
-                                <label className="form-label">VIÁTICOS COMIDAS ($)</label>
+                                <label className="form-label" htmlFor="quote-detail-meal-cost">VIÁTICOS COMIDAS ($)</label>
                                 <input
+                                    id="quote-detail-meal-cost"
+                                    name="meal_cost"
                                     className="form-field"
                                     type="number"
                                     value={manualAdjustments.meal_cost}

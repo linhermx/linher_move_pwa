@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Save, User, Camera, Lock, Mail } from 'lucide-react';
 import { userService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
+import useModalAccessibility from '../hooks/useModalAccessibility';
 
 const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
     const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user')) || {});
@@ -16,6 +17,16 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
     const [loading, setLoading] = useState(false);
     const { showNotification } = useNotification();
     const fileInputRef = useRef(null);
+    const dialogRef = useRef(null);
+    const closeButtonRef = useRef(null);
+    const labelledBy = 'profile-modal-title';
+    const describedBy = 'profile-modal-description';
+    const fieldIds = {
+        photo: 'profile-photo',
+        name: 'profile-name',
+        password: 'profile-password',
+        confirmPassword: 'profile-confirm-password'
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -30,6 +41,13 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
             setPhoto(null);
         }
     }, [isOpen]);
+
+    useModalAccessibility({
+        isOpen,
+        onClose,
+        dialogRef,
+        initialFocusRef: closeButtonRef
+    });
 
     if (!isOpen) return null;
 
@@ -86,21 +104,33 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
             display: 'flex', justifyContent: 'center', alignItems: 'center',
             zIndex: 10000, backdropFilter: 'blur(8px)',
             animation: 'fade-in 0.3s ease-out'
-        }}>
-            <div className="card" style={{
+        }} onClick={onClose}>
+            <div
+                ref={dialogRef}
+                className="card"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={labelledBy}
+                aria-describedby={describedBy}
+                tabIndex={-1}
+                onClick={(event) => event.stopPropagation()}
+                style={{
                 width: '100%', maxWidth: '450px',
                 padding: 'var(--spacing-xl)', position: 'relative',
                 boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
                 border: '1px solid rgba(255,255,255,0.1)'
             }}>
-                <button onClick={onClose} style={{
+                <button ref={closeButtonRef} onClick={onClose} style={{
                     position: 'absolute', top: '20px', right: '20px',
                     background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer'
                 }}>
                     <X size={24} />
                 </button>
 
-                <h2 style={{ marginBottom: 'var(--spacing-xl)', fontSize: '22px', fontWeight: 'bold', textAlign: 'center' }}>Mi Perfil</h2>
+                <h2 id={labelledBy} style={{ marginBottom: 'var(--spacing-sm)', fontSize: '22px', fontWeight: 'bold', textAlign: 'center' }}>Mi Perfil</h2>
+                <p id={describedBy} className="text-muted" style={{ marginBottom: 'var(--spacing-xl)', textAlign: 'center' }}>
+                    Actualiza tu nombre, foto y contraseña desde esta ventana.
+                </p>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     {/* Photo Upload Section */}
@@ -116,7 +146,7 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                             }}
                         >
                             {photoPreview ? (
-                                <img src={photoPreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Preview" />
+                                <img src={photoPreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Vista previa del perfil" />
                             ) : (
                                 <User size={40} className="text-muted" />
                             )}
@@ -128,10 +158,13 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                             </div>
                         </div>
                         <input
+                            id={fieldIds.photo}
                             ref={fileInputRef}
+                            name="photo"
                             type="file"
                             accept="image/*"
                             onChange={handlePhotoChange}
+                            aria-label="Subir foto de perfil"
                             style={{ display: 'none' }}
                         />
                         <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Haz click para cambiar foto</span>
@@ -139,7 +172,7 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
 
                     {/* Email (Read-only) */}
                     <div>
-                        <label className="form-label">CORREO ELECTRÓNICO (SOLO LECTURA)</label>
+                        <p className="form-label">CORREO ELECTRÓNICO (SOLO LECTURA)</p>
                         <div className="form-field-group" style={{
                             backgroundColor: 'rgba(255,255,255,0.02)',
                             color: 'var(--color-text-muted)',
@@ -152,10 +185,12 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
 
                     {/* Name */}
                     <div>
-                        <label className="form-label">NOMBRE COMPLETO</label>
+                        <label className="form-label" htmlFor={fieldIds.name}>NOMBRE COMPLETO</label>
                         <div className="form-field-group">
                             <User size={16} className="text-primary" />
                             <input
+                                id={fieldIds.name}
+                                name="name"
                                 type="text"
                                 className="form-input-clean"
                                 style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', height: '100%', fontSize: '14px' }}
@@ -171,10 +206,12 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                     {/* Password */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
                         <div>
-                            <label className="form-label">NUEVA CONTRASEÑA</label>
+                            <label className="form-label" htmlFor={fieldIds.password}>NUEVA CONTRASEÑA</label>
                             <div className="form-field-group">
                                 <Lock size={14} className="text-muted" />
                                 <input
+                                    id={fieldIds.password}
+                                    name="password"
                                     type="password"
                                     className="form-input-clean"
                                     style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', height: '100%', fontSize: '13px' }}
@@ -186,10 +223,12 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                             </div>
                         </div>
                         <div>
-                            <label className="form-label">CONFIRMAR</label>
+                            <label className="form-label" htmlFor={fieldIds.confirmPassword}>CONFIRMAR</label>
                             <div className="form-field-group">
                                 <Lock size={14} className="text-muted" />
                                 <input
+                                    id={fieldIds.confirmPassword}
+                                    name="confirmPassword"
                                     type="password"
                                     className="form-input-clean"
                                     style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', height: '100%', fontSize: '13px' }}
