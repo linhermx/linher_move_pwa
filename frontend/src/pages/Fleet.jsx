@@ -149,6 +149,7 @@ const Fleet = () => {
                     placeholder="Buscar vehículos por nombre o placas..."
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
+                    autoComplete="off"
                 />
             </div>
 

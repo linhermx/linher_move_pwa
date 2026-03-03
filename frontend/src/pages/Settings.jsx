@@ -103,7 +103,7 @@ const Settings = () => {
 
         setSettings((prev) => ({
             ...prev,
-            default_origin_address: 'Buscando direccion...',
+            default_origin_address: 'Buscando dirección...',
             default_origin_lat: roundedLat.toString(),
             default_origin_lng: roundedLng.toString()
         }));
@@ -123,7 +123,7 @@ const Settings = () => {
     return (
         <div className="page-shell fade-in stack-lg settings-page">
             <PageHeader
-                title="Parámetros Globales"
+                title="Parámetros globales"
                 subtitle="Configura los valores base y reglas de negocio para las cotizaciones."
             />
 
@@ -131,7 +131,7 @@ const Settings = () => {
                 <div className="card settings-layout__hero">
                     <div className="settings-section__header">
                         <div className="settings-section__icon"><MapPin size={20} /></div>
-                        <h3 className="settings-section__title">Ubicación de Origen Predefinida</h3>
+                        <h3 className="settings-section__title">Ubicación de origen predefinida</h3>
                     </div>
                     <p className="text-muted settings-section__intro">
                         Define el punto de partida que aparecerá automáticamente en cada nueva cotización. Arrastra el marcador en el mapa para mayor precisión.
@@ -152,6 +152,7 @@ const Settings = () => {
                                         onChange={(event) => handleAddressSearch(event.target.value)}
                                         className="form-input-clean"
                                         placeholder="Ej: Puebla, Pue., México"
+                                        autoComplete="street-address"
                                     />
                                 </div>
 
@@ -181,6 +182,7 @@ const Settings = () => {
                                         className="form-field"
                                         value={settings.default_origin_lat}
                                         onChange={handleChange}
+                                        autoComplete="off"
                                     />
                                 </div>
                                 <div>
@@ -192,6 +194,7 @@ const Settings = () => {
                                         className="form-field"
                                         value={settings.default_origin_lng}
                                         onChange={handleChange}
+                                        autoComplete="off"
                                     />
                                 </div>
                             </div>
@@ -213,11 +216,11 @@ const Settings = () => {
                 <div className="card">
                     <div className="settings-section__header">
                         <div className="settings-section__icon"><Info size={20} /></div>
-                        <h3 className="settings-section__title">{'Combustible y Eficiencia'}</h3>
+                        <h3 className="settings-section__title">Combustible y eficiencia</h3>
                     </div>
                     <div className="settings-stack">
                         <div>
-                            <label className="form-label" htmlFor="settings-gasoline-price">{'PRECIO GASOLINA ($/L)'}</label>
+                            <label className="form-label" htmlFor="settings-gasoline-price">PRECIO GASOLINA ($/L)</label>
                             <input
                                 id="settings-gasoline-price"
                                 type="number"
@@ -226,10 +229,11 @@ const Settings = () => {
                                 onChange={handleChange}
                                 className="form-field"
                                 placeholder="24.50"
+                                autoComplete="off"
                             />
                         </div>
                         <div>
-                            <label className="form-label" htmlFor="settings-base-efficiency">{'FACTOR EFICIENCIA BASE'}</label>
+                            <label className="form-label" htmlFor="settings-base-efficiency">FACTOR EFICIENCIA BASE</label>
                             <input
                                 id="settings-base-efficiency"
                                 type="number"
@@ -239,6 +243,7 @@ const Settings = () => {
                                 onChange={handleChange}
                                 className="form-field"
                                 placeholder="1.0"
+                                autoComplete="off"
                             />
                         </div>
                     </div>
@@ -247,11 +252,11 @@ const Settings = () => {
                 <div className="card">
                     <div className="settings-section__header">
                         <div className="settings-section__icon"><Info size={20} /></div>
-                        <h3 className="settings-section__title">{'Ajustes de Ruta'}</h3>
+                        <h3 className="settings-section__title">Ajustes de ruta</h3>
                     </div>
                     <div className="settings-stack">
                         <div>
-                            <label className="form-label" htmlFor="settings-maneuver-factor">{'FACTOR MANIOBRA (MULTIPLICADOR)'}</label>
+                            <label className="form-label" htmlFor="settings-maneuver-factor">FACTOR MANIOBRA (MULTIPLICADOR)</label>
                             <input
                                 id="settings-maneuver-factor"
                                 type="number"
@@ -261,6 +266,7 @@ const Settings = () => {
                                 onChange={handleChange}
                                 className="form-field"
                                 placeholder="1.2"
+                                autoComplete="off"
                             />
                         </div>
                         <div>
@@ -274,6 +280,7 @@ const Settings = () => {
                                 onChange={handleChange}
                                 className="form-field"
                                 placeholder="1.5"
+                                autoComplete="off"
                             />
                         </div>
                     </div>
@@ -282,7 +289,7 @@ const Settings = () => {
                 <div className="card">
                     <div className="settings-section__header">
                         <div className="settings-section__icon"><Info size={20} /></div>
-                        <h3 className="settings-section__title">{'Costos de Hospedaje'}</h3>
+                        <h3 className="settings-section__title">Costos de hospedaje</h3>
                     </div>
                     <p className="text-muted settings-section__intro">
                         Define las horas de trayecto de ida y el costo por noche según la duración.
@@ -303,11 +310,12 @@ const Settings = () => {
                                         onChange={handleChange}
                                         className="form-field"
                                         placeholder={`${tier === 1 ? '6' : tier === 2 ? '11' : '17'}`}
+                                        autoComplete="off"
                                     />
                                 </div>
                                 <div>
                                     <label className="form-label" htmlFor={`settings-lodging-tier${tier}-cost`}>
-                                        {'COSTO ASIGNADO ($)'}
+                                        COSTO ASIGNADO ($)
                                     </label>
                                     <input
                                         id={`settings-lodging-tier${tier}-cost`}
@@ -317,6 +325,7 @@ const Settings = () => {
                                         onChange={handleChange}
                                         className="form-field"
                                         placeholder={`${tier === 1 ? '1500' : tier === 2 ? '2400' : '3600'}`}
+                                        autoComplete="off"
                                     />
                                 </div>
                             </div>
@@ -327,7 +336,7 @@ const Settings = () => {
                 <div className="card">
                     <div className="settings-section__header">
                         <div className="settings-section__icon"><Info size={20} /></div>
-                        <h3 className="settings-section__title">Costos de Alimentos / Viáticos</h3>
+                        <h3 className="settings-section__title">Costos de alimentos / viáticos</h3>
                     </div>
                     <p className="text-muted settings-section__intro">
                         Configura los viáticos según la jornada laboral total o si hay pernocta.
@@ -336,7 +345,7 @@ const Settings = () => {
                     <div className="settings-stack">
                         <div className="settings-tier settings-tier-grid">
                             <div>
-                                <label className="form-label" htmlFor="settings-meal-tier1-hours">{'UMBRAL NIVEL 1 - JORNADA (HORAS)'}</label>
+                                <label className="form-label" htmlFor="settings-meal-tier1-hours">UMBRAL NIVEL 1 - JORNADA (HORAS)</label>
                                 <input
                                     id="settings-meal-tier1-hours"
                                     type="number"
@@ -345,10 +354,11 @@ const Settings = () => {
                                     onChange={handleChange}
                                     className="form-field"
                                     placeholder="8"
+                                    autoComplete="off"
                                 />
                             </div>
                             <div>
-                                <label className="form-label" htmlFor="settings-meal-tier1-cost">{'COSTO ASIGNADO ($)'}</label>
+                                <label className="form-label" htmlFor="settings-meal-tier1-cost">COSTO ASIGNADO ($)</label>
                                 <input
                                     id="settings-meal-tier1-cost"
                                     type="number"
@@ -357,13 +367,14 @@ const Settings = () => {
                                     onChange={handleChange}
                                     className="form-field"
                                     placeholder="200"
+                                    autoComplete="off"
                                 />
                             </div>
                         </div>
 
                         <div className="settings-tier settings-tier-grid">
                             <div>
-                                <label className="form-label" htmlFor="settings-meal-tier2-hours">{'UMBRAL NIVEL 2 - VIAJE LARGO (HORAS TOTAL)'}</label>
+                                <label className="form-label" htmlFor="settings-meal-tier2-hours">UMBRAL NIVEL 2 - VIAJE LARGO (HORAS TOTAL)</label>
                                 <input
                                     id="settings-meal-tier2-hours"
                                     type="number"
@@ -372,10 +383,11 @@ const Settings = () => {
                                     onChange={handleChange}
                                     className="form-field"
                                     placeholder="12"
+                                    autoComplete="off"
                                 />
                             </div>
                             <div>
-                                <label className="form-label" htmlFor="settings-meal-tier2-cost">{'COSTO ASIGNADO ($)'}</label>
+                                <label className="form-label" htmlFor="settings-meal-tier2-cost">COSTO ASIGNADO ($)</label>
                                 <input
                                     id="settings-meal-tier2-cost"
                                     type="number"
@@ -384,12 +396,13 @@ const Settings = () => {
                                     onChange={handleChange}
                                     className="form-field"
                                     placeholder="300"
+                                    autoComplete="off"
                                 />
                             </div>
                         </div>
 
                         <div className="settings-tier">
-                            <label className="form-label" htmlFor="settings-meal-tier3-cost">{'COSTO ASIGNADO CUANDO APLICA HOSPEDAJE ($)'}</label>
+                            <label className="form-label" htmlFor="settings-meal-tier3-cost">COSTO ASIGNADO CUANDO APLICA HOSPEDAJE ($)</label>
                             <input
                                 id="settings-meal-tier3-cost"
                                 type="number"
@@ -398,15 +411,16 @@ const Settings = () => {
                                 onChange={handleChange}
                                 className="form-field"
                                 placeholder="500"
+                                autoComplete="off"
                             />
                         </div>
                     </div>
                 </div>
 
                 <div className="settings-save-row">
-                    <button onClick={handleSave} className="btn btn-primary">
+                    <button type="button" onClick={handleSave} className="btn btn-primary">
                         <Save size={18} />
-                        Guardar Configuración
+                        Guardar configuración
                     </button>
                 </div>
             </div>

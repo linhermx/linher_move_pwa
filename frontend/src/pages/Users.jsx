@@ -131,6 +131,7 @@ const Users = () => {
                     value={search}
                     placeholder="Buscar por nombre o email..."
                     onChange={(event) => setSearch(event.target.value)}
+                    autoComplete="off"
                 />
             </section>
 

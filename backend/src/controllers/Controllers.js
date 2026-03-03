@@ -706,12 +706,18 @@ export const DashboardController = (db) => {
                         [fleetStatusRows],
                         [fleetEffRows],
                         [pendingRows],
-                        [avgTimeRows]
+                        [avgTimeRows],
+                        [revenueRows],
+                        [topOperatorsRows],
+                        [byDayRows]
                     ] = await Promise.all([
                         db.query(`SELECT status, COUNT(*) as count FROM vehicles GROUP BY status`),
                         db.query(`SELECT COALESCE(AVG(rendimiento_real/rendimiento_teorico*100), 0) as fleet_eff FROM vehicles WHERE rendimiento_teorico > 0`),
                         db.query(`SELECT q.folio, qc.total, q.created_at, u.name as operator FROM quotations q JOIN users u ON q.user_id=u.id JOIN quotation_costs qc ON q.id = qc.quotation_id WHERE q.status='pendiente'${dqc} ORDER BY q.created_at DESC LIMIT 5`, dqp),
-                        db.query(`SELECT COALESCE(AVG(qr.time_total), 0) as avg_time FROM quotations q JOIN quotation_routes qr ON q.id = qr.quotation_id WHERE q.status='completada'${dqc}`, dqp)
+                        db.query(`SELECT COALESCE(AVG(qr.time_total), 0) as avg_time FROM quotations q JOIN quotation_routes qr ON q.id = qr.quotation_id WHERE q.status='completada'${dqc}`, dqp),
+                        db.query(`SELECT COALESCE(SUM(qc.total), 0) as revenue FROM quotations q JOIN quotation_costs qc ON q.id = qc.quotation_id WHERE q.status='completada'${dqc}`, dqp),
+                        db.query(`SELECT u.name, COUNT(q.id) as total FROM quotations q JOIN users u ON q.user_id=u.id WHERE q.status='completada'${dqc} GROUP BY u.id, u.name ORDER BY total DESC LIMIT 5`, dqp),
+                        db.query(`SELECT DATE(created_at) as day, COUNT(*) as count FROM quotations WHERE 1=1${dc} GROUP BY DATE(created_at) ORDER BY day ASC`, dp)
                     ]);
 
                     const activeCount = quotations_by_status
@@ -722,12 +728,15 @@ export const DashboardController = (db) => {
                     return res.json({
                         role: 'SUPERVISOR',
                         kpis: {
+                            revenue: parseFloat(revenueRows[0].revenue || 0),
                             active_quotes: activeCount,
                             vehicles_in_route: inRoute?.count || 0,
                             avg_route_time: Math.round(parseFloat(avgTimeRows[0].avg_time || 0)),
                             fleet_efficiency: parseFloat(fleetEffRows[0].fleet_eff || 0).toFixed(1)
                         },
                         quotations_by_status,
+                        top_operators: topOperatorsRows,
+                        by_day: byDayRows,
                         fleet_status: fleetStatusRows,
                         fleet_efficiency: parseFloat(fleetEffRows[0].fleet_eff || 0).toFixed(1),
                         pending_quotes: pendingRows

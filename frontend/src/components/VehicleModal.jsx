@@ -151,10 +151,10 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                 </button>
 
                 <h2 id={labelledBy} className="legacy-modal__title">
-                    {isEdit ? 'Editar Vehículo' : 'Nuevo Vehículo'}
+                    {isEdit ? 'Editar vehículo' : 'Nuevo vehículo'}
                 </h2>
                 <p id={describedBy} className="text-muted legacy-modal__subtitle">
-                    {'Registra la unidad y sus datos operativos para usarla en cotizaciones.'}
+                    Registra la unidad y sus datos operativos para usarla en cotizaciones.
                 </p>
 
                 {error ? <Alert className="legacy-modal__error">{error}</Alert> : null}
@@ -171,7 +171,7 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                             ) : (
                                 <>
                                     <ImageIcon size={32} className="text-muted" />
-                                    <span className="legacy-modal__hint">{'SUBIR FOTO'}</span>
+                                    <span className="legacy-modal__hint">SUBIR FOTO</span>
                                 </>
                             )}
                         </button>
@@ -187,15 +187,16 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                     </div>
 
                     <div>
-                        <label className="form-label" htmlFor={fieldIds.name}>{'NOMBRE DEL VEHICULO'}</label>
+                        <label className="form-label" htmlFor={fieldIds.name}>NOMBRE DEL VEHÍCULO</label>
                         <input
                             id={fieldIds.name}
                             type="text"
                             name="name"
                             value={formData.name}
                             onChange={handleChange}
-                            placeholder={'Ej. Tracto Volvo 2023'}
+                            placeholder="Ej. Tracto Volvo 2023"
                             className="form-field"
+                            autoComplete="off"
                         />
                     </div>
 
@@ -207,14 +208,15 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                             name="plate"
                             value={formData.plate}
                             onChange={handleChange}
-                            placeholder={'Ej. ABC-123-D'}
+                            placeholder="Ej. ABC-123-D"
                             className="form-field"
+                            autoComplete="off"
                         />
                     </div>
 
                     <div className="form-grid form-grid--two">
                         <div>
-                            <label className="form-label" htmlFor={fieldIds.rendimientoTeorico}>{'REND. TEORICO (km/L)'}</label>
+                            <label className="form-label" htmlFor={fieldIds.rendimientoTeorico}>REND. TEÓRICO (KM/L)</label>
                             <input
                                 id={fieldIds.rendimientoTeorico}
                                 type="number"
@@ -224,10 +226,11 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                                 onChange={handleChange}
                                 placeholder="1.5"
                                 className="form-field"
+                                autoComplete="off"
                             />
                         </div>
                         <div>
-                            <label className="form-label" htmlFor={fieldIds.rendimientoReal}>{'REND. REAL (km/L)'}</label>
+                            <label className="form-label" htmlFor={fieldIds.rendimientoReal}>REND. REAL (KM/L)</label>
                             <input
                                 id={fieldIds.rendimientoReal}
                                 type="number"
@@ -237,12 +240,13 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                                 onChange={handleChange}
                                 placeholder="1.2"
                                 className="form-field"
+                                autoComplete="off"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="form-label" htmlFor={fieldIds.status}>{'ESTATUS INICIAL'}</label>
+                        <label className="form-label" htmlFor={fieldIds.status}>ESTATUS INICIAL</label>
                         <div className="form-select-container">
                             <CustomSelect
                                 id={fieldIds.status}
@@ -258,13 +262,13 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
                         </div>
                     </div>
 
-                    <div className="modal-actions modal-actions--split">
-                        <button type="button" onClick={onClose} className="btn btn-secondary">
+                    <div className="modal-actions modal-actions--split legacy-modal__actions">
+                        <button type="button" onClick={onClose} className="btn btn-secondary legacy-modal__action-button">
                             Cancelar
                         </button>
-                        <button type="submit" disabled={loading} className="btn btn-primary">
+                        <button type="submit" disabled={loading} className="btn btn-primary legacy-modal__action-button">
                             <Save size={18} />
-                            {loading ? 'Guardando...' : (isEdit ? 'Actualizar Vehículo' : 'Guardar Vehículo')}
+                            {loading ? 'Guardando...' : (isEdit ? 'Actualizar vehículo' : 'Guardar vehículo')}
                         </button>
                     </div>
                 </form>

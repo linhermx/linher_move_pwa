@@ -123,8 +123,8 @@ const legendFmt = (v) => (
 );
 
 // ── KPI Card ────────────────────────────────────────────────────────────────
-const KpiCard = ({ icon, label, value, color = C.primary, sub }) => (
-    <div className="card dashboard-kpi-card">
+const KpiCard = ({ icon, label, value, color = C.primary, sub, className = '' }) => (
+    <div className={`card dashboard-kpi-card ${className}`.trim()}>
         <div className="dashboard-kpi-card__icon" style={{ '--dashboard-kpi-accent': color }}>
             {icon}
         </div>
@@ -137,8 +137,8 @@ const KpiCard = ({ icon, label, value, color = C.primary, sub }) => (
 );
 
 // ── Section Card ───────────────────────────────────────────────────────────
-const Section = ({ title, children }) => (
-    <div className="card dashboard-section">
+const Section = ({ title, children, className = '' }) => (
+    <div className={`card dashboard-section ${className}`.trim()}>
         <div className="dashboard-section__header">
             <h3 className="dashboard-section__title">{title}</h3>
         </div>
@@ -197,10 +197,10 @@ const AdminDashboard = ({ data }) => {
     const effColor = effVal >= 90 ? C.success : effVal >= 70 ? C.warning : C.primary;
 
     return (
-        <div className="dashboard-stack">
+        <div className="dashboard-stack dashboard-stack--admin">
             {/* KPIs */}
             <div className="dashboard-kpis-grid">
-                <KpiCard icon={<DollarSign size={20} />} label="Ingresos del período" value={formatKpi(kpis.revenue)} color={C.success} />
+                <KpiCard icon={<DollarSign size={20} />} label="Ingresos del período" value={formatKpi(kpis.revenue)} color={C.success} className="dashboard-kpi-card--hero" />
                 <KpiCard icon={<FileText size={20} />} label="Total cotizaciones" value={kpis.total_quotes} color={C.info} />
                 <KpiCard icon={<CheckCircle size={20} />} label="Tasa de éxito" value={`${kpis.success_rate}%`} color={C.primary} sub="cotizaciones completadas" />
                 <KpiCard icon={<Truck size={20} />} label="Vehículos disponibles" value={kpis.available_vehicles} color={C.warning} />
@@ -209,7 +209,7 @@ const AdminDashboard = ({ data }) => {
 
             {/* Row 1: Donut + Bar */}
             <div className="dashboard-two-grid">
-                <Section title="Distribución de cotizaciones">
+                <Section title="Distribución de cotizaciones" className="dashboard-section--distribution">
                     {pieData.length === 0
                         ? <p className="dashboard-empty">Sin datos en el período</p>
                         : <ResponsiveContainer width="100%" height={220}>
@@ -243,7 +243,7 @@ const AdminDashboard = ({ data }) => {
                     }
                 </Section>
 
-                <Section title="Top operadores">
+                <Section title="Top operadores" className="dashboard-section--operators">
                     {barData.length === 0
                         ? <p className="dashboard-empty">Sin datos en el período</p>
                         : <ResponsiveContainer width="100%" height={220}>
@@ -284,7 +284,7 @@ const AdminDashboard = ({ data }) => {
 
             {/* Row 2: Area + Fleet donut */}
             <div className="dashboard-wide-grid">
-                <Section title="Actividad en el período">
+                <Section title="Actividad en el período" className="dashboard-section--activity dashboard-section--primary">
                     {areaData.length === 0
                         ? <p className="dashboard-empty">Sin actividad en el período</p>
                         : <ResponsiveContainer width="100%" height={200}>
@@ -314,7 +314,7 @@ const AdminDashboard = ({ data }) => {
                     }
                 </Section>
 
-                <Section title="Estado de flota">
+                <Section title="Estado de flota" className="dashboard-section--fleet dashboard-section--compact">
                     <ResponsiveContainer width="100%" height={160}>
                         <PieChart>
                             <Pie
@@ -341,7 +341,7 @@ const AdminDashboard = ({ data }) => {
             </div>
 
             {/* Recent logs */}
-            <Section title="Actividad reciente del sistema">
+            <Section title="Actividad reciente del sistema" className="dashboard-section--logs">
                 {(recent_logs || []).length === 0
                     ? <p className="dashboard-empty dashboard-empty--compact">Sin registros recientes</p>
                     : (recent_logs || []).map((log, i) => (
@@ -368,7 +368,7 @@ const AdminDashboard = ({ data }) => {
 // SUPERVISOR VIEW
 // ═══════════════════════════════════════════════════════════════════════════
 const SupervisorDashboard = ({ data }) => {
-    const { kpis, quotations_by_status, fleet_status, fleet_efficiency, pending_quotes } = data;
+    const { kpis, quotations_by_status, fleet_status, fleet_efficiency, pending_quotes, top_operators, by_day } = data;
 
     const quotePie = (quotations_by_status || [])
         .filter(r => r.count > 0)
@@ -386,21 +386,122 @@ const SupervisorDashboard = ({ data }) => {
             color: FLEET_COLORS[r.status] || C.muted,
         }));
 
+    const barData = (top_operators || []).map(r => ({
+        name: r.name.split(' ')[0],
+        total: parseInt(r.total),
+    }));
+
+    const areaData = (by_day || []).map(r => {
+        const raw = r.day instanceof Date
+            ? r.day.toISOString().split('T')[0]
+            : String(r.day).split('T')[0];
+        return {
+            day: new Date(raw + 'T12:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }),
+            cotizaciones: r.count,
+        };
+    });
+
     const eff = parseFloat(fleet_efficiency || 0);
     const effColor = eff >= 90 ? C.success : eff >= 70 ? C.warning : C.primary;
     const radialData = [{ name: 'Eficiencia', value: Math.min(eff, 100), fill: effColor }];
+    const maxBar = Math.max(...barData.map(d => d.total), 1);
 
     return (
-        <div className="dashboard-stack">
+        <div className="dashboard-stack dashboard-stack--supervisor">
             <div className="dashboard-kpis-grid dashboard-kpis-grid--supervisor">
+                <KpiCard icon={<DollarSign size={20} />} label="Ingresos del período" value={formatKpi(kpis.revenue)} color={C.success} />
                 <KpiCard icon={<Activity size={20} />} label="Cotizaciones activas" value={kpis.active_quotes} color={C.info} />
                 <KpiCard icon={<Truck size={20} />} label="Vehículos en ruta" value={kpis.vehicles_in_route} color={C.primary} />
                 <KpiCard icon={<Clock size={20} />} label="Tiempo prom./ruta" value={fmtMin(kpis.avg_route_time)} color={C.warning} sub="cotizaciones completadas" />
             </div>
 
+            <div className="dashboard-two-grid dashboard-two-grid--supervisor">
+                <Section title="Cotizaciones pendientes recientes" className="dashboard-section--pending dashboard-section--primary">
+                    {(pending_quotes || []).length === 0
+                        ? <p className="dashboard-empty dashboard-empty--compact">Sin cotizaciones pendientes</p>
+                        : (pending_quotes || []).map((q, i) => (
+                            <div key={i} className="dashboard-list-row">
+                                <div>
+                                    <p className="dashboard-list-row__title">{q.folio}</p>
+                                    <p className="dashboard-list-row__meta">{q.operator}</p>
+                                </div>
+                                <p className="dashboard-list-row__value" style={{ '--dashboard-row-accent': C.warning }}>{formatKpi(q.total)}</p>
+                            </div>
+                        ))
+                    }
+                </Section>
+
+                <Section title="Actividad en el período" className="dashboard-section--activity">
+                    {areaData.length === 0
+                        ? <p className="dashboard-empty">Sin actividad en el período</p>
+                        : <ResponsiveContainer width="100%" height={200}>
+                            <AreaChart data={areaData} margin={{ top: 4, right: 12, bottom: 0, left: 0 }}>
+                                <defs>
+                                    <linearGradient id="gradAreaSupervisor" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor={C.primary} stopOpacity={0.35} />
+                                        <stop offset="100%" stopColor={C.primary} stopOpacity={0.02} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="2 6" stroke={C.grid} />
+                                <XAxis dataKey="day" interval="preserveStartEnd" {...axisProps} tick={{ ...axisProps.tick, fontSize: 10 }} />
+                                <YAxis allowDecimals={false} {...axisProps} />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Area
+                                    type="monotone"
+                                    dataKey="cotizaciones"
+                                    name="Cotizaciones"
+                                    stroke={C.primary}
+                                    strokeWidth={2.5}
+                                    fill="url(#gradAreaSupervisor)"
+                                    dot={false}
+                                    activeDot={{ r: 5, fill: C.primary, strokeWidth: 0 }}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    }
+                </Section>
+            </div>
 
             <div className="dashboard-three-grid">
-                <Section title="Cotizaciones por estado">
+                <Section title="Top operadores" className="dashboard-section--operators">
+                    {barData.length === 0
+                        ? <p className="dashboard-empty">Sin datos en el período</p>
+                        : <ResponsiveContainer width="100%" height={220}>
+                            <BarChart data={barData} layout="vertical" margin={{ left: 4, right: 16, top: 4, bottom: 4 }}>
+                                <CartesianGrid strokeDasharray="2 4" stroke={C.grid} horizontal={false} />
+                                <XAxis
+                                    type="number"
+                                    domain={[0, maxBar + 1]}
+                                    tickCount={Math.min(maxBar + 2, 6)}
+                                    allowDecimals={false}
+                                    {...axisProps}
+                                />
+                                <YAxis
+                                    type="category"
+                                    dataKey="name"
+                                    width={64}
+                                    {...axisProps}
+                                />
+                                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--dashboard-cursor-fill)' }} />
+                                <Bar dataKey="total" name="Completadas" radius={[0, 8, 8, 0]} maxBarSize={14} fill="transparent">
+                                    {barData.map((_, i) => (
+                                        <Cell key={i} fill={`url(#supervisorBarGrad${i})`} />
+                                    ))}
+                                </Bar>
+                                <defs>
+                                    {barData.map((_, i) => (
+                                        <linearGradient key={i} id={`supervisorBarGrad${i}`} x1="0" y1="0" x2="1" y2="0">
+                                            <stop offset="0%" stopColor={C.primary} stopOpacity={0.5} />
+                                            <stop offset="100%" stopColor={C.primary} stopOpacity={1} />
+                                        </linearGradient>
+                                    ))}
+                                </defs>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    }
+                </Section>
+
+                <Section title="Cotizaciones por estado" className="dashboard-section--status">
                     <ResponsiveContainer width="100%" height={220}>
                         <PieChart>
                             <Pie data={quotePie} cx="50%" cy="50%" innerRadius={48} outerRadius={76} paddingAngle={4} dataKey="value" strokeWidth={0}>
@@ -412,7 +513,7 @@ const SupervisorDashboard = ({ data }) => {
                     </ResponsiveContainer>
                 </Section>
 
-                <Section title="Estado de flota">
+                <Section title="Estado de flota" className="dashboard-section--fleet">
                     <ResponsiveContainer width="100%" height={220}>
                         <PieChart>
                             <Pie
@@ -433,57 +534,43 @@ const SupervisorDashboard = ({ data }) => {
                     </ResponsiveContainer>
                 </Section>
 
-                <Section title="Eficiencia de flota">
-                    <ResponsiveContainer width="100%" height={180}>
-                        <RadialBarChart
-                            cx="50%" cy="55%"
-                            innerRadius="60%" outerRadius="95%"
-                            data={radialData}
-                            startAngle={200} endAngle={-20}
-                        >
-                            <RadialBar
-                                dataKey="value"
-                                cornerRadius={10}
-                                background={{ fill: 'var(--dashboard-radial-track)', cornerRadius: 10 }}
-                            />
-                            <text
-                                x="50%"
-                                y="52%"
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                className="dashboard-radial-value"
-                                style={{ '--dashboard-radial-accent': effColor }}
-                            >
-                                {eff.toFixed(0)}%
-                            </text>
-                            <text
-                                x="50%"
-                                y="66%"
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                className="dashboard-radial-label"
-                            >
-                                REAL / TEÓRICO
-                            </text>
-                            <Tooltip content={<CustomTooltip />} />
-                        </RadialBarChart>
-                    </ResponsiveContainer>
-                </Section>
             </div>
 
-            <Section title="Cotizaciones pendientes recientes">
-                {(pending_quotes || []).length === 0
-                    ? <p className="dashboard-empty dashboard-empty--compact">Sin cotizaciones pendientes</p>
-                    : (pending_quotes || []).map((q, i) => (
-                        <div key={i} className="dashboard-list-row">
-                            <div>
-                                <p className="dashboard-list-row__title">{q.folio}</p>
-                                <p className="dashboard-list-row__meta">{q.operator}</p>
-                            </div>
-                            <p className="dashboard-list-row__value" style={{ '--dashboard-row-accent': C.warning }}>{formatKpi(q.total)}</p>
-                        </div>
-                    ))
-                }
+            <Section title="Eficiencia de flota" className="dashboard-section--efficiency">
+                <ResponsiveContainer width="100%" height={180}>
+                    <RadialBarChart
+                        cx="50%" cy="55%"
+                        innerRadius="60%" outerRadius="95%"
+                        data={radialData}
+                        startAngle={200} endAngle={-20}
+                    >
+                        <RadialBar
+                            dataKey="value"
+                            cornerRadius={10}
+                            background={{ fill: 'var(--dashboard-radial-track)', cornerRadius: 10 }}
+                        />
+                        <text
+                            x="50%"
+                            y="52%"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            className="dashboard-radial-value"
+                            style={{ '--dashboard-radial-accent': effColor }}
+                        >
+                            {eff.toFixed(0)}%
+                        </text>
+                        <text
+                            x="50%"
+                            y="66%"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            className="dashboard-radial-label"
+                        >
+                            REAL / TEÓRICO
+                        </text>
+                        <Tooltip content={<CustomTooltip />} />
+                    </RadialBarChart>
+                </ResponsiveContainer>
             </Section>
         </div>
     );
@@ -509,7 +596,7 @@ const OperadorDashboard = ({ data }) => {
     }));
 
     return (
-        <div className="dashboard-stack">
+        <div className="dashboard-stack dashboard-stack--operador">
             <div className="dashboard-kpis-grid">
                 <KpiCard icon={<FileText size={20} />} label="Mis cotizaciones" value={kpis.total_quotes} color={C.info} />
                 <KpiCard icon={<CheckCircle size={20} />} label="Completadas en período" value={kpis.completed_this_month} color={C.success} />
@@ -518,7 +605,7 @@ const OperadorDashboard = ({ data }) => {
             </div>
 
             <div className="dashboard-feature-grid">
-                <Section title="Mis cotizaciones por estado">
+                <Section title="Mis cotizaciones por estado" className="dashboard-section--status">
                     {pieMine.length === 0
                         ? <p className="dashboard-empty">Sin cotizaciones aún</p>
                         : <ResponsiveContainer width="100%" height={220}>
@@ -533,7 +620,7 @@ const OperadorDashboard = ({ data }) => {
                     }
                 </Section>
 
-                <Section title="Mi actividad semanal (últimas 8 semanas)">
+                <Section title="Mi actividad semanal (últimas 8 semanas)" className="dashboard-section--weekly">
                     <ResponsiveContainer width="100%" height={220}>
                         <LineChart data={lineData} margin={{ top: 4, right: 12, bottom: 0, left: 0 }}>
                             <defs>
@@ -560,7 +647,7 @@ const OperadorDashboard = ({ data }) => {
                 </Section>
             </div>
 
-            <Section title="Mis últimas cotizaciones">
+            <Section title="Mis últimas cotizaciones" className="dashboard-section--recent dashboard-section--primary">
                 {(my_recent || []).length === 0
                     ? <p className="dashboard-empty dashboard-empty--compact">Sin cotizaciones aún</p>
                     : (

@@ -139,6 +139,7 @@ const Login = () => {
                                         type="checkbox"
                                         checked={rememberMe}
                                         onChange={() => setRememberMe((currentState) => !currentState)}
+                                        autoComplete="off"
                                     />
                                     <span>Recordarme</span>
                                 </label>

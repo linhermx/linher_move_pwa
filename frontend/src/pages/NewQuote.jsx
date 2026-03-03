@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MapComponent from '../components/MapComponent';
 import { mapsService, vehicleService, serviceService, settingsService, quotationService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import CustomSelect from '../components/CustomSelect';
-import { MapPin, Trash2, Plus, Loader2, Calculator, Truck, Package, ChevronRight, ChevronDown, Info, Clock, Check, Printer, X, Link as LinkIcon } from 'lucide-react';
+import { MapPin, Trash2, Plus, Loader2, Calculator, Truck, Package, ChevronRight, ChevronDown, Clock, X, Link as LinkIcon } from 'lucide-react';
 import { CalculationMotor } from '../utils/CalculationMotor';
 
 const DEFAULT_EXPANDED_SECTIONS = ['ruta', 'logistica', 'servicios'];
@@ -308,24 +308,24 @@ const NewQuote = () => {
             const [lat, lng] = text.split(',').map(s => parseFloat(s.trim()));
             setSearchLoading(idx);
 
-            // 1. Guardamos la precisión de inmediato para habilitar el cálculo pero mostramos status
+            // Preserve the exact coordinates immediately so calculation can continue while the label resolves.
             setPoints(currentPoints => {
                 const updated = [...currentPoints];
                 updated[idx] = { ...updated[idx], lat, lng, address: 'Obteniendo dirección...' };
                 return updated;
             });
 
-            // 2. Buscamos el nombre de forma asíncrona pero prioritaria
+            // Resolve the human-readable label asynchronously without blocking the flow.
             mapsService.reverseGeocode(lat, lng).then(result => {
                 setPoints(currentPoints => {
                     const updated = [...currentPoints];
-                    // 3. REEMPLAZO: Aquí es donde las coordenadas o el "Obteniendo..." se convierten en el nombre real
+                    // Replace the temporary value with the resolved address once it returns.
                     updated[idx] = { ...updated[idx], address: result.label || text.trim() };
                     return updated;
                 });
             }).catch(err => {
                 console.warn('Background reverse geocode failed:', err);
-                // Si falla, dejamos las coordenadas como último recurso
+                // If reverse geocoding fails, keep the coordinates as the final fallback.
                 setPoints(currentPoints => {
                     const updated = [...currentPoints];
                     if (updated[idx].address === 'Obteniendo dirección...') {
@@ -372,7 +372,7 @@ const NewQuote = () => {
         if (validPoints.length < 2) {
             setAlertConfig({
                 isOpen: true,
-                title: 'Información Faltante',
+                title: 'Información faltante',
                 message: 'Por favor selecciona al menos origen y destino para calcular la ruta.'
             });
             return;
@@ -400,6 +400,9 @@ const NewQuote = () => {
                     distance: (distance / 1000).toFixed(1),
                     duration: Math.round(duration / 60)
                 });
+                if (isCompactLayout) {
+                    setActiveWorkspaceTab('map');
+                }
                 showNotification('Ruta calculada exitosamente', 'success');
             }
 
@@ -431,7 +434,7 @@ const NewQuote = () => {
         }
         setAlertConfig({
             isOpen: true,
-            title: 'Confirmar Cotización',
+            title: 'Confirmar cotización',
             message: `¿Deseas guardar la cotización por un total de $${breakdown.total}?`
         });
     };
@@ -457,6 +460,7 @@ const NewQuote = () => {
         setSearchLoading(null);
         setExpandedSections(DEFAULT_EXPANDED_SECTIONS);
         setIsFabOpen(false);
+        setActiveWorkspaceTab('form');
     };
 
     const handleSave = async (status = 'pendiente') => {
@@ -516,35 +520,115 @@ const NewQuote = () => {
         }
     };
 
-    const isFormTabVisible = !isCompactLayout || activeWorkspaceTab === 'form';
-    const isMapTabVisible = !isCompactLayout || activeWorkspaceTab === 'map';
+    const hasCalculatedRoute = Boolean(routeData && summary.distance > 0);
+    const shouldRenderFormSection = !isCompactLayout || activeWorkspaceTab === 'form' || !hasCalculatedRoute;
+    const shouldRenderMapSection = !isCompactLayout || (activeWorkspaceTab === 'map' && hasCalculatedRoute);
+    const showCompactMapResults = isCompactLayout && shouldRenderMapSection && hasCalculatedRoute;
+
+    const summaryCard = (
+        <div className="workspace-summary-card">
+            <div>
+                <p className="summary-stat__label">DISTANCIA</p>
+                <p className="summary-stat__value">{(parseFloat(summary.distance) || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <span className="summary-stat__unit">km</span></p>
+            </div>
+            <div>
+                <p className="summary-stat__label">TIEMPO EST.</p>
+                <p className="summary-stat__value">{CalculationMotor.formatMinutes(summary.duration)}</p>
+            </div>
+        </div>
+    );
+
+    const breakdownCard = breakdown ? (
+        <div className="workspace-breakdown-card">
+            <h3 className="cost-breakdown__title">
+                <Calculator size={16} /> DESGLOSE DETALLADO
+            </h3>
+
+            <div className="cost-breakdown__stack">
+                <div className="cost-breakdown__metrics">
+                    <div className="cost-breakdown__metric">
+                        <p className="cost-breakdown__metric-label">Dist. Total</p>
+                        <p className="cost-breakdown__metric-value">{(breakdown.distancia_total || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km</p>
+                    </div>
+                    <div className="cost-breakdown__metric">
+                        <p className="cost-breakdown__metric-label">Tiempo Total</p>
+                        <p className="cost-breakdown__metric-value">{CalculationMotor.formatMinutes(breakdown.tiempo_total_min)}</p>
+                    </div>
+                    <div className="cost-breakdown__metric">
+                        <p className="cost-breakdown__metric-label">C/ tráfico</p>
+                        <p className="cost-breakdown__metric-value">{CalculationMotor.formatMinutes(breakdown.tiempo_con_trafico_min)}</p>
+                    </div>
+                    <div className="cost-breakdown__metric">
+                        <p className="cost-breakdown__metric-label">C/ Servicios</p>
+                        <p className="cost-breakdown__metric-value">{breakdown.time_formatted}</p>
+                    </div>
+                </div>
+
+                <div className="cost-breakdown__row">
+                    <span className="text-muted">Gasolina ({(breakdown.gasolina_litros || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L)</span>
+                    <span>${breakdown.gas_cost.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="cost-breakdown__row">
+                    <span className="text-muted">Casetas ({breakdown.num_tolls})</span>
+                    <span>${breakdown.toll_cost.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="cost-breakdown__row cost-breakdown__row--accent">
+                    <span className="cost-breakdown__row-label--strong">Costo logístico (flete)</span>
+                    <span className="cost-breakdown__row-value--strong">${breakdown.logistics_cost_rounded.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <p className="cost-breakdown__note">
+                    Bruto: ${breakdown.logistics_cost_raw.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+
+                <div className="cost-breakdown__divider" />
+
+                {breakdown.lodging_cost > 0 && (
+                    <div className="cost-breakdown__row">
+                        <span className="text-muted">Viáticos hospedaje</span>
+                        <span>${breakdown.lodging_cost.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                )}
+                <div className="cost-breakdown__row">
+                    <span className="text-muted">Viáticos alimentos</span>
+                    <span>${breakdown.meal_cost.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+
+                {services.filter(s => selectedServices.includes(s.id)).map(s => (
+                    <div key={s.id} className="cost-breakdown__row">
+                        <span className="text-muted">{s.name}</span>
+                        <span>${parseFloat(s.cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                ))}
+
+                <div className="cost-breakdown__divider cost-breakdown__divider--strong" />
+
+                <div className="cost-breakdown__row">
+                    <span className="text-muted">Subtotal</span>
+                    <span className="cost-breakdown__row-value">${breakdown.subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="cost-breakdown__row">
+                    <span className="text-muted">IVA (16%)</span>
+                    <span className="cost-breakdown__row-value">${breakdown.iva.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+
+                <div className="cost-breakdown__total">
+                    <p className="cost-breakdown__total-label">TOTAL NETO</p>
+                    <p className="cost-breakdown__total-value">
+                        ${breakdown.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                </div>
+            </div>
+            <p className="cost-breakdown__footnote">
+                * Precios aproximados sujetos a cambios en ruta.
+            </p>
+        </div>
+    ) : null;
 
     return (
         <div className="page-shell page-shell--workspace fade-in workspace-shell">
-            {isCompactLayout ? (
-                <div className="workspace-tabs" role="tablist" aria-label="Vista de nueva cotización">
-                    <button
-                        type="button"
-                        role="tab"
-                        className={`workspace-tabs__trigger ${activeWorkspaceTab === 'form' ? 'workspace-tabs__trigger--active' : ''}`.trim()}
-                        aria-selected={activeWorkspaceTab === 'form'}
-                        onClick={() => setActiveWorkspaceTab('form')}
-                    >
-                        Formulario
-                    </button>
-                    <button
-                        type="button"
-                        role="tab"
-                        className={`workspace-tabs__trigger ${activeWorkspaceTab === 'map' ? 'workspace-tabs__trigger--active' : ''}`.trim()}
-                        aria-selected={activeWorkspaceTab === 'map'}
-                        onClick={() => setActiveWorkspaceTab('map')}
-                    >
-                        Mapa
-                    </button>
-                </div>
-            ) : null}
 
-            <section className={`workspace-shell__panel ${isFormTabVisible ? '' : 'workspace-shell__panel--hidden'}`.trim()}>
+            {shouldRenderFormSection ? (
+            <section className="workspace-shell__panel">
                 <div
                     ref={panelBodyRef}
                     className={`workspace-shell__panel-body ${hasPanelOverflow ? 'workspace-shell__panel-body--scrollable custom-scrollbar' : ''}`.trim()}
@@ -589,6 +673,7 @@ const NewQuote = () => {
                                                     value={p.address}
                                                     onChange={(e) => handleSearch(idx, e.target.value)}
                                                     placeholder={`Buscar ${p.label}...`}
+                                                    autoComplete="street-address"
                                                 />
                                             </div>
 
@@ -639,6 +724,7 @@ const NewQuote = () => {
                                                                     onChange={(e) => setMapsUrl(e.target.value)}
                                                                     placeholder="Pega el link de Maps aquí..."
                                                                     autoFocus
+                                                                    autoComplete="url"
                                                                 />
                                                             </div>
                                                         </div>
@@ -659,7 +745,7 @@ const NewQuote = () => {
                         )}
                     </div>
 
-                    {/* Logística Section */}
+                    {/* Logistics Section */}
                     <div className="card accordion-card">
                         <div
                             onClick={() => toggleSection('logistica')}
@@ -701,6 +787,7 @@ const NewQuote = () => {
                                             value={numTrips || ''}
                                             onChange={(e) => setNumTrips(e.target.value)}
                                             placeholder="1"
+                                            autoComplete="off"
                                         />
                                     </div>
                                     <div>
@@ -713,6 +800,7 @@ const NewQuote = () => {
                                             value={numTolls || ''}
                                             onChange={(e) => setNumTolls(e.target.value)}
                                             placeholder="0"
+                                            autoComplete="off"
                                         />
                                     </div>
                                     <div>
@@ -725,6 +813,7 @@ const NewQuote = () => {
                                             value={costPerToll || ''}
                                             onChange={(e) => setCostPerToll(e.target.value)}
                                             placeholder="0.00"
+                                            autoComplete="off"
                                         />
                                     </div>
                                 </div>
@@ -771,122 +860,70 @@ const NewQuote = () => {
                         disabled={loading || searchLoading !== null}
                         className="btn btn-primary workspace-calc-button">
                         {loading ? <Loader2 className="animate-spin" size={20} /> : <Calculator size={20} />}
-                        Calcular Cotización
+                        Calcular cotización
                     </button>
                 </div>
             </section>
+            ) : null}
 
-            <section className={`workspace-shell__map ${isMapTabVisible ? '' : 'workspace-shell__map--hidden'}`.trim()}>
-                <div className="workspace-shell__map-canvas">
-                    <MapComponent points={points} routeData={routeData} onMarkerDrag={updatePoint} />
-                </div>
-
-                <div className={`workspace-shell__overlay ${isCompactLayout ? 'workspace-shell__overlay--stacked' : ''}`.trim()}>
-                    {/* Route Summary */}
-                    <div className="workspace-summary-card">
-                        <div>
-                            <p className="summary-stat__label">DISTANCIA</p>
-                            <p className="summary-stat__value">{(parseFloat(summary.distance) || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <span className="summary-stat__unit">km</span></p>
-                        </div>
-                        <div>
-                            <p className="summary-stat__label">TIEMPO EST.</p>
-                            <p className="summary-stat__value">{CalculationMotor.formatMinutes(summary.duration)}</p>
-                        </div>
+            {shouldRenderMapSection ? (
+            <section className="workspace-shell__map">
+                <div className="workspace-shell__map-stage">
+                    <div className="workspace-shell__map-canvas">
+                        <MapComponent points={points} routeData={routeData} onMarkerDrag={updatePoint} />
                     </div>
 
-                    {/* Cost Breakdown */}
-                    {breakdown && (
-                        <div className="workspace-breakdown-card">
-                            <h3 className="cost-breakdown__title">
-                                <Calculator size={16} /> DESGLOSE DETALLADO
-                            </h3>
-
-                            <div className="cost-breakdown__stack">
-                                {/* Distances & Times */}
-                                <div className="cost-breakdown__metrics">
-                                    <div className="cost-breakdown__metric">
-                                        <p className="cost-breakdown__metric-label">Dist. Total</p>
-                                        <p className="cost-breakdown__metric-value">{(breakdown.distancia_total || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km</p>
-                                    </div>
-                                    <div className="cost-breakdown__metric">
-                                        <p className="cost-breakdown__metric-label">Tiempo Total</p>
-                                        <p className="cost-breakdown__metric-value">{CalculationMotor.formatMinutes(breakdown.tiempo_total_min)}</p>
-                                    </div>
-                                    <div className="cost-breakdown__metric">
-                                        <p className="cost-breakdown__metric-label">C/ Tráfico</p>
-                                        <p className="cost-breakdown__metric-value">{CalculationMotor.formatMinutes(breakdown.tiempo_con_trafico_min)}</p>
-                                    </div>
-                                    <div className="cost-breakdown__metric">
-                                        <p className="cost-breakdown__metric-label">C/ Servicios</p>
-                                        <p className="cost-breakdown__metric-value">{breakdown.time_formatted}</p>
-                                    </div>
-                                </div>
-
-                                {/* Logistics Breakdown */}
-                                <div className="cost-breakdown__row">
-                                    <span className="text-muted">Gasolina ({(breakdown.gasolina_litros || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L)</span>
-                                    <span>${breakdown.gas_cost.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </div>
-                                <div className="cost-breakdown__row">
-                                    <span className="text-muted">Casetas ({breakdown.num_tolls})</span>
-                                    <span>${breakdown.toll_cost.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </div>
-                                <div className="cost-breakdown__row cost-breakdown__row--accent">
-                                    <span className="cost-breakdown__row-label--strong">Costo Logístico (Flete)</span>
-                                    <span className="cost-breakdown__row-value--strong">${breakdown.logistics_cost_rounded.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </div>
-                                <p className="cost-breakdown__note">
-                                    Bruto: ${breakdown.logistics_cost_raw.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </p>
-
-                                <div className="cost-breakdown__divider" />
-
-                                {/* Viáticos & Services */}
-                                {breakdown.lodging_cost > 0 && (
-                                    <div className="cost-breakdown__row">
-                                        <span className="text-muted">Viáticos Hospedaje</span>
-                                        <span>${breakdown.lodging_cost.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                    </div>
-                                )}
-                                <div className="cost-breakdown__row">
-                                    <span className="text-muted">Viáticos Alimentos</span>
-                                    <span>${breakdown.meal_cost.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </div>
-
-                                {services.filter(s => selectedServices.includes(s.id)).map(s => (
-                                    <div key={s.id} className="cost-breakdown__row">
-                                        <span className="text-muted">{s.name}</span>
-                                        <span>${parseFloat(s.cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                    </div>
-                                ))}
-
-                                <div className="cost-breakdown__divider cost-breakdown__divider--strong" />
-
-                                <div className="cost-breakdown__row">
-                                    <span className="text-muted">Subtotal</span>
-                                    <span className="cost-breakdown__row-value">${breakdown.subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </div>
-                                <div className="cost-breakdown__row">
-                                    <span className="text-muted">IVA (16%)</span>
-                                    <span className="cost-breakdown__row-value">${breakdown.iva.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </div>
-
-                                <div className="cost-breakdown__total">
-                                    <p className="cost-breakdown__total-label">TOTAL NETO</p>
-                                    <p className="cost-breakdown__total-value">
-                                        ${breakdown.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </p>
-                                </div>
-                            </div>
-                            <p className="cost-breakdown__footnote">
-                                * Precios aproximados sujetos a cambios en ruta.
-                            </p>
+                    {!showCompactMapResults && hasCalculatedRoute ? (
+                        <div className={`workspace-shell__overlay ${isCompactLayout ? 'workspace-shell__overlay--mobile' : ''}`.trim()}>
+                            {summaryCard}
+                            {breakdownCard}
                         </div>
-                    )}
-
+                    ) : null}
                 </div>
 
-                {breakdown && (
+                {showCompactMapResults ? (
+                    <div className="workspace-mobile-results-stack fade-in-up">
+                        <div className="workspace-mobile-results-bar">
+                            <div className="workspace-mobile-results-bar__copy">
+                                <span className="workspace-mobile-results-bar__eyebrow">{breakdown ? 'Ruta calculada' : 'Vista de ruta'}</span>
+                                <strong className="workspace-mobile-results-bar__title">
+                                    {breakdown ? 'Revisa el trayecto y el total estimado' : 'Ajusta la ruta directo en el mapa'}
+                                </strong>
+                            </div>
+                            <button
+                                type="button"
+                                className="btn btn-secondary workspace-mobile-results-bar__button"
+                                onClick={() => setActiveWorkspaceTab('form')}
+                            >
+                                Editar datos
+                            </button>
+                        </div>
+                        {summaryCard}
+                        {breakdownCard}
+                        {breakdown ? (
+                            <div className="workspace-mobile-results-actions">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={resetQuotation}
+                                >
+                                    <Plus size={18} />
+                                    Nueva cotización
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={() => handleSave('pendiente')}
+                                >
+                                    <Clock size={18} />
+                                    Guardar como pendiente
+                                </button>
+                            </div>
+                        ) : null}
+                    </div>
+                ) : null}
+
+                {breakdown && !showCompactMapResults ? (
                     <div className="fab-container" ref={fabRef}>
                         <div className="fab-speed-dial">
                             {isFabOpen ? (
@@ -931,10 +968,12 @@ const NewQuote = () => {
                             </button>
                         </div>
                     </div>
-                )}
+                ) : null}
             </section>
+            ) : null}
         </div>
     );
 };
 
 export default NewQuote;
+

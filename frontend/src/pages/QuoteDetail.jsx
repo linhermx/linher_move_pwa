@@ -507,6 +507,7 @@ const QuoteDetail = () => {
                                     value={manualAdjustments.lodging_cost}
                                     onChange={(e) => handleAdjustmentChange('lodging_cost', e.target.value)}
                                     readOnly={isLocked}
+                                    autoComplete="off"
                                 />
                             </div>
                             <div>
@@ -519,6 +520,7 @@ const QuoteDetail = () => {
                                     value={manualAdjustments.meal_cost}
                                     onChange={(e) => handleAdjustmentChange('meal_cost', e.target.value)}
                                     readOnly={isLocked}
+                                    autoComplete="off"
                                 />
                             </div>
                         </div>

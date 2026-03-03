@@ -92,6 +92,7 @@ const Services = () => {
                     placeholder={'Buscar servicios...'}
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
+                    autoComplete="off"
                 />
             </div>
 

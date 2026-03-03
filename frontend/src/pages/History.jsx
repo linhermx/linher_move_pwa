@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Eye, FileText, Filter, RotateCcw, Search } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronUp, Eye, FileText, Filter, RotateCcw, Search } from 'lucide-react';
 import { quotationService } from '../services/api';
 import { PDFService } from '../services/PDFService';
 import { formatDate } from '../utils/formatters';
@@ -9,6 +9,8 @@ import CustomSelect from '../components/CustomSelect';
 import Pagination from '../components/Pagination';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
+
+const MOBILE_FILTER_QUERY = '(max-width: 768px)';
 
 const History = () => {
     const navigate = useNavigate();
@@ -22,6 +24,8 @@ const History = () => {
     const [dateTo, setDateTo] = useState('');
     const [limit, setLimit] = useState(10);
     const [offset, setOffset] = useState(0);
+    const [isMobileFilters, setIsMobileFilters] = useState(() => window.matchMedia(MOBILE_FILTER_QUERY).matches);
+    const [areFiltersExpanded, setAreFiltersExpanded] = useState(() => !window.matchMedia(MOBILE_FILTER_QUERY).matches);
 
     const fetchQuotes = async () => {
         setLoading(true);
@@ -89,6 +93,23 @@ const History = () => {
         return () => clearTimeout(timer);
     }, [search, statusFilter, period, dateFrom, dateTo, limit, offset]);
 
+    useEffect(() => {
+        const mediaQuery = window.matchMedia(MOBILE_FILTER_QUERY);
+        const handleChange = (event) => {
+            setIsMobileFilters(event.matches);
+            setAreFiltersExpanded((currentState) => (event.matches ? currentState : true));
+        };
+
+        setIsMobileFilters(mediaQuery.matches);
+        setAreFiltersExpanded((currentState) => (mediaQuery.matches ? currentState : true));
+
+        mediaQuery.addEventListener('change', handleChange);
+
+        return () => {
+            mediaQuery.removeEventListener('change', handleChange);
+        };
+    }, []);
+
     const getStatusBadge = (status) => {
         switch (status) {
             case 'completada':
@@ -114,6 +135,9 @@ const History = () => {
         setOffset(0);
     };
 
+    const activeFilterCount = [search, statusFilter, period, dateFrom, dateTo].filter(Boolean).length;
+    const shouldShowAdvancedFilters = !isMobileFilters || areFiltersExpanded;
+
     return (
         <div className="page-shell fade-in stack-lg">
             <PageHeader
@@ -122,7 +146,7 @@ const History = () => {
             />
 
             <section className="card stack-md" aria-label="Filtros de historial">
-                <div className="filter-toolbar">
+                <div className="filter-toolbar filter-toolbar--adaptive">
                     <div className="filter-toolbar__item filter-toolbar__item--search">
                         <div className="form-field-group">
                             <label className="sr-only" htmlFor="history-search">Buscar cotizaciones por folio</label>
@@ -134,83 +158,114 @@ const History = () => {
                                 value={search}
                                 placeholder="Buscar por folio..."
                                 onChange={(event) => setSearch(event.target.value)}
+                                autoComplete="off"
                             />
                         </div>
                     </div>
 
-                    <div className="filter-toolbar__item">
-                        <div className="form-field-group">
-                            <Calendar size={18} className="text-muted" />
-                            <CustomSelect
-                                id="history-period"
-                                name="period"
-                                ariaLabel="Filtrar historial por periodo"
-                                value={period}
-                                onChange={(event) => setPeriod(event.target.value)}
-                                options={[
-                                    { value: '', label: 'Cualquier fecha' },
-                                    { value: 'today', label: 'Hoy' },
-                                    { value: 'week', label: 'Esta semana' },
-                                    { value: 'month', label: 'Este mes' },
-                                    { value: 'year', label: 'Este año' },
-                                    { value: 'custom', label: 'Personalizado...' }
-                                ]}
-                            />
-                        </div>
-                    </div>
-
-                    {period === 'custom' ? (
-                        <div className="filter-toolbar__item filter-toolbar__item--date fade-in">
-                            <div className="form-field-group filter-toolbar__date-range">
-                                <label className="sr-only" htmlFor="history-date-from">Fecha desde</label>
-                                <input
-                                    id="history-date-from"
-                                    name="date_from"
-                                    type="date"
-                                    value={dateFrom}
-                                    onChange={(event) => setDateFrom(event.target.value)}
-                                />
-                                <span>-</span>
-                                <label className="sr-only" htmlFor="history-date-to">Fecha hasta</label>
-                                <input
-                                    id="history-date-to"
-                                    name="date_to"
-                                    type="date"
-                                    value={dateTo}
-                                    onChange={(event) => setDateTo(event.target.value)}
-                                />
-                            </div>
-                        </div>
-                    ) : null}
-
-                    <div className="filter-toolbar__item">
-                        <div className="form-field-group">
-                            <Filter size={18} className="text-muted" />
-                            <CustomSelect
-                                id="history-status"
-                                name="status"
-                                ariaLabel="Filtrar historial por estatus"
-                                value={statusFilter}
-                                onChange={(event) => setStatusFilter(event.target.value)}
-                                options={[
-                                    { value: '', label: 'Todos los estatus' },
-                                    { value: 'pendiente', label: 'Pendiente' },
-                                    { value: 'en_proceso', label: 'En Proceso' },
-                                    { value: 'completada', label: 'Completada' },
-                                    { value: 'cancelada', label: 'Cancelada' }
-                                ]}
-                            />
-                        </div>
-                    </div>
-
-                    {(search || statusFilter || period || dateFrom || dateTo) ? (
-                        <div className="filter-toolbar__actions">
-                            <button type="button" className="btn btn-secondary" onClick={clearFilters}>
-                                <RotateCcw size={16} />
-                                Limpiar filtros
+                    {isMobileFilters ? (
+                        <div className="filter-toolbar__mobile-toggle">
+                            <button
+                                type="button"
+                                className="filter-toolbar__mobile-toggle-button"
+                                onClick={() => setAreFiltersExpanded((currentState) => !currentState)}
+                                aria-expanded={areFiltersExpanded}
+                                aria-controls="history-advanced-filters"
+                            >
+                                <span className="cluster-sm">
+                                    <Filter size={16} />
+                                    <span>{areFiltersExpanded ? 'Ocultar filtros' : 'Ver filtros'}</span>
+                                </span>
+                                <span className="filter-toolbar__mobile-meta">
+                                    <span className="filter-toolbar__mobile-count">
+                                        {activeFilterCount ? `${activeFilterCount} activos` : 'Opcionales'}
+                                    </span>
+                                    {areFiltersExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                </span>
                             </button>
                         </div>
                     ) : null}
+
+                    <div
+                        id="history-advanced-filters"
+                        className={`filter-toolbar__advanced ${shouldShowAdvancedFilters ? '' : 'filter-toolbar__advanced--hidden'}`.trim()}
+                    >
+                        <div className="filter-toolbar__item">
+                            <div className="form-field-group">
+                                <Calendar size={18} className="text-muted" />
+                                <CustomSelect
+                                    id="history-period"
+                                    name="period"
+                                    ariaLabel="Filtrar historial por periodo"
+                                    value={period}
+                                    onChange={(event) => setPeriod(event.target.value)}
+                                    options={[
+                                        { value: '', label: 'Cualquier fecha' },
+                                        { value: 'today', label: 'Hoy' },
+                                        { value: 'week', label: 'Esta semana' },
+                                        { value: 'month', label: 'Este mes' },
+                                        { value: 'year', label: 'Este año' },
+                                        { value: 'custom', label: 'Personalizado...' }
+                                    ]}
+                                />
+                            </div>
+                        </div>
+
+                        {period === 'custom' ? (
+                            <div className="filter-toolbar__item filter-toolbar__item--date fade-in">
+                                <div className="form-field-group filter-toolbar__date-range">
+                                    <label className="sr-only" htmlFor="history-date-from">Fecha desde</label>
+                                    <input
+                                        id="history-date-from"
+                                        name="date_from"
+                                        type="date"
+                                        value={dateFrom}
+                                        onChange={(event) => setDateFrom(event.target.value)}
+                                        autoComplete="off"
+                                    />
+                                    <span>-</span>
+                                    <label className="sr-only" htmlFor="history-date-to">Fecha hasta</label>
+                                    <input
+                                        id="history-date-to"
+                                        name="date_to"
+                                        type="date"
+                                        value={dateTo}
+                                        onChange={(event) => setDateTo(event.target.value)}
+                                        autoComplete="off"
+                                    />
+                                </div>
+                            </div>
+                        ) : null}
+
+                        <div className="filter-toolbar__item">
+                            <div className="form-field-group">
+                                <Filter size={18} className="text-muted" />
+                                <CustomSelect
+                                    id="history-status"
+                                    name="status"
+                                    ariaLabel="Filtrar historial por estatus"
+                                    value={statusFilter}
+                                    onChange={(event) => setStatusFilter(event.target.value)}
+                                    options={[
+                                        { value: '', label: 'Todos los estatus' },
+                                        { value: 'pendiente', label: 'Pendiente' },
+                                        { value: 'en_proceso', label: 'En Proceso' },
+                                        { value: 'completada', label: 'Completada' },
+                                        { value: 'cancelada', label: 'Cancelada' }
+                                    ]}
+                                />
+                            </div>
+                        </div>
+
+                        {(search || statusFilter || period || dateFrom || dateTo) ? (
+                            <div className="filter-toolbar__actions">
+                                <button type="button" className="btn btn-secondary" onClick={clearFilters}>
+                                    <RotateCcw size={16} />
+                                    Limpiar filtros
+                                </button>
+                            </div>
+                        ) : null}
+                    </div>
                 </div>
             </section>
 

@@ -111,31 +111,32 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
                 </button>
 
                 <h2 id={labelledBy} className="legacy-modal__title">
-                    {isEdit ? 'Editar Servicio' : 'Nuevo Servicio'}
+                    {isEdit ? 'Editar servicio' : 'Nuevo servicio'}
                 </h2>
                 <p id={describedBy} className="text-muted legacy-modal__subtitle">
-                    {'Define el servicio, su costo y el tiempo operativo asociado.'}
+                    Define el servicio, su costo y el tiempo operativo asociado.
                 </p>
 
                 {error ? <Alert className="legacy-modal__error">{error}</Alert> : null}
 
                 <form onSubmit={handleSubmit} className="legacy-modal-form">
                     <div>
-                        <label className="form-label" htmlFor={fieldIds.name}>{'NOMBRE DEL SERVICIO'}</label>
+                        <label className="form-label" htmlFor={fieldIds.name}>NOMBRE DEL SERVICIO</label>
                         <input
                             id={fieldIds.name}
                             type="text"
                             name="name"
                             value={formData.name}
                             onChange={handleChange}
-                            placeholder={'Ej. Maniobra Especial'}
+                            placeholder="Ej. Maniobra especial"
                             className="form-field"
+                            autoComplete="off"
                         />
                     </div>
 
                     <div className="form-grid form-grid--two">
                         <div>
-                            <label className="form-label" htmlFor={fieldIds.cost}>{'COSTO ($)'}</label>
+                            <label className="form-label" htmlFor={fieldIds.cost}>COSTO ($)</label>
                             <input
                                 id={fieldIds.cost}
                                 type="number"
@@ -145,10 +146,11 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
                                 onChange={handleChange}
                                 placeholder="0.00"
                                 className="form-field"
+                                autoComplete="off"
                             />
                         </div>
                         <div>
-                            <label className="form-label" htmlFor={fieldIds.timeMinutes}>{'TIEMPO (MIN)'}</label>
+                            <label className="form-label" htmlFor={fieldIds.timeMinutes}>TIEMPO (MIN)</label>
                             <input
                                 id={fieldIds.timeMinutes}
                                 type="number"
@@ -157,12 +159,13 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
                                 onChange={handleChange}
                                 placeholder="0"
                                 className="form-field"
+                                autoComplete="off"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label className="form-label" htmlFor={fieldIds.description}>{'DESCRIPCION (OPCIONAL)'}</label>
+                        <label className="form-label" htmlFor={fieldIds.description}>DESCRIPCIÓN (OPCIONAL)</label>
                         <textarea
                             id={fieldIds.description}
                             name="description"
@@ -170,6 +173,7 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
                             onChange={handleChange}
                             rows="3"
                             className="form-field resize-none"
+                            autoComplete="off"
                         />
                     </div>
 
@@ -189,13 +193,13 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
                         </div>
                     </div>
 
-                    <div className="modal-actions modal-actions--split">
-                        <button type="button" onClick={onClose} className="btn btn-secondary">
+                    <div className="modal-actions modal-actions--split legacy-modal__actions">
+                        <button type="button" onClick={onClose} className="btn btn-secondary legacy-modal__action-button">
                             Cancelar
                         </button>
-                        <button type="submit" disabled={loading} className="btn btn-primary">
+                        <button type="submit" disabled={loading} className="btn btn-primary legacy-modal__action-button">
                             <Save size={18} />
-                            {loading ? 'Guardando...' : 'Guardar'}
+                            {loading ? 'Guardando...' : (isEdit ? 'Actualizar servicio' : 'Guardar servicio')}
                         </button>
                     </div>
                 </form>

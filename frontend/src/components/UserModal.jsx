@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Save, User, Shield, Camera } from 'lucide-react';
+import { X, Save, Shield, Camera } from 'lucide-react';
 import { userService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import CustomSelect from './CustomSelect';
@@ -147,10 +147,10 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
 
                 <h2 id={labelledBy} className="legacy-modal__title legacy-modal__title-row">
                     <Shield size={20} className="text-primary" />
-                    {isEdit ? 'Editar Usuario' : 'Nuevo Usuario'}
+                    {isEdit ? 'Editar usuario' : 'Nuevo usuario'}
                 </h2>
                 <p id={describedBy} className="text-muted legacy-modal__subtitle">
-                    {'Completa los datos del usuario y define su rol dentro del sistema.'}
+                    Completa los datos del usuario y define su rol dentro del sistema.
                 </p>
 
                 {error ? <Alert className="legacy-modal__error">{error}</Alert> : null}
@@ -180,7 +180,7 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                     </div>
 
                     <div>
-                        <label className="form-label" htmlFor={fieldIds.name}>{'NOMBRE COMPLETO'}</label>
+                        <label className="form-label" htmlFor={fieldIds.name}>NOMBRE COMPLETO</label>
                         <input
                             id={fieldIds.name}
                             type="text"
@@ -188,12 +188,13 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                             className="form-field"
                             value={formData.name}
                             onChange={handleChange}
-                            placeholder={'Ej. Juan Perez'}
+                            placeholder="Ej. Juan Pérez"
+                            autoComplete="name"
                         />
                     </div>
 
                     <div>
-                        <label className="form-label" htmlFor={fieldIds.email}>{'CORREO ELECTRONICO'}</label>
+                        <label className="form-label" htmlFor={fieldIds.email}>CORREO ELECTRÓNICO</label>
                         <input
                             id={fieldIds.email}
                             type="email"
@@ -202,12 +203,13 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                             value={formData.email}
                             onChange={handleChange}
                             placeholder="usuario@linher.com"
+                            autoComplete="email"
                         />
                     </div>
 
                     <div>
                         <label className="form-label" htmlFor={fieldIds.password}>
-                            {`CONTRASENA ${isEdit ? '(Dejar en blanco para no cambiar)' : ''}`}
+                            {`CONTRASEÑA ${isEdit ? '(Dejar en blanco para no cambiar)' : ''}`}
                         </label>
                         <input
                             id={fieldIds.password}
@@ -217,12 +219,13 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                             value={formData.password}
                             onChange={handleChange}
                             placeholder="********"
+                            autoComplete="new-password"
                         />
                     </div>
 
                     <div className="form-grid form-grid--two">
                         <div>
-                            <label className="form-label" htmlFor={fieldIds.role}>{'ROL DEL SISTEMA'}</label>
+                            <label className="form-label" htmlFor={fieldIds.role}>ROL DEL SISTEMA</label>
                             <div className="form-select-container">
                                 <CustomSelect
                                     id={fieldIds.role}
@@ -251,13 +254,13 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                         </div>
                     </div>
 
-                    <div className="modal-actions modal-actions--split">
-                        <button type="button" onClick={onClose} className="btn btn-secondary">
+                    <div className="modal-actions modal-actions--split legacy-modal__actions">
+                        <button type="button" onClick={onClose} className="btn btn-secondary legacy-modal__action-button">
                             Cancelar
                         </button>
-                        <button type="submit" disabled={loading} className="btn btn-primary">
+                        <button type="submit" disabled={loading} className="btn btn-primary legacy-modal__action-button">
                             <Save size={18} />
-                            {loading ? 'Guardando...' : (isEdit ? 'Actualizar' : 'Crear Usuario')}
+                            {loading ? 'Guardando...' : (isEdit ? 'Actualizar usuario' : 'Crear usuario')}
                         </button>
                     </div>
                 </form>

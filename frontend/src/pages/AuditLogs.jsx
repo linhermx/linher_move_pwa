@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Calendar, Filter, Info, RotateCcw, Search, ShieldCheck, User } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronUp, Filter, Info, RotateCcw, Search, ShieldCheck, User } from 'lucide-react';
 import { logService, userService } from '../services/api';
 import CustomSelect from '../components/CustomSelect';
 import PageHeader from '../components/PageHeader';
@@ -30,9 +30,9 @@ const SOURCE_OPTIONS = [
     { value: '', label: 'Cualquier origen' },
     { value: 'frontend', label: 'Frontend' },
     { value: 'server', label: 'Servidor' },
-    { value: 'integration', label: 'Integracion' },
+    { value: 'integration', label: 'Integración' },
     { value: 'backup', label: 'Backups' },
-    { value: 'auth', label: 'Autenticacion' },
+    { value: 'auth', label: 'Autenticación' },
     { value: 'settings', label: 'Ajustes' },
     { value: 'runtime', label: 'Runtime' },
     { value: 'cron', label: 'Cron' }
@@ -49,6 +49,8 @@ const INITIAL_FILTERS = {
     limit: 10,
     offset: 0
 };
+
+const MOBILE_FILTER_QUERY = '(max-width: 768px)';
 
 const getSeverityVariant = (severity) => {
     switch (severity) {
@@ -85,6 +87,8 @@ const AuditLogs = () => {
     const [selectedLog, setSelectedLog] = useState(null);
     const [error, setError] = useState('');
     const [filters, setFilters] = useState(INITIAL_FILTERS);
+    const [isMobileFilters, setIsMobileFilters] = useState(() => window.matchMedia(MOBILE_FILTER_QUERY).matches);
+    const [areFiltersExpanded, setAreFiltersExpanded] = useState(() => !window.matchMedia(MOBILE_FILTER_QUERY).matches);
 
     const loadLogs = useCallback(async (activeFilters) => {
         setLoading(true);
@@ -94,7 +98,7 @@ const AuditLogs = () => {
             setPagination(response.pagination || { current_page: 1, pages: 1, total: 0, limit: activeFilters.limit });
             setError('');
         } catch {
-            setError('No se pudieron cargar los registros de auditoria.');
+            setError('No se pudieron cargar los registros de auditoría.');
         } finally {
             setLoading(false);
         }
@@ -120,6 +124,23 @@ const AuditLogs = () => {
 
         return () => clearTimeout(timer);
     }, [filters, loadLogs]);
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia(MOBILE_FILTER_QUERY);
+        const handleChange = (event) => {
+            setIsMobileFilters(event.matches);
+            setAreFiltersExpanded((currentState) => (event.matches ? currentState : true));
+        };
+
+        setIsMobileFilters(mediaQuery.matches);
+        setAreFiltersExpanded((currentState) => (mediaQuery.matches ? currentState : true));
+
+        mediaQuery.addEventListener('change', handleChange);
+
+        return () => {
+            mediaQuery.removeEventListener('change', handleChange);
+        };
+    }, []);
 
     const clearFilters = () => {
         setFilters(INITIAL_FILTERS);
@@ -148,6 +169,16 @@ const AuditLogs = () => {
         filters.date_from ||
         filters.date_to
     );
+    const activeFilterCount = [
+        filters.search,
+        filters.log_type,
+        filters.severity,
+        filters.source,
+        filters.user_id,
+        filters.date_from,
+        filters.date_to
+    ].filter(Boolean).length;
+    const shouldShowAdvancedFilters = !isMobileFilters || areFiltersExpanded;
 
     return (
         <div className="page-shell fade-in stack-lg">
@@ -158,8 +189,8 @@ const AuditLogs = () => {
 
             {error ? <Alert type="error">{error}</Alert> : null}
 
-            <section className="card" aria-label="Filtros de auditoria">
-                <div className="filter-toolbar filter-toolbar--audit">
+            <section className="card" aria-label="Filtros de auditoría">
+                <div className="filter-toolbar filter-toolbar--audit filter-toolbar--adaptive">
                     <div className="filter-toolbar__item filter-toolbar__item--search">
                         <div className="form-field-group">
                             <label className="sr-only" htmlFor="audit-search">Buscar registros de auditoría</label>
@@ -169,129 +200,160 @@ const AuditLogs = () => {
                                 name="audit_search"
                                 type="text"
                                 value={filters.search}
-                                placeholder="Buscar por accion, origen o usuario..."
+                                placeholder="Buscar por acción, origen o usuario..."
                                 onChange={(event) => setFilters((currentFilters) => ({
                                     ...currentFilters,
                                     search: event.target.value,
                                     offset: 0
                                 }))}
+                                autoComplete="off"
                             />
                         </div>
                     </div>
 
-                    <div className="filter-toolbar__item">
-                        <div className="form-select-container">
-                            <CustomSelect
-                                id="audit-log-type"
-                                name="log_type"
-                                ariaLabel="Filtrar auditoría por tipo"
-                                icon={Filter}
-                                value={filters.log_type}
-                                onChange={(event) => setFilters((currentFilters) => ({
-                                    ...currentFilters,
-                                    log_type: event.target.value,
-                                    offset: 0
-                                }))}
-                                options={LOG_TYPE_OPTIONS}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="filter-toolbar__item">
-                        <div className="form-select-container">
-                            <CustomSelect
-                                id="audit-severity"
-                                name="severity"
-                                ariaLabel="Filtrar auditoría por severidad"
-                                icon={Info}
-                                value={filters.severity}
-                                onChange={(event) => setFilters((currentFilters) => ({
-                                    ...currentFilters,
-                                    severity: event.target.value,
-                                    offset: 0
-                                }))}
-                                options={SEVERITY_OPTIONS}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="filter-toolbar__item">
-                        <div className="form-select-container">
-                            <CustomSelect
-                                id="audit-source"
-                                name="source"
-                                ariaLabel="Filtrar auditoría por origen"
-                                icon={ShieldCheck}
-                                value={filters.source}
-                                onChange={(event) => setFilters((currentFilters) => ({
-                                    ...currentFilters,
-                                    source: event.target.value,
-                                    offset: 0
-                                }))}
-                                options={SOURCE_OPTIONS}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="filter-toolbar__item">
-                        <div className="form-select-container">
-                            <CustomSelect
-                                id="audit-user"
-                                name="user_id"
-                                ariaLabel="Filtrar auditoría por usuario"
-                                icon={User}
-                                value={filters.user_id}
-                                onChange={(event) => setFilters((currentFilters) => ({
-                                    ...currentFilters,
-                                    user_id: event.target.value,
-                                    offset: 0
-                                }))}
-                                options={userOptions}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="filter-toolbar__item filter-toolbar__item--date">
-                        <div className="form-field-group filter-toolbar__date-range">
-                            <label className="sr-only" htmlFor="audit-date-from">Fecha desde</label>
-                            <Calendar size={16} className="text-muted" />
-                            <input
-                                id="audit-date-from"
-                                name="date_from"
-                                type="date"
-                                value={filters.date_from}
-                                onChange={(event) => setFilters((currentFilters) => ({
-                                    ...currentFilters,
-                                    date_from: event.target.value,
-                                    offset: 0
-                                }))}
-                                aria-label="Fecha desde"
-                            />
-                            <span className="text-muted">-</span>
-                            <label className="sr-only" htmlFor="audit-date-to">Fecha hasta</label>
-                            <input
-                                id="audit-date-to"
-                                name="date_to"
-                                type="date"
-                                value={filters.date_to}
-                                onChange={(event) => setFilters((currentFilters) => ({
-                                    ...currentFilters,
-                                    date_to: event.target.value,
-                                    offset: 0
-                                }))}
-                                aria-label="Fecha hasta"
-                            />
-                        </div>
-                    </div>
-
-                    {hasActiveFilters ? (
-                        <div className="filter-toolbar__actions">
-                        <button type="button" className="btn btn-secondary" onClick={clearFilters}>
-                            <RotateCcw size={14} />
-                            Limpiar
-                        </button>
+                    {isMobileFilters ? (
+                        <div className="filter-toolbar__mobile-toggle">
+                            <button
+                                type="button"
+                                className="filter-toolbar__mobile-toggle-button"
+                                onClick={() => setAreFiltersExpanded((currentState) => !currentState)}
+                                aria-expanded={areFiltersExpanded}
+                                aria-controls="audit-advanced-filters"
+                            >
+                                <span className="cluster-sm">
+                                    <Filter size={16} />
+                                    <span>{areFiltersExpanded ? 'Ocultar filtros' : 'Ver filtros'}</span>
+                                </span>
+                                <span className="filter-toolbar__mobile-meta">
+                                    <span className="filter-toolbar__mobile-count">
+                                        {activeFilterCount ? `${activeFilterCount} activos` : 'Opcionales'}
+                                    </span>
+                                    {areFiltersExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                </span>
+                            </button>
                         </div>
                     ) : null}
+
+                    <div
+                        id="audit-advanced-filters"
+                        className={`filter-toolbar__advanced ${shouldShowAdvancedFilters ? '' : 'filter-toolbar__advanced--hidden'}`.trim()}
+                    >
+                        <div className="filter-toolbar__item">
+                            <div className="form-select-container">
+                                <CustomSelect
+                                    id="audit-log-type"
+                                    name="log_type"
+                                    ariaLabel="Filtrar auditoría por tipo"
+                                    icon={Filter}
+                                    value={filters.log_type}
+                                    onChange={(event) => setFilters((currentFilters) => ({
+                                        ...currentFilters,
+                                        log_type: event.target.value,
+                                        offset: 0
+                                    }))}
+                                    options={LOG_TYPE_OPTIONS}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="filter-toolbar__item">
+                            <div className="form-select-container">
+                                <CustomSelect
+                                    id="audit-severity"
+                                    name="severity"
+                                    ariaLabel="Filtrar auditoría por severidad"
+                                    icon={Info}
+                                    value={filters.severity}
+                                    onChange={(event) => setFilters((currentFilters) => ({
+                                        ...currentFilters,
+                                        severity: event.target.value,
+                                        offset: 0
+                                    }))}
+                                    options={SEVERITY_OPTIONS}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="filter-toolbar__item">
+                            <div className="form-select-container">
+                                <CustomSelect
+                                    id="audit-source"
+                                    name="source"
+                                    ariaLabel="Filtrar auditoría por origen"
+                                    icon={ShieldCheck}
+                                    value={filters.source}
+                                    onChange={(event) => setFilters((currentFilters) => ({
+                                        ...currentFilters,
+                                        source: event.target.value,
+                                        offset: 0
+                                    }))}
+                                    options={SOURCE_OPTIONS}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="filter-toolbar__item">
+                            <div className="form-select-container">
+                                <CustomSelect
+                                    id="audit-user"
+                                    name="user_id"
+                                    ariaLabel="Filtrar auditoría por usuario"
+                                    icon={User}
+                                    value={filters.user_id}
+                                    onChange={(event) => setFilters((currentFilters) => ({
+                                        ...currentFilters,
+                                        user_id: event.target.value,
+                                        offset: 0
+                                    }))}
+                                    options={userOptions}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="filter-toolbar__item filter-toolbar__item--date">
+                            <div className="form-field-group filter-toolbar__date-range">
+                                <label className="sr-only" htmlFor="audit-date-from">Fecha desde</label>
+                                <Calendar size={16} className="text-muted" />
+                                <input
+                                    id="audit-date-from"
+                                    name="date_from"
+                                    type="date"
+                                    value={filters.date_from}
+                                    onChange={(event) => setFilters((currentFilters) => ({
+                                        ...currentFilters,
+                                        date_from: event.target.value,
+                                        offset: 0
+                                    }))}
+                                    aria-label="Fecha desde"
+                                    autoComplete="off"
+                                />
+                                <span className="text-muted">-</span>
+                                <label className="sr-only" htmlFor="audit-date-to">Fecha hasta</label>
+                                <input
+                                    id="audit-date-to"
+                                    name="date_to"
+                                    type="date"
+                                    value={filters.date_to}
+                                    onChange={(event) => setFilters((currentFilters) => ({
+                                        ...currentFilters,
+                                        date_to: event.target.value,
+                                        offset: 0
+                                    }))}
+                                    aria-label="Fecha hasta"
+                                    autoComplete="off"
+                                />
+                            </div>
+                        </div>
+
+                        {hasActiveFilters ? (
+                            <div className="filter-toolbar__actions">
+                                <button type="button" className="btn btn-secondary" onClick={clearFilters}>
+                                    <RotateCcw size={14} />
+                                    Limpiar
+                                </button>
+                            </div>
+                        ) : null}
+                    </div>
                 </div>
             </section>
 
@@ -308,7 +370,7 @@ const AuditLogs = () => {
 
                 <div className="table-scroll">
                     <table className="table">
-                        <caption className="sr-only">Tabla de auditoria</caption>
+                        <caption className="sr-only">Tabla de auditoría</caption>
                         <thead>
                             <tr>
                                 <th scope="col">FECHA / HORA</th>
@@ -316,7 +378,7 @@ const AuditLogs = () => {
                                 <th scope="col">SEVERIDAD</th>
                                 <th scope="col">ORIGEN</th>
                                 <th scope="col">USUARIO</th>
-                                <th scope="col">ACCION</th>
+                                <th scope="col">ACCIÓN</th>
                                 <th scope="col" align="right">DETALLES</th>
                             </tr>
                         </thead>
@@ -327,7 +389,7 @@ const AuditLogs = () => {
                                 </tr>
                             ) : !logs.length ? (
                                 <tr>
-                                    <td colSpan="7" className="table__empty">No se encontraron registros de auditoria.</td>
+                                    <td colSpan="7" className="table__empty">No se encontraron registros de auditoría.</td>
                                 </tr>
                             ) : (
                                 logs.map((log) => (
@@ -377,7 +439,7 @@ const AuditLogs = () => {
                 isOpen={Boolean(selectedLog)}
                 onClose={() => setSelectedLog(null)}
                 title="Detalle del evento"
-                subtitle="Contexto tecnico del registro seleccionado."
+                subtitle="Contexto técnico del registro seleccionado."
                 size="lg"
                 labelledBy="audit-detail-title"
                 describedBy="audit-detail-description"

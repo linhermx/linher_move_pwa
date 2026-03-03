@@ -32,7 +32,7 @@ const Pagination = ({ pagination, onPageChange, onLimitChange }) => {
 
             <div className="pagination__status">
                 {showNavigation ? (
-                    <>
+                    <div className="pagination__status-main">
                         <div className="pagination__meta">
                             <span className="text-muted">
                                 Pag. <strong>{currentPage}</strong> / {pages}
@@ -58,7 +58,7 @@ const Pagination = ({ pagination, onPageChange, onLimitChange }) => {
                                 <ChevronRight size={16} />
                             </button>
                         </div>
-                    </>
+                    </div>
                 ) : null}
 
                 <div className="pagination__total">
