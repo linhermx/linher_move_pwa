@@ -1,6 +1,8 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
+const VIEWPORT_PADDING = 16;
+
 const CustomSelect = ({
     options,
     value,
@@ -15,12 +17,14 @@ const CustomSelect = ({
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [openUpward, setOpenUpward] = useState(false);
+    const [dropdownStyle, setDropdownStyle] = useState({});
     const containerRef = useRef(null);
+    const dropdownRef = useRef(null);
     const generatedId = useId();
     const triggerId = id || `custom-select-${generatedId}`;
     const listboxId = `${triggerId}-listbox`;
 
-    const selectedOption = options.find(opt => opt.value === value) || null;
+    const selectedOption = options.find((opt) => opt.value === value) || null;
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -28,23 +32,71 @@ const CustomSelect = ({
                 setIsOpen(false);
             }
         };
+
         document.addEventListener('mousedown', handleClickOutside);
+
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleToggle = () => {
+    useEffect(() => {
         if (!isOpen) {
-            const rect = containerRef.current.getBoundingClientRect();
-            const spaceBelow = window.innerHeight - rect.bottom;
-            // Expected height max 250px or less if fewer options
-            const expectedHeight = Math.min(options.length * 40 + 20, 250);
-            setOpenUpward(spaceBelow < expectedHeight && rect.top > expectedHeight);
+            return undefined;
         }
-        setIsOpen(!isOpen);
-    };
 
-    const handleSelect = (val) => {
-        onChange({ target: { value: val } });
+        const updateDropdownPosition = () => {
+            const container = containerRef.current;
+            const dropdown = dropdownRef.current;
+
+            if (!container || !dropdown) {
+                return;
+            }
+
+            const triggerRect = container.getBoundingClientRect();
+            const dropdownHeight = dropdown.offsetHeight;
+            const spaceBelow = window.innerHeight - triggerRect.bottom - VIEWPORT_PADDING;
+            const spaceAbove = triggerRect.top - VIEWPORT_PADDING;
+            const shouldOpenUpward = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
+            const maxWidth = Math.max(triggerRect.width, Math.min(dropdown.offsetWidth, window.innerWidth - (VIEWPORT_PADDING * 2)));
+
+            let left = 0;
+            const overflowRight = triggerRect.left + maxWidth - (window.innerWidth - VIEWPORT_PADDING);
+            const overflowLeft = triggerRect.left - VIEWPORT_PADDING;
+
+            if (overflowRight > 0) {
+                left -= overflowRight;
+            }
+
+            if (overflowLeft + left < 0) {
+                left += Math.abs(overflowLeft + left);
+            }
+
+            setOpenUpward(shouldOpenUpward);
+            setDropdownStyle({
+                left: `${left}px`,
+                maxWidth: 'calc(100vw - 32px)'
+            });
+        };
+
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                setIsOpen(false);
+            }
+        };
+
+        updateDropdownPosition();
+        document.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('resize', updateDropdownPosition);
+        window.addEventListener('scroll', updateDropdownPosition, true);
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('resize', updateDropdownPosition);
+            window.removeEventListener('scroll', updateDropdownPosition, true);
+        };
+    }, [isOpen]);
+
+    const handleSelect = (selectedValue) => {
+        onChange({ target: { value: selectedValue } });
         setIsOpen(false);
     };
 
@@ -54,7 +106,7 @@ const CustomSelect = ({
                 type="button"
                 id={triggerId}
                 name={name}
-                onClick={handleToggle}
+                onClick={() => setIsOpen((currentState) => !currentState)}
                 className="custom-select__trigger"
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
@@ -63,29 +115,23 @@ const CustomSelect = ({
                 aria-labelledby={labelledBy}
                 aria-describedby={describedBy}
             >
-                {Icon && <Icon size={16} className="text-muted" />}
+                {Icon ? <Icon size={16} className="text-muted" /> : null}
                 <span className="custom-select__value">
                     {selectedOption ? selectedOption.label : placeholder}
                 </span>
                 <ChevronDown
                     size={14}
-                    className="text-muted"
-                    style={{
-                        transition: 'transform 0.2s',
-                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)'
-                    }}
+                    className={`custom-select__chevron text-muted ${isOpen ? 'custom-select__chevron--open' : ''}`.trim()}
                 />
             </button>
 
-            {isOpen && (
+            {isOpen ? (
                 <div
+                    ref={dropdownRef}
                     id={listboxId}
                     role="listbox"
-                    className="dropdown-menu custom-scrollbar"
-                    style={{
-                        top: openUpward ? 'auto' : 'calc(100% + 8px)',
-                        bottom: openUpward ? 'calc(100% + 8px)' : 'auto'
-                    }}
+                    className={`dropdown-menu custom-scrollbar ${openUpward ? 'dropdown-menu--upward' : ''}`.trim()}
+                    style={dropdownStyle}
                 >
                     {options.map((opt) => (
                         <button
@@ -94,13 +140,13 @@ const CustomSelect = ({
                             onClick={() => handleSelect(opt.value)}
                             role="option"
                             aria-selected={value === opt.value}
-                            className={`dropdown-item ${value === opt.value ? 'active' : ''}`}
+                            className={`dropdown-item ${value === opt.value ? 'active' : ''}`.trim()}
                         >
                             {opt.label}
                         </button>
                     ))}
                 </div>
-            )}
+            ) : null}
         </div>
     );
 };

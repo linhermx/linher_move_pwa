@@ -8,6 +8,7 @@ import CustomMenu from '../components/CustomMenu';
 import Pagination from '../components/Pagination';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
+import { resolveAssetUrl } from '../utils/url';
 import ModalShell from '../components/ModalShell';
 import { formatDate } from '../utils/formatters';
 
@@ -145,7 +146,7 @@ const Users = () => {
                 </div>
 
                 <div className="table-scroll">
-                    <table className="table">
+                    <table className="table table--users">
                         <caption className="sr-only">Tabla de usuarios</caption>
                         <thead>
                             <tr>
@@ -172,7 +173,7 @@ const Users = () => {
                                             <div className="table__entity">
                                                 <span className="table__entity-media">
                                                     {user.photo_path ? (
-                                                        <img src={`http://localhost:3000/${user.photo_path}`} alt={user.name} />
+                                                        <img src={resolveAssetUrl(user.photo_path)} alt={user.name} />
                                                     ) : (
                                                         <strong>{user.name.charAt(0)}</strong>
                                                     )}

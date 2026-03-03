@@ -1,4 +1,6 @@
-const LOG_ENDPOINT = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/logs/error`;
+import { buildApiUrl } from '../utils/url';
+
+const LOG_ENDPOINT = buildApiUrl('/logs/error');
 const recentErrors = new Map();
 
 const redactSensitiveKeys = (value, depth = 0) => {

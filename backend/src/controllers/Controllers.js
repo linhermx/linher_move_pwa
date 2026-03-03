@@ -974,7 +974,7 @@ export const BackupController = (db) => {
                     user: result.user
                 });
 
-                const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+                const frontendUrl = process.env.FRONTEND_URL || req.get('origin') || 'http://localhost:5173';
                 res.redirect(`${frontendUrl}/backups?sync=success`);
             } catch (error) {
                 console.error('Dropbox Auth Callback Error:', error);

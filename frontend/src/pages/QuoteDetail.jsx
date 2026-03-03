@@ -22,6 +22,7 @@ import { PDFService } from '../services/PDFService';
 import { formatDate } from '../utils/formatters';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
+import { resolveAssetUrl } from '../utils/url';
 
 const QuoteDetail = () => {
     const { id } = useParams();
@@ -192,7 +193,7 @@ const QuoteDetail = () => {
 
     if (loading) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            <div className="quote-detail-loading">
                 <Loader2 className="animate-spin" size={48} color="var(--color-primary)" />
             </div>
         );
@@ -200,11 +201,11 @@ const QuoteDetail = () => {
 
     const getStatusInfo = (status) => {
         switch (status) {
-            case 'completada': return { color: '#28A745', text: 'Completada', icon: <CheckCircle size={16} />, variant: 'success' };
-            case 'pendiente': return { color: '#FFD700', text: 'Pendiente', icon: <Calculator size={16} />, variant: 'warning' };
-            case 'en_proceso': return { color: '#007BFF', text: 'En Proceso', icon: <Loader2 size={16} />, variant: 'info' };
-            case 'cancelada': return { color: '#6C757D', text: 'Cancelada', icon: <XCircle size={16} />, variant: 'neutral' };
-            default: return { color: 'white', text: status, icon: null, variant: 'neutral' };
+            case 'completada': return { color: 'var(--color-success)', text: 'Completada', icon: <CheckCircle size={16} />, variant: 'success' };
+            case 'pendiente': return { color: 'var(--color-warning)', text: 'Pendiente', icon: <Calculator size={16} />, variant: 'warning' };
+            case 'en_proceso': return { color: 'var(--color-info)', text: 'En Proceso', icon: <Loader2 size={16} />, variant: 'info' };
+            case 'cancelada': return { color: 'var(--color-text-muted)', text: 'Cancelada', icon: <XCircle size={16} />, variant: 'neutral' };
+            default: return { color: 'var(--color-text-main)', text: status, icon: null, variant: 'neutral' };
         }
     };
 
@@ -228,15 +229,8 @@ const QuoteDetail = () => {
                 titleMeta={<StatusBadge variant={statusInfo.variant}>{statusInfo.text}</StatusBadge>}
                 subtitle={`Creada el ${formatDate(quote.created_at)}`}
                 actions={(
-                    <>
-                        {/* New Status Selector Design */}
-                    <div style={{
-                        display: 'flex',
-                        backgroundColor: 'var(--color-surface)',
-                        padding: '4px',
-                        borderRadius: '12px',
-                        border: '1px solid var(--color-border)',
-                    }}>
+                    <div className="quote-detail-actions">
+                    <div className="quote-status-switch">
                         {['pendiente', 'en_proceso', 'completada', 'cancelada'].map((s) => {
                             const info = getStatusInfo(s);
                             const isActive = quote.status === s;
@@ -246,21 +240,11 @@ const QuoteDetail = () => {
                                     onClick={() => !isLocked && handleStatusChange(s)}
                                     disabled={isLocked && quote.status !== s}
                                     title={info.text}
-                                    style={{
-                                        border: 'none',
-                                        background: isActive ? info.color : 'transparent',
-                                        color: isActive ? 'black' : 'var(--color-text-muted)',
-                                        padding: '8px 14px',
-                                        borderRadius: '8px',
-                                        cursor: isLocked ? 'default' : 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        fontSize: '11px',
-                                        fontWeight: 'bold',
-                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        opacity: isLocked && !isActive ? 0.3 : 1,
-                                    }}
+                                    className={`quote-status-switch__button ${isActive ? 'quote-status-switch__button--active' : ''} ${isLocked ? 'quote-status-switch__button--locked' : ''} ${isLocked && !isActive ? 'quote-status-switch__button--muted' : ''}`.trim()}
+                                    style={isActive ? {
+                                        '--quote-status-accent': info.color,
+                                        '--quote-status-text': s === 'pendiente' ? 'var(--color-text-main)' : 'var(--color-primary-foreground)'
+                                    } : undefined}
                                 >
                                     {isActive ? (
                                         <>
@@ -295,17 +279,17 @@ const QuoteDetail = () => {
                         <Download size={18} />
                         PDF
                     </button>
-                    </>
+                    </div>
                 )}
             />
 
             {/* Main Content Layout */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+            <div className="quote-detail-layout">
 
                 {/* Top Row: Map & Main Breakdown */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: 'var(--spacing-md)', alignItems: 'stretch' }}>
+                <div className="quote-detail-layout__top">
                     {/* Map Detail */}
-                    <div className="card" style={{ height: '100%', padding: 0, position: 'relative', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
+                    <div className="card quote-detail-map-card">
                         <MapComponent
                             points={[
                                 { address: quote.origin_address, lat: quote.origin_lat, lng: quote.origin_lng },
@@ -318,49 +302,30 @@ const QuoteDetail = () => {
                     </div>
 
                     {/* Right Column: Vehicle & Breakdown */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                    <div className="quote-detail-stack">
                         {/* Vehicle Assigned Card */}
                         {(() => {
                             const assignedVehicle = vehicles.find(v => v.id === quote.vehicle_id);
                             if (!assignedVehicle) return null;
 
                             return (
-                                <div className="card" style={{ padding: '10px 15px', position: 'relative', overflow: 'hidden' }}>
-                                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                <div className="card quote-detail-layout__vehicle quote-detail-vehicle-card">
+                                    <div className="quote-detail-vehicle-card__body">
                                         {/* Vehicle Photo (Smaller) */}
-                                        <div style={{
-                                            width: '45px',
-                                            height: '45px',
-                                            borderRadius: '8px',
-                                            backgroundColor: 'rgba(255,255,255,0.05)',
-                                            border: '1px solid var(--color-border)',
-                                            overflow: 'hidden',
-                                            display: 'flex',
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                            flexShrink: 0
-                                        }}>
+                                        <div className="quote-detail-vehicle-card__media">
                                             {assignedVehicle.photo_path ? (
-                                                <img src={`http://localhost:3000/${assignedVehicle.photo_path}`} alt={assignedVehicle.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <img src={resolveAssetUrl(assignedVehicle.photo_path)} alt={assignedVehicle.name} />
                                             ) : (
                                                 <Truck size={20} className="text-muted" />
                                             )}
                                         </div>
 
                                         {/* Vehicle Info (Compacted) */}
-                                        <div style={{ flex: 1 }}>
-                                            <p style={{ fontSize: '10px', color: 'var(--color-primary)', fontWeight: 'bold', margin: '0 0 1px 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Unidad Asignada</p>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 'bold' }}>{assignedVehicle.name}</h4>
-                                                <span style={{
-                                                    backgroundColor: 'rgba(255,255,255,0.05)',
-                                                    padding: '1px 6px',
-                                                    borderRadius: '4px',
-                                                    fontSize: '10px',
-                                                    fontWeight: 'bold',
-                                                    border: '1px solid var(--color-border)',
-                                                    color: 'var(--color-text-muted)'
-                                                }}>
+                                        <div className="quote-detail-vehicle-card__content">
+                                            <p className="quote-detail-vehicle-card__eyebrow">Unidad Asignada</p>
+                                            <div className="quote-detail-vehicle-card__row">
+                                                <h4 className="quote-detail-vehicle-card__title">{assignedVehicle.name}</h4>
+                                                <span className="quote-detail-vehicle-card__plate">
                                                     {assignedVehicle.plate}
                                                 </span>
                                             </div>
@@ -371,69 +336,60 @@ const QuoteDetail = () => {
                         })()}
 
                         {/* Detailed Breakdown Card */}
-                        <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                            <div style={{
-                                position: 'absolute',
-                                top: '15px',
-                                right: '20px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                fontSize: '10px',
-                                color: 'var(--color-primary)',
-                                fontWeight: 'bold'
-                            }}>
+                        <div className="card quote-detail-layout__breakdown quote-detail-breakdown">
+                            <div className="quote-detail-breakdown__badge">
                                 <Calculator size={12} /> DESGLOSE DETALLADO
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '25px' }}>
-                                <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
-                                    <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>DIST. TOTAL</p>
-                                    <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{Number(currentBreakdown.distance_total || quote.distance_total || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km</p>
+                            <div className="quote-detail-breakdown__content">
+                            <div className="quote-detail-breakdown-grid">
+                                <div className="cost-breakdown__metric">
+                                    <p className="cost-breakdown__metric-label">DIST. TOTAL</p>
+                                    <p className="cost-breakdown__metric-value">{Number(currentBreakdown.distance_total || quote.distance_total || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km</p>
                                 </div>
-                                <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
-                                    <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>TIEMPO TOTAL</p>
-                                    <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{CalculationMotor.formatMinutes(currentBreakdown.time_total || quote.time_total)}</p>
+                                <div className="cost-breakdown__metric">
+                                    <p className="cost-breakdown__metric-label">TIEMPO TOTAL</p>
+                                    <p className="cost-breakdown__metric-value">{CalculationMotor.formatMinutes(currentBreakdown.time_total || quote.time_total)}</p>
                                 </div>
-                                <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
-                                    <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>C/ TRÁFICO</p>
-                                    <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{CalculationMotor.formatMinutes(currentBreakdown.time_traffic_min || quote.time_traffic_min || (quote.time_total * 1.15))}</p>
+                                <div className="cost-breakdown__metric">
+                                    <p className="cost-breakdown__metric-label">C/ TRAFICO</p>
+                                    <p className="cost-breakdown__metric-value">{CalculationMotor.formatMinutes(currentBreakdown.time_traffic_min || quote.time_traffic_min || (quote.time_total * 1.15))}</p>
                                 </div>
-                                <div style={{ padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px' }}>
-                                    <p className="text-muted" style={{ fontSize: '9px', marginBottom: '2px' }}>C/ SERVICIOS</p>
-                                    <p style={{ fontWeight: 'bold', fontSize: '15px', margin: 0 }}>{CalculationMotor.formatMinutes(currentBreakdown.time_services_min || quote.time_services_min || (quote.time_total + (quote.service_time || 0)))}</p>
+                                <div className="cost-breakdown__metric">
+                                    <p className="cost-breakdown__metric-label">C/ SERVICIOS</p>
+                                    <p className="cost-breakdown__metric-value">{CalculationMotor.formatMinutes(currentBreakdown.time_services_min || quote.time_services_min || (quote.time_total + (quote.service_time || 0)))}</p>
                                 </div>
                             </div>
 
-                            <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                            <div className="cost-breakdown__stack">
+                                <div className="cost-breakdown__row">
                                     <span className="text-muted">Gasolina ({Number(quote.gas_liters || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L)</span>
                                     <span>${Number(quote.gas_cost || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                <div className="cost-breakdown__row">
                                     <span className="text-muted">Casetas ({quote.num_casetas || 0})</span>
                                     <span>${Number(quote.toll_cost || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                                    <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>Costo Logístico (Flete)</span>
-                                    <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>${Number(quote.logistics_cost_rounded || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <div className="cost-breakdown__row cost-breakdown__row--accent">
+                                    <span className="cost-breakdown__row-label--strong">Costo Logístico (Flete)</span>
+                                    <span className="cost-breakdown__row-value--strong">${Number(quote.logistics_cost_rounded || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
-                                <div style={{ height: '1px', backgroundColor: 'var(--color-border)', margin: '8px 0' }} />
+                                <div className="cost-breakdown__divider" />
                                 {currentBreakdown.lodging_cost > 0 && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                    <div className="cost-breakdown__row">
                                         <span className="text-muted">Hospedaje</span>
                                         <span className={currentBreakdown.lodging_cost !== quote.lodging_cost ? 'text-primary' : ''}>
                                             ${Number(currentBreakdown.lodging_cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </span>
                                     </div>
                                 )}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                <div className="cost-breakdown__row">
                                     <span className="text-muted">Alimentos</span>
                                     <span className={currentBreakdown.meal_cost !== quote.meal_cost ? 'text-primary' : ''}>
                                         ${Number(currentBreakdown.meal_cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                                <div className="cost-breakdown__row">
                                     <span className="text-muted">Servicios Extra</span>
                                     <span className={currentBreakdown.service_costs !== quote.service_costs ? 'text-primary' : ''}>
                                         ${Number(currentBreakdown.service_costs || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -441,24 +397,18 @@ const QuoteDetail = () => {
                                 </div>
                             </div>
 
-                            <div style={{ marginTop: 'auto', paddingTop: '15px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '4px' }}>
+                            <div className="cost-breakdown__stack cost-breakdown__stack--summary">
+                                <div className="cost-breakdown__row">
                                     <span className="text-muted">Subtotal</span>
                                     <span>${Number(currentBreakdown.subtotal).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', marginBottom: '12px' }}>
+                                <div className="cost-breakdown__row">
                                     <span className="text-muted">IVA (16%)</span>
                                     <span>${Number(currentBreakdown.iva).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
-                                <div style={{
-                                    backgroundColor: 'rgba(255, 72, 72, 0.08)',
-                                    padding: '15px',
-                                    borderRadius: '12px',
-                                    border: '1px solid rgba(255, 72, 72, 0.2)',
-                                    textAlign: 'right'
-                                }}>
-                                    <p className="text-muted" style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px', color: 'rgba(255,255,255,0.6)' }}>TOTAL NETO</p>
-                                    <p style={{ fontSize: '28px', fontWeight: 'bold', color: 'var(--color-primary)', margin: 0 }}>
+                                <div className="cost-breakdown__total">
+                                    <p className="cost-breakdown__total-label">TOTAL NETO</p>
+                                    <p className="cost-breakdown__total-value">
                                         ${Number(currentBreakdown.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </p>
                                 </div>
@@ -466,92 +416,75 @@ const QuoteDetail = () => {
                         </div>
                     </div>
                 </div>
+                </div>
 
                 {/* Bottom Row: 3 Symmetric Columns */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 380px', gap: 'var(--spacing-md)', alignItems: 'stretch' }}>
+                <div className="quote-detail-layout__bottom">
                     {/* Column 1: Route Details */}
-                    <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-                        <h3 style={{ fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className="card quote-detail-layout__route quote-detail-section-card">
+                        <h3 className="quote-detail-card-title">
                             <MapPin size={16} className="text-primary" /> Detalles de la Ruta
                         </h3>
-                        <div style={{ position: 'relative', paddingLeft: '24px', display: 'flex', flexDirection: 'column', gap: '25px', flex: 1 }}>
+                        <div className="quote-detail-route-timeline">
                             {/* ORIGEN */}
-                            <div style={{ position: 'relative' }}>
-                                <div style={{
-                                    position: 'absolute',
-                                    left: '-17px',
-                                    top: '16px',
-                                    bottom: '-29px',
-                                    width: '2px',
-                                    background: 'linear-gradient(to bottom, #4CAF50, var(--color-primary))',
-                                    opacity: 0.3,
-                                    zIndex: 1,
-                                    borderRadius: '1px'
-                                }} />
-                                <div style={{ position: 'absolute', left: '-22px', top: '4px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#4CAF50', border: '3px solid rgba(76, 175, 80, 0.2)', zIndex: 2 }} />
-                                <p className="text-muted" style={{ fontSize: '9px', fontWeight: 'bold', marginBottom: '2px' }}>ORIGEN</p>
-                                <p style={{ fontSize: '13px', fontWeight: '500', margin: 0 }}>{quote.origin_address}</p>
+                            <div className="quote-route-stop">
+                                <div className="quote-route-stop__line quote-route-stop__line--origin" />
+                                <div className="quote-route-stop__marker quote-route-stop__marker--origin" />
+                                <p className="quote-route-stop__eyebrow">ORIGEN</p>
+                                <p className="quote-route-stop__address quote-route-stop__address--strong">{quote.origin_address}</p>
                             </div>
 
                             {/* PARADAS */}
                             {quote.stops?.map((s, i) => (
-                                <div key={i} style={{ position: 'relative' }}>
-                                    <div style={{
-                                        position: 'absolute',
-                                        left: '-17px',
-                                        top: '16px',
-                                        bottom: '-29px',
-                                        width: '2px',
-                                        background: 'linear-gradient(to bottom, #2196F3, var(--color-primary))',
-                                        opacity: 0.3,
-                                        zIndex: 1,
-                                        borderRadius: '1px'
-                                    }} />
-                                    <div style={{ position: 'absolute', left: '-22px', top: '4px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#2196F3', border: '3px solid rgba(33, 150, 243, 0.2)', zIndex: 2 }} />
-                                    <p className="text-muted" style={{ fontSize: '9px', fontWeight: 'bold', marginBottom: '2px' }}>PARADA {i + 1}</p>
-                                    <p style={{ fontSize: '13px', margin: 0 }}>{s.address}</p>
+                                <div key={i} className="quote-route-stop">
+                                    <div className="quote-route-stop__line quote-route-stop__line--waypoint" />
+                                    <div className="quote-route-stop__marker quote-route-stop__marker--waypoint" />
+                                    <p className="quote-route-stop__eyebrow">PARADA {i + 1}</p>
+                                    <p className="quote-route-stop__address">{s.address}</p>
                                 </div>
                             ))}
 
                             {/* DESTINO */}
-                            <div style={{ position: 'relative' }}>
-                                <div style={{ position: 'absolute', left: '-22px', top: '4px', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#FF4848', border: '3px solid rgba(255, 72, 72, 0.2)', zIndex: 2 }} />
-                                <p className="text-muted" style={{ fontSize: '9px', fontWeight: 'bold', marginBottom: '2px' }}>DESTINO</p>
-                                <p style={{ fontSize: '13px', fontWeight: '500', margin: 0 }}>{quote.destination_address}</p>
+                            <div className="quote-route-stop">
+                                <div className="quote-route-stop__marker quote-route-stop__marker--destination" />
+                                <p className="quote-route-stop__eyebrow">DESTINO</p>
+                                <p className="quote-route-stop__address quote-route-stop__address--strong">{quote.destination_address}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Column 2: Extra Services */}
-                    <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-                        <h3 style={{ fontSize: '14px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className="card quote-detail-layout__services quote-detail-section-card">
+                        <h3 className="quote-detail-card-title">
                             <Calculator size={16} className="text-primary" /> Servicios Extra
                         </h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '10px' }}>
+                        <div className="quote-detail-services-grid">
                             {services.map((s) => {
                                 const isSelected = selectedServiceIds.includes(s.id);
                                 return (
                                     <div
                                         key={s.id}
                                         onClick={() => !isLocked && handleServiceToggle(s.id)}
-                                        style={{
-                                            padding: '12px 10px',
-                                            backgroundColor: isSelected ? 'rgba(255, 72, 72, 0.1)' : 'rgba(255,255,255,0.02)',
-                                            borderRadius: '10px',
-                                            border: `1px solid ${isSelected ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)'}`,
-                                            cursor: isLocked ? 'default' : 'pointer',
-                                            transition: 'all 0.2s',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            position: 'relative',
-                                            opacity: isLocked && !isSelected ? 0.5 : 1
+                                        className={[
+                                            'quote-service-option',
+                                            isSelected ? 'quote-service-option--selected' : '',
+                                            isLocked ? 'quote-service-option--locked' : '',
+                                            isLocked && !isSelected ? 'quote-service-option--dimmed' : ''
+                                        ].filter(Boolean).join(' ')}
+                                        role={isLocked ? undefined : 'button'}
+                                        tabIndex={isLocked ? -1 : 0}
+                                        onKeyDown={(event) => {
+                                            if (!isLocked && (event.key === 'Enter' || event.key === ' ')) {
+                                                event.preventDefault();
+                                                handleServiceToggle(s.id);
+                                            }
                                         }}
                                     >
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '4px' }}>
-                                            <span style={{ fontSize: '11px', fontWeight: 'bold', lineHeight: '1.2' }}>{s.name}</span>
+                                        <div className="quote-service-option__header">
+                                            <span className="quote-service-option__name">{s.name}</span>
                                             {isSelected && <CheckCircle size={10} className="text-primary" />}
                                         </div>
-                                        <span style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 'bold', marginTop: '4px' }}>
+                                        <span className="quote-service-option__price">
                                             ${Number(s.cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </span>
                                     </div>
@@ -561,24 +494,19 @@ const QuoteDetail = () => {
                     </div>
 
                     {/* Column 3: Review Adjustments (aligned with breakdown) */}
-                    <div className="card" style={{ border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column' }}>
-                        <h3 style={{ fontSize: '14px', marginBottom: '20px', color: 'white' }}>Ajustes de Revisión</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                    <div className="card quote-detail-layout__review quote-detail-review-card">
+                        <h3 className="quote-detail-review-card__title">Ajustes de Revisión</h3>
+                        <div className="quote-detail-review-card__fields">
                             <div>
                                 <label className="form-label" htmlFor="quote-detail-lodging-cost">VIÁTICOS HOSPEDAJE ($)</label>
                                 <input
                                     id="quote-detail-lodging-cost"
                                     name="lodging_cost"
-                                    className="form-field"
+                                    className={`form-field ${isLocked ? 'form-field--readonly' : ''}`.trim()}
                                     type="number"
                                     value={manualAdjustments.lodging_cost}
                                     onChange={(e) => handleAdjustmentChange('lodging_cost', e.target.value)}
                                     readOnly={isLocked}
-                                    style={{
-                                        backgroundColor: isLocked ? 'var(--color-surface)' : undefined,
-                                        opacity: isLocked ? 0.6 : 1,
-                                        cursor: isLocked ? 'default' : 'text'
-                                    }}
                                 />
                             </div>
                             <div>
@@ -586,16 +514,11 @@ const QuoteDetail = () => {
                                 <input
                                     id="quote-detail-meal-cost"
                                     name="meal_cost"
-                                    className="form-field"
+                                    className={`form-field ${isLocked ? 'form-field--readonly' : ''}`.trim()}
                                     type="number"
                                     value={manualAdjustments.meal_cost}
                                     onChange={(e) => handleAdjustmentChange('meal_cost', e.target.value)}
                                     readOnly={isLocked}
-                                    style={{
-                                        backgroundColor: isLocked ? 'var(--color-surface)' : undefined,
-                                        opacity: isLocked ? 0.6 : 1,
-                                        cursor: isLocked ? 'default' : 'text'
-                                    }}
                                 />
                             </div>
                         </div>

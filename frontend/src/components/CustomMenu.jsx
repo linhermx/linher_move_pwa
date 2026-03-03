@@ -1,10 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { MoreVertical } from 'lucide-react';
+
+const VIEWPORT_PADDING = 16;
 
 const CustomMenu = ({ options, icon }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [openUpward, setOpenUpward] = useState(false);
+    const [menuStyle, setMenuStyle] = useState({});
     const containerRef = useRef(null);
+    const menuRef = useRef(null);
     const MenuIcon = icon || MoreVertical;
 
     useEffect(() => {
@@ -13,94 +16,114 @@ const CustomMenu = ({ options, icon }) => {
                 setIsOpen(false);
             }
         };
+
         document.addEventListener('mousedown', handleClickOutside);
+
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleToggle = (e) => {
-        e.stopPropagation();
+    useEffect(() => {
         if (!isOpen) {
-            const rect = containerRef.current.getBoundingClientRect();
-            const spaceBelow = window.innerHeight - rect.bottom;
-            const menuHeight = options.length * 40 + 20;
-            setOpenUpward(spaceBelow < menuHeight && rect.top > menuHeight);
+            return undefined;
         }
-        setIsOpen(!isOpen);
-    };
+
+        const updateMenuPosition = () => {
+            const container = containerRef.current;
+            const menu = menuRef.current;
+
+            if (!container || !menu) {
+                return;
+            }
+
+            const triggerRect = container.getBoundingClientRect();
+            const availableWidth = Math.max(180, window.innerWidth - (VIEWPORT_PADDING * 2));
+            const menuWidth = Math.min(Math.max(menu.offsetWidth, 180), availableWidth);
+            const menuHeight = menu.offsetHeight;
+            const spaceBelow = window.innerHeight - triggerRect.bottom - VIEWPORT_PADDING;
+            const spaceAbove = triggerRect.top - VIEWPORT_PADDING;
+            const shouldOpenUpward = spaceBelow < menuHeight && spaceAbove > spaceBelow;
+
+            let left = triggerRect.width - menuWidth;
+            let viewportLeft = triggerRect.left + left;
+            let viewportRight = viewportLeft + menuWidth;
+
+            if (viewportLeft < VIEWPORT_PADDING) {
+                left += VIEWPORT_PADDING - viewportLeft;
+                viewportLeft = VIEWPORT_PADDING;
+                viewportRight = viewportLeft + menuWidth;
+            }
+
+            if (viewportRight > window.innerWidth - VIEWPORT_PADDING) {
+                left -= viewportRight - (window.innerWidth - VIEWPORT_PADDING);
+            }
+
+            setMenuStyle({
+                left: `${left}px`,
+                top: shouldOpenUpward ? 'auto' : 'calc(100% + 8px)',
+                bottom: shouldOpenUpward ? 'calc(100% + 8px)' : 'auto',
+                minWidth: '180px',
+                maxWidth: 'calc(100vw - 32px)',
+                maxHeight: `min(320px, calc(100vh - ${VIEWPORT_PADDING * 2}px))`
+            });
+        };
+
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                setIsOpen(false);
+            }
+        };
+
+        updateMenuPosition();
+        document.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('resize', updateMenuPosition);
+        window.addEventListener('scroll', updateMenuPosition, true);
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('resize', updateMenuPosition);
+            window.removeEventListener('scroll', updateMenuPosition, true);
+        };
+    }, [isOpen]);
 
     return (
-        <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
+        <div ref={containerRef} className="custom-menu">
             <button
-                onClick={handleToggle}
-                style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--color-text-muted)',
-                    cursor: 'pointer',
-                    padding: '6px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s'
+                type="button"
+                className="custom-menu__trigger"
+                aria-expanded={isOpen}
+                aria-haspopup="menu"
+                onClick={(event) => {
+                    event.stopPropagation();
+                    setIsOpen((currentState) => !currentState);
                 }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
                 <MenuIcon size={18} />
             </button>
 
-            {isOpen && (
-                <div style={{
-                    position: 'absolute',
-                    [openUpward ? 'bottom' : 'top']: '100%',
-                    right: 0,
-                    backgroundColor: '#161616',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-md)',
-                    zIndex: 9999,
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
-                    padding: '6px',
-                    minWidth: '160px',
-                    animation: 'fade-in 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    [openUpward ? 'marginBottom' : 'marginTop']: '8px'
-                }}>
+            {isOpen ? (
+                <div
+                    ref={menuRef}
+                    className="custom-menu__panel custom-scrollbar"
+                    role="menu"
+                    style={menuStyle}
+                >
                     {options.map((option, index) => (
                         <button
                             key={index}
+                            type="button"
+                            className={`custom-menu__item ${option.variant === 'danger' ? 'custom-menu__item--danger' : ''}`.trim()}
+                            role="menuitem"
                             onClick={() => {
                                 option.onClick();
                                 setIsOpen(false);
                             }}
-                            style={{
-                                width: '100%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '12px',
-                                padding: '10px 12px',
-                                background: 'none',
-                                border: 'none',
-                                color: option.variant === 'danger' ? '#FF4848' : 'white',
-                                cursor: 'pointer',
-                                textAlign: 'left',
-                                fontSize: '13px',
-                                borderRadius: 'var(--radius-sm)',
-                                transition: 'all 0.1s',
-                                fontWeight: option.variant === 'danger' ? '500' : 'normal'
-                            }}
-                            onMouseOver={(e) => {
-                                e.currentTarget.style.backgroundColor = option.variant === 'danger'
-                                    ? 'rgba(255, 72, 72, 0.1)'
-                                    : 'rgba(255,255,255,0.05)';
-                            }}
-                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                         >
-                            {option.icon && React.cloneElement(option.icon, { size: 16 })}
-                            {option.label}
+                            {option.icon ? React.cloneElement(option.icon, { size: 16 }) : null}
+                            <span>{option.label}</span>
                         </button>
                     ))}
                 </div>
-            )}
+            ) : null}
         </div>
     );
 };

@@ -4,16 +4,19 @@ import { X, Save, User, Camera, Lock, Mail } from 'lucide-react';
 import { userService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import useModalAccessibility from '../hooks/useModalAccessibility';
+import { resolveAssetUrl } from '../utils/url';
+
+const getStoredUser = () => JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user')) || {};
 
 const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
-    const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user')) || {});
+    const [user, setUser] = useState(getStoredUser());
     const [formData, setFormData] = useState({
         name: user.name || '',
         password: '',
         confirmPassword: ''
     });
     const [photo, setPhoto] = useState(null);
-    const [photoPreview, setPhotoPreview] = useState(user.photo_path ? `http://localhost:3000/${user.photo_path}` : null);
+    const [photoPreview, setPhotoPreview] = useState(resolveAssetUrl(user.photo_path));
     const [loading, setLoading] = useState(false);
     const { showNotification } = useNotification();
     const fileInputRef = useRef(null);
@@ -28,31 +31,32 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
         password: 'profile-password',
         confirmPassword: 'profile-confirm-password'
     };
+
     const hasPasswordAttempt = Boolean(formData.password || formData.confirmPassword);
     const passwordMismatch = Boolean(formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword);
     const passwordIncomplete = Boolean(hasPasswordAttempt && (!formData.password || !formData.confirmPassword) && !passwordMismatch);
     const passwordsMatch = Boolean(formData.password && formData.confirmPassword && formData.password === formData.confirmPassword);
     const passwordFeedbackMessage = passwordMismatch
-        ? 'Las contrase\u00f1as no coinciden.'
+        ? 'Las contraseñas no coinciden.'
         : passwordIncomplete
-            ? 'Completa ambos campos para cambiar la contrase\u00f1a.'
+            ? 'Completa ambos campos para cambiar la contraseña.'
             : passwordsMatch
-                ? 'Las contrase\u00f1as coinciden.'
+                ? 'Las contraseñas coinciden.'
                 : '';
     const isSubmitDisabled = loading || passwordMismatch || passwordIncomplete;
 
     useEffect(() => {
-        if (isOpen) {
-            const currentUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user')) || {};
-            setUser(currentUser);
-            setFormData({
-                name: currentUser.name || '',
-                password: '',
-                confirmPassword: ''
-            });
-            setPhotoPreview(currentUser.photo_path ? `http://localhost:3000/${currentUser.photo_path}` : null);
-            setPhoto(null);
-        }
+        if (!isOpen) return;
+
+        const currentUser = getStoredUser();
+        setUser(currentUser);
+        setFormData({
+            name: currentUser.name || '',
+            password: '',
+            confirmPassword: ''
+        });
+        setPhotoPreview(resolveAssetUrl(currentUser.photo_path));
+        setPhoto(null);
     }, [isOpen]);
 
     useModalAccessibility({
@@ -66,12 +70,12 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
 
     const handlePhotoChange = (event) => {
         const file = event.target.files[0];
-        if (file) {
-            setPhoto(file);
-            const reader = new FileReader();
-            reader.onloadend = () => setPhotoPreview(reader.result);
-            reader.readAsDataURL(file);
-        }
+        if (!file) return;
+
+        setPhoto(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setPhotoPreview(reader.result);
+        reader.readAsDataURL(file);
     };
 
     const handleChange = (event) => {
@@ -82,16 +86,26 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
         }));
     };
 
+    const persistUpdatedUser = (updatedUser) => {
+        if (localStorage.getItem('user')) {
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+        }
+
+        if (sessionStorage.getItem('user')) {
+            sessionStorage.setItem('user', JSON.stringify(updatedUser));
+        }
+    };
+
     const handleSubmit = async (event) => {
         event.preventDefault();
 
         if (passwordIncomplete) {
-            showNotification('Completa ambos campos para cambiar la contrase\u00f1a', 'error');
+            showNotification('Completa ambos campos para cambiar la contraseña', 'error');
             return;
         }
 
         if (passwordMismatch) {
-            showNotification('Las contrase\u00f1as no coinciden', 'error');
+            showNotification('Las contraseñas no coinciden', 'error');
             return;
         }
 
@@ -103,14 +117,13 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
             if (photo) data.append('photo', photo);
 
             const response = await userService.update(user.id, data);
-
             const updatedUser = {
                 ...user,
                 name: formData.name,
                 photo_path: response.photo_path || user.photo_path
             };
-            localStorage.setItem('user', JSON.stringify(updatedUser));
 
+            persistUpdatedUser(updatedUser);
             showNotification('Perfil actualizado correctamente', 'success');
             onUserUpdated(updatedUser);
             onClose();
@@ -124,117 +137,49 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
 
     return createPortal(
         <div
-            style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                zIndex: 10000,
-                backdropFilter: 'blur(8px)',
-                animation: 'fade-in 0.3s ease-out'
-            }}
+            className="modal-overlay modal-overlay--legacy modal-overlay--priority"
             onClick={onClose}
         >
             <div
                 ref={dialogRef}
-                className="card"
+                className="card modal-shell modal-shell--sm profile-modal modal-shell--animated"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={labelledBy}
                 aria-describedby={describedBy}
                 tabIndex={-1}
                 onClick={(event) => event.stopPropagation()}
-                style={{
-                    width: '100%',
-                    maxWidth: '450px',
-                    padding: 'var(--spacing-xl)',
-                    position: 'relative',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-                    border: '1px solid rgba(255,255,255,0.1)'
-                }}
             >
                 <button
                     ref={closeButtonRef}
+                    type="button"
                     onClick={onClose}
-                    style={{
-                        position: 'absolute',
-                        top: '20px',
-                        right: '20px',
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--color-text-muted)',
-                        cursor: 'pointer'
-                    }}
+                    className="modal-close profile-modal__close"
                 >
                     <X size={24} />
                 </button>
 
-                <h2
-                    id={labelledBy}
-                    style={{
-                        marginBottom: 'var(--spacing-sm)',
-                        fontSize: '22px',
-                        fontWeight: 'bold',
-                        textAlign: 'center'
-                    }}
-                >
-                    {'Mi Perfil'}
-                </h2>
-                <p
-                    id={describedBy}
-                    className="text-muted"
-                    style={{ marginBottom: 'var(--spacing-xl)', textAlign: 'center' }}
-                >
-                    {'Actualiza tu nombre, foto y contrase\u00f1a desde esta ventana.'}
+                <h2 id={labelledBy} className="profile-modal__title">{'Mi Perfil'}</h2>
+                <p id={describedBy} className="text-muted profile-modal__subtitle">
+                    {'Actualiza tu nombre, foto y contraseña desde esta ventana.'}
                 </p>
 
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                        <div
-                            onClick={() => fileInputRef.current.click()}
-                            style={{
-                                width: '100px',
-                                height: '100px',
-                                borderRadius: '50%',
-                                backgroundColor: 'rgba(255,255,255,0.05)',
-                                border: '2px solid var(--color-primary)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                overflow: 'hidden',
-                                position: 'relative'
-                            }}
+                <form onSubmit={handleSubmit} className="legacy-modal-form">
+                    <div className="profile-modal__avatar-stack">
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="profile-modal__avatar-trigger"
                         >
                             {photoPreview ? (
-                                <img
-                                    src={photoPreview}
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    alt="Vista previa del perfil"
-                                />
+                                <img src={photoPreview} alt="Vista previa del perfil" />
                             ) : (
                                 <User size={40} className="text-muted" />
                             )}
-                            <div
-                                style={{
-                                    position: 'absolute',
-                                    bottom: 0,
-                                    width: '100%',
-                                    height: '30%',
-                                    backgroundColor: 'rgba(0,0,0,0.5)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}
-                            >
-                                <Camera size={14} color="white" />
-                            </div>
-                        </div>
+                            <span className="profile-modal__avatar-overlay">
+                                <Camera size={14} className="profile-modal__camera" />
+                            </span>
+                        </button>
                         <input
                             id={fieldIds.photo}
                             ref={fileInputRef}
@@ -243,23 +188,16 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                             accept="image/*"
                             onChange={handlePhotoChange}
                             aria-label="Subir foto de perfil"
-                            style={{ display: 'none' }}
+                            className="hidden-file-input"
                         />
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{'Haz click para cambiar foto'}</span>
+                        <span className="profile-modal__hint">{'Haz click para cambiar foto'}</span>
                     </div>
 
                     <div>
-                        <p className="form-label">{'CORREO ELECTR\u00d3NICO (SOLO LECTURA)'}</p>
-                        <div
-                            className="form-field-group"
-                            style={{
-                                backgroundColor: 'rgba(255,255,255,0.02)',
-                                color: 'var(--color-text-muted)',
-                                cursor: 'default'
-                            }}
-                        >
+                        <p className="form-label">{'CORREO ELECTRONICO (SOLO LECTURA)'}</p>
+                        <div className="form-field-group form-field-group--readonly">
                             <Mail size={16} />
-                            <span style={{ fontSize: '14px', opacity: 0.8 }}>{user.email}</span>
+                            <span className="form-field-group__text">{user.email}</span>
                         </div>
                     </div>
 
@@ -272,7 +210,6 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                                 name="name"
                                 type="text"
                                 className="form-input-clean"
-                                style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', height: '100%', fontSize: '14px' }}
                                 value={formData.name}
                                 onChange={handleChange}
                                 autoComplete="name"
@@ -282,9 +219,9 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
+                    <div className="form-grid form-grid--two">
                         <div>
-                            <label className="form-label" htmlFor={fieldIds.password}>{'NUEVA CONTRASE\u00d1A'}</label>
+                            <label className="form-label" htmlFor={fieldIds.password}>{'NUEVA CONTRASEÑA'}</label>
                             <div className={`form-field-group ${passwordMismatch ? 'form-field-group--error' : ''}`.trim()}>
                                 <Lock size={14} className="text-muted" />
                                 <input
@@ -294,16 +231,15 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                                     className="form-input-clean"
                                     aria-invalid={passwordMismatch}
                                     aria-describedby={hasPasswordAttempt ? passwordFeedbackId : undefined}
-                                    style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', height: '100%', fontSize: '13px' }}
                                     value={formData.password}
                                     onChange={handleChange}
                                     autoComplete="new-password"
-                                    placeholder={'\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
+                                    placeholder="********"
                                 />
                             </div>
                         </div>
                         <div>
-                            <label className="form-label" htmlFor={fieldIds.confirmPassword}>{'CONFIRMAR'}</label>
+                            <label className="form-label" htmlFor={fieldIds.confirmPassword}>CONFIRMAR</label>
                             <div className={`form-field-group ${passwordMismatch ? 'form-field-group--error' : ''}`.trim()}>
                                 <Lock size={14} className="text-muted" />
                                 <input
@@ -313,11 +249,10 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                                     className="form-input-clean"
                                     aria-invalid={passwordMismatch}
                                     aria-describedby={hasPasswordAttempt ? passwordFeedbackId : undefined}
-                                    style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', height: '100%', fontSize: '13px' }}
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
                                     autoComplete="new-password"
-                                    placeholder={'\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
+                                    placeholder="********"
                                 />
                             </div>
                         </div>
@@ -337,23 +272,14 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                     <button
                         type="submit"
                         disabled={isSubmitDisabled}
-                        style={{
-                            marginTop: '10px',
-                            padding: '14px',
-                            backgroundColor: isSubmitDisabled ? 'rgba(255,72,72,0.5)' : 'var(--color-primary)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: 'var(--radius-md)',
-                            fontWeight: 'bold',
-                            cursor: isSubmitDisabled ? 'not-allowed' : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '10px',
-                            transition: 'all 0.2s'
-                        }}
+                        className="btn btn-primary profile-modal__submit"
                     >
-                        {loading ? 'Guardando...' : <><Save size={18} /> {'Guardar Cambios'}</>}
+                        {loading ? 'Guardando...' : (
+                            <>
+                                <Save size={18} />
+                                {'Guardar Cambios'}
+                            </>
+                        )}
                     </button>
                 </form>
             </div>

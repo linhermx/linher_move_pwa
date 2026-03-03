@@ -33,6 +33,7 @@ const Backups = () => {
     const [offset, setOffset] = useState(0);
     const { showNotification } = useNotification();
     const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
+    const isInitialLoading = loading && !backupSummary && !settings && backups.length === 0;
     const automationEnabled = settings?.backups_enabled === true
         || settings?.backups_enabled === 'true'
         || settings?.backups_enabled === 1
@@ -238,23 +239,13 @@ const Backups = () => {
         return 'neutral';
     };
 
-    if (loading) {
-        return (
-            <section className="page-shell fade-in">
-                <div className="card">
-                    <p className="text-muted">Cargando gestión de respaldos...</p>
-                </div>
-            </section>
-        );
-    }
-
     return (
         <div className="page-shell fade-in stack-lg">
             <PageHeader
                 title="Gestión de respaldos"
                 subtitle="Protege tu información mediante copias locales y sincronización opcional en Dropbox."
                 actions={(
-                    <button type="button" className="btn btn-primary" onClick={handleGenerate} disabled={generating}>
+                    <button type="button" className="btn btn-primary" onClick={handleGenerate} disabled={generating || loading}>
                         {generating ? <RefreshCcw size={18} className="spin" /> : <Database size={18} />}
                         {generating ? 'Generando...' : 'Generar respaldo'}
                     </button>
@@ -275,72 +266,76 @@ const Backups = () => {
                         </div>
                     </div>
 
-                    <div className="stack-sm">
-                        <div className="cluster-md justify-between">
-                            <div className="stack-xs">
-                                <strong>Respaldos automáticos</strong>
-                                <span className="text-muted">Copia de seguridad diaria a la medianoche.</span>
-                            </div>
-                            <button type="button" className="btn btn-secondary" onClick={handleToggleAutomation}>
-                                {automationEnabled ? 'Desactivar' : 'Activar'}
-                            </button>
-                        </div>
-                        <div className="backup-status-panel stack-sm">
-                            <div className="backup-status-panel__header">
-                                <StatusBadge variant={getAutomationBadge().variant} showDot>
-                                    {getAutomationBadge().label}
-                                </StatusBadge>
-                                <span className="backup-status-panel__window">
-                                    {backupSummary?.automation?.frequency === 'weekly' ? 'Ventana: cada 7 días' : 'Ventana: cada 24 horas'}
-                                </span>
-                            </div>
-                            <p className="backup-status-panel__summary">
-                                {getAutomationSummaryText()}
-                            </p>
-                            <dl className="backup-status-stats">
-                                <div className="backup-status-stats__item">
-                                    <dt>Frecuencia</dt>
-                                    <dd>{backupSummary?.automation?.frequency === 'weekly' ? 'Semanal' : 'Diaria'}</dd>
+                    {isInitialLoading ? (
+                        <p className="text-muted">Cargando configuración de respaldos...</p>
+                    ) : (
+                        <div className="stack-sm">
+                            <div className="cluster-md justify-between">
+                                <div className="stack-xs">
+                                    <strong>Respaldos automáticos</strong>
+                                    <span className="text-muted">Copia de seguridad diaria a la medianoche.</span>
                                 </div>
-                                <div className="backup-status-stats__item">
-                                    <dt>Último automático</dt>
-                                    <dd>
-                                        {backupSummary?.automation?.latest_automated_backup?.created_at
-                                            ? formatDateTime(backupSummary.automation.latest_automated_backup.created_at)
-                                            : 'Sin registros automáticos'}
-                                    </dd>
+                                <button type="button" className="btn btn-secondary" onClick={handleToggleAutomation}>
+                                    {automationEnabled ? 'Desactivar' : 'Activar'}
+                                </button>
+                            </div>
+                            <div className="backup-status-panel stack-sm">
+                                <div className="backup-status-panel__header">
+                                    <StatusBadge variant={getAutomationBadge().variant} showDot>
+                                        {getAutomationBadge().label}
+                                    </StatusBadge>
+                                    <span className="backup-status-panel__window">
+                                        {backupSummary?.automation?.frequency === 'weekly' ? 'Ventana: cada 7 días' : 'Ventana: cada 24 horas'}
+                                    </span>
                                 </div>
-                                <div className="backup-status-stats__item">
-                                    <dt>Último local</dt>
-                                    <dd>
-                                        {backupSummary?.automation?.latest_local_backup?.created_at
-                                            ? formatDateTime(backupSummary.automation.latest_local_backup.created_at)
-                                            : 'Sin registros locales'}
-                                    </dd>
+                                <p className="backup-status-panel__summary">
+                                    {getAutomationSummaryText()}
+                                </p>
+                                <dl className="backup-status-stats">
+                                    <div className="backup-status-stats__item">
+                                        <dt>Frecuencia</dt>
+                                        <dd>{backupSummary?.automation?.frequency === 'weekly' ? 'Semanal' : 'Diaria'}</dd>
+                                    </div>
+                                    <div className="backup-status-stats__item">
+                                        <dt>Último automático</dt>
+                                        <dd>
+                                            {backupSummary?.automation?.latest_automated_backup?.created_at
+                                                ? formatDateTime(backupSummary.automation.latest_automated_backup.created_at)
+                                                : 'Sin registros automáticos'}
+                                        </dd>
+                                    </div>
+                                    <div className="backup-status-stats__item">
+                                        <dt>Último local</dt>
+                                        <dd>
+                                            {backupSummary?.automation?.latest_local_backup?.created_at
+                                                ? formatDateTime(backupSummary.automation.latest_local_backup.created_at)
+                                                : 'Sin registros locales'}
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </div>
+                            {backupSummary?.automation?.warning_message ? (
+                                <Alert type="warning">{backupSummary.automation.warning_message}</Alert>
+                            ) : null}
+                            <div>
+                                <label className="form-label" htmlFor="backup-frequency">FRECUENCIA</label>
+                                <div className="form-select-container">
+                                    <CustomSelect
+                                        id="backup-frequency"
+                                        name="backup_frequency"
+                                        ariaLabel="Seleccionar frecuencia de respaldo"
+                                        icon={Calendar}
+                                        value={settings?.backup_frequency || 'daily'}
+                                        onChange={(event) => handleFrequencyChange(event.target.value)}
+                                        options={[
+                                            { value: 'daily', label: 'Diario' },
+                                            { value: 'weekly', label: 'Semanal' }
+                                        ]}
+                                    />
                                 </div>
-                            </dl>
-                        </div>
-                        {backupSummary?.automation?.warning_message ? (
-                            <Alert type="warning">{backupSummary.automation.warning_message}</Alert>
-                        ) : null}
-                        <div>
-                            <label className="form-label" htmlFor="backup-frequency">FRECUENCIA</label>
-                            <div className="form-select-container">
-                                <CustomSelect
-                                    id="backup-frequency"
-                                    name="backup_frequency"
-                                    ariaLabel="Seleccionar frecuencia de respaldo"
-                                    icon={Calendar}
-                                    value={settings?.backup_frequency || 'daily'}
-                                    onChange={(event) => handleFrequencyChange(event.target.value)}
-                                    options={[
-                                        { value: 'daily', label: 'Diario' },
-                                        { value: 'weekly', label: 'Semanal' }
-                                    ]}
-                                />
                             </div>
                         </div>
-                    </div>
+                    )}
                 </article>
 
                 <article className="card stack-md">
@@ -354,55 +349,59 @@ const Backups = () => {
                         </div>
                     </div>
 
-                    <div className="stack-sm">
-                        <div className="backup-status-panel stack-sm">
-                            <div className="backup-status-panel__header">
-                                <StatusBadge variant={getCloudBadge().variant} showDot>
-                                    {getCloudBadge().label}
-                                </StatusBadge>
-                                <span className="backup-status-panel__window">
-                                    {cloudStatus.connected ? 'Listo para sincronizar' : 'Sin sincronización activa'}
-                                </span>
+                    {isInitialLoading ? (
+                        <p className="text-muted">Cargando estado de sincronización...</p>
+                    ) : (
+                        <div className="stack-sm">
+                            <div className="backup-status-panel stack-sm">
+                                <div className="backup-status-panel__header">
+                                    <StatusBadge variant={getCloudBadge().variant} showDot>
+                                        {getCloudBadge().label}
+                                    </StatusBadge>
+                                    <span className="backup-status-panel__window">
+                                        {cloudStatus.connected ? 'Listo para sincronizar' : 'Sin sincronización activa'}
+                                    </span>
+                                </div>
+                                <p className="backup-status-panel__summary">
+                                    {getCloudSummaryText()}
+                                </p>
+                                <dl className="backup-status-stats">
+                                    <div className="backup-status-stats__item">
+                                        <dt>Cuenta</dt>
+                                        <dd>{cloudStatus.user?.emailAddress || 'Sin cuenta vinculada'}</dd>
+                                    </div>
+                                    <div className="backup-status-stats__item">
+                                        <dt>Última sincronización</dt>
+                                        <dd>
+                                            {cloudStatus.last_sync_at
+                                                ? formatDateTime(cloudStatus.last_sync_at)
+                                                : 'Sin registros de sincronización'}
+                                        </dd>
+                                    </div>
+                                    <div className="backup-status-stats__item">
+                                        <dt>Estado operativo</dt>
+                                        <dd>{cloudStatus.last_error_message ? 'Requiere revisión' : (cloudStatus.connected ? 'Sin incidencias' : 'Pendiente de conexión')}</dd>
+                                    </div>
+                                </dl>
                             </div>
-                            <p className="backup-status-panel__summary">
-                                {getCloudSummaryText()}
-                            </p>
-                            <dl className="backup-status-stats">
-                                <div className="backup-status-stats__item">
-                                    <dt>Cuenta</dt>
-                                    <dd>{cloudStatus.user?.emailAddress || 'Sin cuenta vinculada'}</dd>
-                                </div>
-                                <div className="backup-status-stats__item">
-                                    <dt>Última sincronización</dt>
-                                    <dd>
-                                        {cloudStatus.last_sync_at
-                                            ? formatDateTime(cloudStatus.last_sync_at)
-                                            : 'Sin registros de sincronización'}
-                                    </dd>
-                                </div>
-                                <div className="backup-status-stats__item">
-                                    <dt>Estado operativo</dt>
-                                    <dd>{cloudStatus.last_error_message ? 'Requiere revisión' : (cloudStatus.connected ? 'Sin incidencias' : 'Pendiente de conexión')}</dd>
-                                </div>
-                            </dl>
-                        </div>
-                        {cloudStatus.last_error_message ? (
-                            <Alert type="warning">{cloudStatus.last_error_message}</Alert>
-                        ) : null}
+                            {cloudStatus.last_error_message ? (
+                                <Alert type="warning">{cloudStatus.last_error_message}</Alert>
+                            ) : null}
 
-                        <div className="cluster-sm">
-                            {!cloudStatus.connected ? (
-                                <button type="button" className="btn btn-secondary" onClick={handleConnectCloud}>
-                                    <Upload size={16} />
-                                    Conectar Dropbox
-                                </button>
-                            ) : (
-                                <button type="button" className="btn btn-secondary" onClick={handleDisconnectCloud}>
-                                    Desconectar cuenta
-                                </button>
-                            )}
+                            <div className="cluster-sm">
+                                {!cloudStatus.connected ? (
+                                    <button type="button" className="btn btn-secondary" onClick={handleConnectCloud}>
+                                        <Upload size={16} />
+                                        Conectar Dropbox
+                                    </button>
+                                ) : (
+                                    <button type="button" className="btn btn-secondary" onClick={handleDisconnectCloud}>
+                                        Desconectar cuenta
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </article>
             </section>
 
@@ -417,8 +416,14 @@ const Backups = () => {
                     </div>
                 </div>
 
+                {loading ? (
+                    <div className="table-loading-overlay" aria-hidden="true">
+                        <div className="spinner" />
+                    </div>
+                ) : null}
+
                 <div className="table-scroll">
-                    <table className="table">
+                    <table className="table table--backups">
                         <caption className="sr-only">Historial de respaldos</caption>
                         <thead>
                             <tr>
@@ -431,7 +436,11 @@ const Backups = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {!backups.length ? (
+                            {loading && !backups.length ? (
+                                <tr>
+                                    <td colSpan="6" className="table__empty">Cargando respaldos...</td>
+                                </tr>
+                            ) : !backups.length ? (
                                 <tr>
                                     <td colSpan="6" className="table__empty">No hay respaldos disponibles.</td>
                                 </tr>

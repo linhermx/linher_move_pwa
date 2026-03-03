@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Eye, FileText, Calendar, RotateCcw, MoreVertical } from 'lucide-react';
+import { Calendar, Eye, FileText, Filter, RotateCcw, Search } from 'lucide-react';
 import { quotationService } from '../services/api';
 import { PDFService } from '../services/PDFService';
 import { formatDate } from '../utils/formatters';
-import CustomSelect from '../components/CustomSelect';
 import CustomMenu from '../components/CustomMenu';
+import CustomSelect from '../components/CustomSelect';
 import Pagination from '../components/Pagination';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
@@ -17,7 +17,7 @@ const History = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
-    const [period, setPeriod] = useState(''); // '', 'today', 'week', 'month', 'year', 'custom'
+    const [period, setPeriod] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [limit, setLimit] = useState(10);
@@ -25,10 +25,17 @@ const History = () => {
 
     const fetchQuotes = async () => {
         setLoading(true);
+
         try {
             const params = {};
-            if (search) params.folio = search;
-            if (statusFilter) params.status = statusFilter;
+
+            if (search) {
+                params.folio = search;
+            }
+
+            if (statusFilter) {
+                params.status = statusFilter;
+            }
 
             let finalFrom = dateFrom;
             let finalTo = dateTo;
@@ -39,7 +46,10 @@ const History = () => {
 
                 if (period === 'week') {
                     const day = now.getDay() || 7;
-                    if (day !== 1) start.setDate(now.getDate() - (day - 1));
+
+                    if (day !== 1) {
+                        start.setDate(now.getDate() - (day - 1));
+                    }
                 } else if (period === 'month') {
                     start.setDate(1);
                 } else if (period === 'year') {
@@ -50,17 +60,22 @@ const History = () => {
                 finalTo = now.toISOString().split('T')[0];
             }
 
-            if (finalFrom) params.date_from = finalFrom;
-            if (finalTo) params.date_to = finalTo;
+            if (finalFrom) {
+                params.date_from = finalFrom;
+            }
+
+            if (finalTo) {
+                params.date_to = finalTo;
+            }
 
             params.limit = limit;
             params.offset = offset;
 
-            const res = await quotationService.list(params);
-            setQuotes(res.data);
-            setPagination(res.pagination);
-        } catch (err) {
-            console.error('Error fetching quotes:', err);
+            const response = await quotationService.list(params);
+            setQuotes(response.data);
+            setPagination(response.pagination);
+        } catch (error) {
+            console.error('Error fetching quotes:', error);
         } finally {
             setLoading(false);
         }
@@ -70,16 +85,22 @@ const History = () => {
         const timer = setTimeout(() => {
             fetchQuotes();
         }, 300);
+
         return () => clearTimeout(timer);
     }, [search, statusFilter, period, dateFrom, dateTo, limit, offset]);
 
     const getStatusBadge = (status) => {
         switch (status) {
-            case 'completada': return { variant: 'success', text: 'Completada' };
-            case 'pendiente': return { variant: 'warning', text: 'Pendiente' };
-            case 'en_proceso': return { variant: 'info', text: 'En Proceso' };
-            case 'cancelada': return { variant: 'neutral', text: 'Cancelada' };
-            default: return { variant: 'neutral', text: status };
+            case 'completada':
+                return { variant: 'success', text: 'Completada' };
+            case 'pendiente':
+                return { variant: 'warning', text: 'Pendiente' };
+            case 'en_proceso':
+                return { variant: 'info', text: 'En Proceso' };
+            case 'cancelada':
+                return { variant: 'neutral', text: 'Cancelada' };
+            default:
+                return { variant: 'neutral', text: status };
         }
     };
 
@@ -89,23 +110,20 @@ const History = () => {
         setPeriod('');
         setDateFrom('');
         setDateTo('');
-        setLimit(20);
+        setLimit(10);
         setOffset(0);
     };
 
     return (
-        <div className="page-shell fade-in">
+        <div className="page-shell fade-in stack-lg">
             <PageHeader
-                title="Historial de Cotizaciones"
+                title="Historial de cotizaciones"
                 subtitle="Consulta y gestiona todos los registros previos."
             />
 
-            {/* Filters Bar */}
-            <div className="card" style={{ marginBottom: 'var(--spacing-lg)', padding: '15px' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
-
-                    {/* Search */}
-                    <div style={{ flex: '2', minWidth: '220px' }}>
+            <section className="card stack-md" aria-label="Filtros de historial">
+                <div className="filter-toolbar">
+                    <div className="filter-toolbar__item filter-toolbar__item--search">
                         <div className="form-field-group">
                             <label className="sr-only" htmlFor="history-search">Buscar cotizaciones por folio</label>
                             <Search size={18} className="text-muted" />
@@ -113,170 +131,179 @@ const History = () => {
                                 id="history-search"
                                 name="history_search"
                                 type="text"
-                                placeholder="Buscar por folio..."
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Buscar por folio..."
+                                onChange={(event) => setSearch(event.target.value)}
                             />
                         </div>
                     </div>
 
-                    {/* Period Selector */}
-                    <div style={{ flex: '1', minWidth: '150px', display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '0 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', height: '42px' }}>
-                        <CustomSelect
-                            id="history-period"
-                            name="period"
-                            ariaLabel="Filtrar historial por periodo"
-                            icon={Calendar}
-                            value={period}
-                            onChange={(e) => setPeriod(e.target.value)}
-                            options={[
-                                { value: '', label: 'Cualquier fecha' },
-                                { value: 'today', label: 'Hoy' },
-                                { value: 'week', label: 'Esta semana' },
-                                { value: 'month', label: 'Este mes' },
-                                { value: 'year', label: 'Este año' },
-                                { value: 'custom', label: 'Personalizado...' }
-                            ]}
-                        />
-                    </div>
-
-                    {/* Custom Range (Inline) */}
-                    {period === 'custom' && (
-                        <div className="fade-in" style={{ display: 'flex', gap: '10px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '0 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', height: '42px' }}>
-                            <label className="sr-only" htmlFor="history-date-from">Fecha desde</label>
-                            <input
-                                id="history-date-from"
-                                name="date_from"
-                                type="date"
-                                value={dateFrom}
-                                onChange={(e) => setDateFrom(e.target.value)}
-                                aria-label="Fecha desde"
-                                style={{ backgroundColor: 'transparent', border: 'none', color: 'white', fontSize: '14px', outline: 'none', width: '130px', height: '100%' }}
-                            />
-                            <span style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>-</span>
-                            <label className="sr-only" htmlFor="history-date-to">Fecha hasta</label>
-                            <input
-                                id="history-date-to"
-                                name="date_to"
-                                type="date"
-                                value={dateTo}
-                                onChange={(e) => setDateTo(e.target.value)}
-                                aria-label="Fecha hasta"
-                                style={{ backgroundColor: 'transparent', border: 'none', color: 'white', fontSize: '14px', outline: 'none', width: '130px', height: '100%' }}
+                    <div className="filter-toolbar__item">
+                        <div className="form-field-group">
+                            <Calendar size={18} className="text-muted" />
+                            <CustomSelect
+                                id="history-period"
+                                name="period"
+                                ariaLabel="Filtrar historial por periodo"
+                                value={period}
+                                onChange={(event) => setPeriod(event.target.value)}
+                                options={[
+                                    { value: '', label: 'Cualquier fecha' },
+                                    { value: 'today', label: 'Hoy' },
+                                    { value: 'week', label: 'Esta semana' },
+                                    { value: 'month', label: 'Este mes' },
+                                    { value: 'year', label: 'Este año' },
+                                    { value: 'custom', label: 'Personalizado...' }
+                                ]}
                             />
                         </div>
-                    )}
-
-                    {/* Status */}
-                    <div style={{ flex: '1', minWidth: '150px', display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'var(--color-bg)', padding: '0 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', height: '42px' }}>
-                        <CustomSelect
-                            id="history-status"
-                            name="status"
-                            ariaLabel="Filtrar historial por estatus"
-                            icon={Filter}
-                            value={statusFilter}
-                            onChange={(e) => setStatusFilter(e.target.value)}
-                            options={[
-                                { value: '', label: 'Todos los estatus' },
-                                { value: 'pendiente', label: 'Pendiente' },
-                                { value: 'en_proceso', label: 'En Proceso' },
-                                { value: 'completada', label: 'Completada' },
-                                { value: 'cancelada', label: 'Cancelada' }
-                            ]}
-                        />
                     </div>
 
-                    {/* Clear Button */}
-                    {(search || statusFilter || period || dateFrom || dateTo) && (
-                        <button
-                            onClick={clearFilters}
-                            title="Restablecer filtros"
-                            style={{
-                                background: 'rgba(255,255,255,0.05)',
-                                border: '1px solid var(--color-border)',
-                                color: 'var(--color-primary)',
-                                padding: '8px 12px',
-                                borderRadius: 'var(--radius-sm)',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                transition: 'all 0.2s',
-                                height: '42px'
-                            }}
-                            onMouseOver={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
-                            onMouseOut={(e) => e.target.style.background = 'rgba(255,255,255,0.05)'}
-                        >
-                            <RotateCcw size={14} />
-                            <span style={{ fontSize: '11px', fontWeight: 'bold' }}>LIMPIAR</span>
-                        </button>
-                    )}
+                    {period === 'custom' ? (
+                        <div className="filter-toolbar__item filter-toolbar__item--date fade-in">
+                            <div className="form-field-group filter-toolbar__date-range">
+                                <label className="sr-only" htmlFor="history-date-from">Fecha desde</label>
+                                <input
+                                    id="history-date-from"
+                                    name="date_from"
+                                    type="date"
+                                    value={dateFrom}
+                                    onChange={(event) => setDateFrom(event.target.value)}
+                                />
+                                <span>-</span>
+                                <label className="sr-only" htmlFor="history-date-to">Fecha hasta</label>
+                                <input
+                                    id="history-date-to"
+                                    name="date_to"
+                                    type="date"
+                                    value={dateTo}
+                                    onChange={(event) => setDateTo(event.target.value)}
+                                />
+                            </div>
+                        </div>
+                    ) : null}
+
+                    <div className="filter-toolbar__item">
+                        <div className="form-field-group">
+                            <Filter size={18} className="text-muted" />
+                            <CustomSelect
+                                id="history-status"
+                                name="status"
+                                ariaLabel="Filtrar historial por estatus"
+                                value={statusFilter}
+                                onChange={(event) => setStatusFilter(event.target.value)}
+                                options={[
+                                    { value: '', label: 'Todos los estatus' },
+                                    { value: 'pendiente', label: 'Pendiente' },
+                                    { value: 'en_proceso', label: 'En Proceso' },
+                                    { value: 'completada', label: 'Completada' },
+                                    { value: 'cancelada', label: 'Cancelada' }
+                                ]}
+                            />
+                        </div>
+                    </div>
+
+                    {(search || statusFilter || period || dateFrom || dateTo) ? (
+                        <div className="filter-toolbar__actions">
+                            <button type="button" className="btn btn-secondary" onClick={clearFilters}>
+                                <RotateCcw size={16} />
+                                Limpiar filtros
+                            </button>
+                        </div>
+                    ) : null}
                 </div>
-            </div>
+            </section>
 
-            {/* Table */}
-            <div className="card" style={{ padding: 0, overflow: 'visible', minHeight: '200px', position: 'relative' }}>
-                {loading && (
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
-                        <div className="spinner" style={{ width: '30px', height: '30px', border: '3px solid var(--color-primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+            <section className="card card--flush table-shell history-table-shell" aria-labelledby="history-table-title">
+                <div className="card-header">
+                    <div>
+                        <div className="card-header__title" id="history-table-title">
+                            <FileText size={18} className="text-primary" />
+                            <span>Cotizaciones registradas</span>
+                        </div>
+                        <p className="card-header__subtitle">{pagination.total} registros encontrados.</p>
                     </div>
-                )}
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                    <thead>
-                        <tr style={{ backgroundColor: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--color-border)' }}>
-                            <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>FOLIO</th>
-                            <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>FECHA</th>
-                            <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>RUTA</th>
-                            <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>TOTAL</th>
-                            <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 'bold' }}>ESTATUS</th>
-                            <th style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 'bold', textAlign: 'right' }}>ACCIONES</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {quotes.length === 0 && !loading ? (
-                            <tr><td colSpan="6" style={{ padding: '40px', textAlign: 'center' }} className="text-muted">No se encontraron cotizaciones.</td></tr>
-                        ) : (
-                            quotes.map(q => {
-                                const status = getStatusBadge(q.status);
-                                return (
-                                    <tr key={q.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                                        <td style={{ padding: '16px', fontWeight: 'bold', color: 'var(--color-primary)', fontSize: '14px' }}>{q.folio}</td>
-                                        <td style={{ padding: '16px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
-                                                <Calendar size={14} className="text-muted" />
-                                                {formatDate(q.created_at)}
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '16px' }}>
-                                            <p style={{ fontSize: '13px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.origin_address.split(',')[0]} &rarr;</p>
-                                            <p style={{ fontSize: '13px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.destination_address.split(',')[0]}</p>
-                                        </td>
-                                        <td style={{ padding: '16px', fontWeight: 'bold', fontSize: '14px' }}>${Number(q.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                        <td style={{ padding: '16px' }}>
-                                            <StatusBadge variant={status.variant}>{status.text}</StatusBadge>
-                                        </td>
-                                        <td style={{ padding: '16px', textAlign: 'right' }}>
-                                            <CustomMenu
-                                                options={[
-                                                    {
-                                                        label: 'Ver Detalles',
-                                                        icon: <Eye />,
-                                                        onClick: () => navigate(`/history/${q.id}`)
-                                                    },
-                                                    {
-                                                        label: 'Generar PDF',
-                                                        icon: <FileText />,
-                                                        onClick: () => PDFService.generateQuotationPDF(q)
-                                                    }
-                                                ]}
-                                            />
-                                        </td>
-                                    </tr>
-                                );
-                            })
-                        )}
-                    </tbody>
-                </table>
+                </div>
+
+                {loading ? (
+                    <div className="table-loading-overlay" aria-hidden="true">
+                        <div className="spinner" />
+                    </div>
+                ) : null}
+
+                <div className="table-scroll">
+                    <table className="table table--history">
+                        <caption className="sr-only">Tabla de historial de cotizaciones</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">FOLIO</th>
+                                <th scope="col">FECHA</th>
+                                <th scope="col">RUTA</th>
+                                <th scope="col">TOTAL</th>
+                                <th scope="col">ESTATUS</th>
+                                <th scope="col" align="right">ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="6" className="table__empty">Cargando cotizaciones...</td>
+                                </tr>
+                            ) : quotes.length === 0 ? (
+                                <tr>
+                                    <td colSpan="6" className="table__empty">No se encontraron cotizaciones.</td>
+                                </tr>
+                            ) : (
+                                quotes.map((quote) => {
+                                    const status = getStatusBadge(quote.status);
+
+                                    return (
+                                        <tr key={quote.id}>
+                                            <td>
+                                                <strong className="text-primary">{quote.folio}</strong>
+                                            </td>
+                                            <td>
+                                                <div className="cluster-sm">
+                                                    <Calendar size={14} className="text-muted" />
+                                                    <span>{formatDate(quote.created_at)}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="stack-xs">
+                                                    <span className="table__entity-title">{quote.origin_address.split(',')[0]} {'→'}</span>
+                                                    <span className="table__entity-subtitle">{quote.destination_address.split(',')[0]}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <strong>${Number(quote.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                                            </td>
+                                            <td>
+                                                <StatusBadge variant={status.variant}>{status.text}</StatusBadge>
+                                            </td>
+                                            <td className="table__cell--actions">
+                                                <CustomMenu
+                                                    options={[
+                                                        {
+                                                            label: 'Ver detalles',
+                                                            icon: <Eye />,
+                                                            onClick: () => navigate(`/history/${quote.id}`)
+                                                        },
+                                                        {
+                                                            label: 'Generar PDF',
+                                                            icon: <FileText />,
+                                                            onClick: () => PDFService.generateQuotationPDF(quote)
+                                                        }
+                                                    ]}
+                                                />
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
                 <Pagination
                     pagination={pagination}
                     onPageChange={(newPage) => setOffset((newPage - 1) * limit)}
@@ -285,7 +312,7 @@ const History = () => {
                         setOffset(0);
                     }}
                 />
-            </div>
+            </section>
         </div>
     );
 };

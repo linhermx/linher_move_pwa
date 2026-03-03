@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, AlertCircle } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { X, Save } from 'lucide-react';
 import { serviceService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import CustomSelect from './CustomSelect';
 import useModalAccessibility from '../hooks/useModalAccessibility';
+import Alert from './Alert';
 
 const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
-    const isEdit = !!editData;
+    const isEdit = Boolean(editData);
     const { showNotification } = useNotification();
     const [formData, setFormData] = useState({
         name: '',
@@ -38,15 +39,16 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
                 description: editData.description || '',
                 status: editData.status
             });
-        } else {
-            setFormData({
-                name: '',
-                cost: '',
-                time_minutes: '',
-                description: '',
-                status: 'active'
-            });
+            return;
         }
+
+        setFormData({
+            name: '',
+            cost: '',
+            time_minutes: '',
+            description: '',
+            status: 'active'
+        });
     }, [editData, isOpen]);
 
     useModalAccessibility({
@@ -58,8 +60,8 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
 
     if (!isOpen) return null;
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = async (event) => {
+        event.preventDefault();
         setLoading(true);
         setError(null);
 
@@ -79,90 +81,80 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
             onServiceSaved();
             onClose();
         } catch (err) {
-            const msg = err.response?.data?.message || err.message;
-            setError(msg);
-            showNotification(msg, 'error');
+            const message = err.response?.data?.message || err.message;
+            setError(message);
+            showNotification(message, 'error');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+    const handleChange = (event) => {
+        const { name, value } = event.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
     return (
-        <div style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            display: 'flex', justifyContent: 'center', alignItems: 'center',
-            zIndex: 1000, backdropFilter: 'blur(4px)'
-        }} onClick={onClose}>
+        <div className="modal-overlay modal-overlay--legacy" onClick={onClose}>
             <div
                 ref={dialogRef}
-                className="card"
+                className="card modal-shell modal-shell--sm legacy-modal modal-shell--animated"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={labelledBy}
                 aria-describedby={describedBy}
                 tabIndex={-1}
                 onClick={(event) => event.stopPropagation()}
-                style={{
-                width: '100%', maxWidth: '500px', padding: 'var(--spacing-xl)',
-                position: 'relative', animation: 'modal-appear 0.3s ease-out'
-            }}>
-                <button ref={closeButtonRef} onClick={onClose} style={{
-                    position: 'absolute', top: '20px', right: '20px',
-                    background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer'
-                }}>
+            >
+                <button ref={closeButtonRef} type="button" onClick={onClose} className="modal-close legacy-modal__close">
                     <X size={24} />
                 </button>
 
-                <h2 id={labelledBy} style={{ marginBottom: 'var(--spacing-sm)', fontSize: '20px' }}>
+                <h2 id={labelledBy} className="legacy-modal__title">
                     {isEdit ? 'Editar Servicio' : 'Nuevo Servicio'}
                 </h2>
-                <p id={describedBy} className="text-muted" style={{ marginBottom: 'var(--spacing-lg)' }}>
-                    Define el servicio, su costo y el tiempo operativo asociado.
+                <p id={describedBy} className="text-muted legacy-modal__subtitle">
+                    {'Define el servicio, su costo y el tiempo operativo asociado.'}
                 </p>
 
-                {error && (
-                    <div style={{
-                        backgroundColor: 'rgba(255, 72, 72, 0.1)', color: 'var(--color-primary)',
-                        padding: '12px', borderRadius: 'var(--radius-md)', marginBottom: 'var(--spacing-md)',
-                        display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px'
-                    }}>
-                        <AlertCircle size={18} />
-                        {error}
-                    </div>
-                )}
+                {error ? <Alert className="legacy-modal__error">{error}</Alert> : null}
 
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                <form onSubmit={handleSubmit} className="legacy-modal-form">
                     <div>
-                        <label className="form-label" htmlFor={fieldIds.name}>NOMBRE DEL SERVICIO</label>
+                        <label className="form-label" htmlFor={fieldIds.name}>{'NOMBRE DEL SERVICIO'}</label>
                         <input
                             id={fieldIds.name}
-                            type="text" name="name" value={formData.name} onChange={handleChange}
-                            placeholder="Ej. Maniobra Especial"
+                            type="text"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            placeholder={'Ej. Maniobra Especial'}
                             className="form-field"
                         />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
+                    <div className="form-grid form-grid--two">
                         <div>
-                            <label className="form-label" htmlFor={fieldIds.cost}>COSTO ($)</label>
+                            <label className="form-label" htmlFor={fieldIds.cost}>{'COSTO ($)'}</label>
                             <input
                                 id={fieldIds.cost}
-                                type="number" step="0.01" name="cost" value={formData.cost} onChange={handleChange}
+                                type="number"
+                                step="0.01"
+                                name="cost"
+                                value={formData.cost}
+                                onChange={handleChange}
                                 placeholder="0.00"
                                 className="form-field"
                             />
                         </div>
                         <div>
-                            <label className="form-label" htmlFor={fieldIds.timeMinutes}>TIEMPO (MIN)</label>
+                            <label className="form-label" htmlFor={fieldIds.timeMinutes}>{'TIEMPO (MIN)'}</label>
                             <input
                                 id={fieldIds.timeMinutes}
-                                type="number" name="time_minutes" value={formData.time_minutes} onChange={handleChange}
+                                type="number"
+                                name="time_minutes"
+                                value={formData.time_minutes}
+                                onChange={handleChange}
                                 placeholder="0"
                                 className="form-field"
                             />
@@ -170,13 +162,14 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
                     </div>
 
                     <div>
-                        <label className="form-label" htmlFor={fieldIds.description}>DESCRIPCIÓN (OPCIONAL)</label>
+                        <label className="form-label" htmlFor={fieldIds.description}>{'DESCRIPCION (OPCIONAL)'}</label>
                         <textarea
                             id={fieldIds.description}
-                            name="description" value={formData.description} onChange={handleChange}
+                            name="description"
+                            value={formData.description}
+                            onChange={handleChange}
                             rows="3"
-                            className="form-field"
-                            style={{ resize: 'none' }}
+                            className="form-field resize-none"
                         />
                     </div>
 
@@ -187,7 +180,7 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
                                 id={fieldIds.status}
                                 name="status"
                                 value={formData.status}
-                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                onChange={(event) => setFormData({ ...formData, status: event.target.value })}
                                 options={[
                                     { value: 'active', label: 'Activo' },
                                     { value: 'inactive', label: 'Inactivo' }
@@ -196,28 +189,17 @@ const ServiceModal = ({ isOpen, onClose, onServiceSaved, editData = null }) => {
                         </div>
                     </div>
 
-                    <div style={{ marginTop: 'var(--spacing-md)', display: 'flex', gap: 'var(--spacing-md)' }}>
-                        <button type="button" onClick={onClose} style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', color: 'white', cursor: 'pointer' }}>
+                    <div className="modal-actions modal-actions--split">
+                        <button type="button" onClick={onClose} className="btn btn-secondary">
                             Cancelar
                         </button>
-                        <button type="submit" disabled={loading} style={{
-                            flex: 1, padding: '12px', backgroundColor: loading ? 'rgba(255, 72, 72, 0.5)' : 'var(--color-primary)',
-                            border: 'none', borderRadius: 'var(--radius-md)', color: 'white', fontWeight: 'bold',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                            cursor: loading ? 'not-allowed' : 'pointer'
-                        }}>
+                        <button type="submit" disabled={loading} className="btn btn-primary">
                             <Save size={18} />
                             {loading ? 'Guardando...' : 'Guardar'}
                         </button>
                     </div>
                 </form>
             </div>
-            <style>{`
-                @keyframes modal-appear {
-                    from { transform: translateY(20px); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
-                }
-            `}</style>
         </div>
     );
 };

@@ -8,6 +8,7 @@ import { MapPin, Trash2, Plus, Loader2, Calculator, Truck, Package, ChevronRight
 import { CalculationMotor } from '../utils/CalculationMotor';
 
 const DEFAULT_EXPANDED_SECTIONS = ['ruta', 'logistica', 'servicios'];
+const COMPACT_WORKSPACE_QUERY = '(max-width: 1024px)';
 
 const createInitialPoints = (settings = {}) => {
     if (settings.default_origin_address && settings.default_origin_lat && settings.default_origin_lng) {
@@ -56,7 +57,11 @@ const NewQuote = () => {
     const [numTrips, setNumTrips] = useState(1);
     const [expandedSections, setExpandedSections] = useState(DEFAULT_EXPANDED_SECTIONS);
     const [isFabOpen, setIsFabOpen] = useState(false);
+    const [activeWorkspaceTab, setActiveWorkspaceTab] = useState('form');
+    const [isCompactLayout, setIsCompactLayout] = useState(() => window.matchMedia(COMPACT_WORKSPACE_QUERY).matches);
     const fabRef = useRef(null);
+    const panelBodyRef = useRef(null);
+    const [hasPanelOverflow, setHasPanelOverflow] = useState(false);
 
     const toggleSection = (section) => {
         setExpandedSections(prev =>
@@ -121,6 +126,74 @@ const NewQuote = () => {
             setIsFabOpen(false);
         }
     }, [breakdown]);
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia(COMPACT_WORKSPACE_QUERY);
+        const handleChange = (event) => {
+            setIsCompactLayout(event.matches);
+        };
+
+        setIsCompactLayout(mediaQuery.matches);
+        mediaQuery.addEventListener('change', handleChange);
+
+        return () => {
+            mediaQuery.removeEventListener('change', handleChange);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (isCompactLayout) {
+            setIsFabOpen(false);
+        }
+    }, [activeWorkspaceTab, isCompactLayout]);
+
+    useEffect(() => {
+        const panelBody = panelBodyRef.current;
+        if (!panelBody) {
+            return undefined;
+        }
+
+        const updateOverflow = () => {
+            setHasPanelOverflow(panelBody.scrollHeight > panelBody.clientHeight + 1);
+        };
+
+        updateOverflow();
+
+        const handleResize = () => {
+            window.requestAnimationFrame(updateOverflow);
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        if (typeof ResizeObserver === 'undefined') {
+            return () => {
+                window.removeEventListener('resize', handleResize);
+            };
+        }
+
+        const observer = new ResizeObserver(() => {
+            window.requestAnimationFrame(updateOverflow);
+        });
+
+        observer.observe(panelBody);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            observer.disconnect();
+        };
+    }, [
+        activeWorkspaceTab,
+        breakdown,
+        expandedSections,
+        isCompactLayout,
+        mapsUrl,
+        points,
+        searchLoading,
+        selectedServices,
+        services.length,
+        showMapsUrl,
+        suggestions.length
+    ]);
 
     // Real-time calculation when route, vehicle or services change
     useEffect(() => {
@@ -443,12 +516,39 @@ const NewQuote = () => {
         }
     };
 
+    const isFormTabVisible = !isCompactLayout || activeWorkspaceTab === 'form';
+    const isMapTabVisible = !isCompactLayout || activeWorkspaceTab === 'map';
+
     return (
-        <div className="page-shell page-shell--workspace fade-in" style={{ display: 'flex', gap: 'var(--spacing-lg)', height: '100%', overflow: 'hidden' }}>
-            {/* Sidebar with Fixed Distribution */}
-            <div style={{ width: '400px', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-                {/* Scrollable Body area for Accordions - Unified Scrolling */}
-                <div className="custom-scrollbar" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)', paddingRight: '4px', minHeight: 0 }}>
+        <div className="page-shell page-shell--workspace fade-in workspace-shell">
+            {isCompactLayout ? (
+                <div className="workspace-tabs" role="tablist" aria-label="Vista de nueva cotización">
+                    <button
+                        type="button"
+                        role="tab"
+                        className={`workspace-tabs__trigger ${activeWorkspaceTab === 'form' ? 'workspace-tabs__trigger--active' : ''}`.trim()}
+                        aria-selected={activeWorkspaceTab === 'form'}
+                        onClick={() => setActiveWorkspaceTab('form')}
+                    >
+                        Formulario
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        className={`workspace-tabs__trigger ${activeWorkspaceTab === 'map' ? 'workspace-tabs__trigger--active' : ''}`.trim()}
+                        aria-selected={activeWorkspaceTab === 'map'}
+                        onClick={() => setActiveWorkspaceTab('map')}
+                    >
+                        Mapa
+                    </button>
+                </div>
+            ) : null}
+
+            <section className={`workspace-shell__panel ${isFormTabVisible ? '' : 'workspace-shell__panel--hidden'}`.trim()}>
+                <div
+                    ref={panelBodyRef}
+                    className={`workspace-shell__panel-body ${hasPanelOverflow ? 'workspace-shell__panel-body--scrollable custom-scrollbar' : ''}`.trim()}
+                >
 
                     {/* Ruta Section */}
                     <div className="card accordion-card">
@@ -465,10 +565,10 @@ const NewQuote = () => {
                         {expandedSections.includes('ruta') && (
                             <div className="accordion-content">
                                 {/* Unified Scroll - No nested scroll here */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                                <div className="workspace-route-points">
                                     {points.map((p, idx) => (
-                                        <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', position: 'relative' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div key={p.id} className="workspace-route-point">
+                                            <div className="workspace-route-point__header">
                                                 <label className="form-label" htmlFor={`quote-point-${p.id}`}>
                                                     {p.label}
                                                 </label>
@@ -493,72 +593,44 @@ const NewQuote = () => {
                                             </div>
 
                                             {activeSearchIdx === idx && suggestions.length > 0 && (
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    top: '100%',
-                                                    left: 0,
-                                                    right: 0,
-                                                    backgroundColor: 'var(--color-surface)',
-                                                    border: '1px solid var(--color-border)',
-                                                    borderRadius: 'var(--radius-sm)',
-                                                    zIndex: 5000,
-                                                    maxHeight: '200px',
-                                                    overflowY: 'auto',
-                                                    boxShadow: 'var(--shadow-lg)'
-                                                }}>
+                                                <div className="search-suggestions">
                                                     {suggestions.map((s, sIdx) => (
-                                                        <div
+                                                        <button
                                                             key={sIdx}
+                                                            type="button"
                                                             onClick={() => selectSuggestion(idx, s)}
-                                                            style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--color-border)', fontSize: '12px' }}
-                                                            onMouseOver={(e) => e.target.style.backgroundColor = 'var(--color-surface-hover)'}
-                                                            onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                                                            className="search-suggestions__item"
                                                         >
                                                             {s.label}
-                                                        </div>
+                                                        </button>
                                                     ))}
                                                 </div>
                                             )}
                                             {idx === points.length - 1 && (
-                                                <div style={{ marginTop: 'var(--spacing-sm)' }}>
+                                                <div className="workspace-maps-link">
                                                     {!showMapsUrl ? (
                                                         <button
+                                                            type="button"
                                                             onClick={() => setShowMapsUrl(true)}
-                                                            style={{
-                                                                background: 'transparent',
-                                                                border: 'none',
-                                                                color: 'var(--color-primary)',
-                                                                fontSize: '11px',
-                                                                fontWeight: 'bold',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: '4px',
-                                                                cursor: 'pointer',
-                                                                padding: '4px 0',
-                                                                opacity: (p.lat && p.lng) ? 1 : 0.5,
-                                                                pointerEvents: (p.lat && p.lng) ? 'auto' : 'none',
-                                                                transition: 'all 0.2s'
-                                                            }}
+                                                            className="workspace-maps-toggle"
+                                                            disabled={!p.lat || !p.lng}
                                                         >
                                                             <LinkIcon size={12} />
                                                             {mapsUrl ? '+ Ver link de Google Maps (Destino)' : '+ Añadir link de Google Maps (Destino)'}
                                                         </button>
                                                     ) : (
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', animation: 'fadeIn 0.3s ease-in-out' }}>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div className="workspace-maps-link__body">
+                                                            <div className="workspace-maps-link__header">
                                                                 <label className="form-label" htmlFor="quote-maps-url">LINK DE GOOGLE MAPS (DESTINO)</label>
                                                                 <button
+                                                                    type="button"
                                                                     onClick={() => setShowMapsUrl(false)}
-                                                                    style={{ background: 'transparent', border: 'none', color: 'var(--color-text-dim)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                                                                    className="workspace-inline-button"
                                                                 >
                                                                     <X size={12} />
                                                                 </button>
                                                             </div>
-                                                            <div className="form-field-group" style={{
-                                                                borderStyle: 'dashed',
-                                                                borderColor: 'var(--color-primary)',
-                                                                backgroundColor: 'rgba(255, 72, 72, 0.05)'
-                                                            }}>
+                                                            <div className="form-field-group workspace-field-group--dashed">
                                                                 <input
                                                                     id="quote-maps-url"
                                                                     name="google_maps_link"
@@ -577,8 +649,9 @@ const NewQuote = () => {
                                     ))}
                                 </div>
                                 <button
+                                    type="button"
                                     onClick={addStop}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)', background: 'transparent', border: '1px solid var(--color-primary)', padding: '8px', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: '12px', width: '100%', justifyContent: 'center' }}>
+                                    className="btn btn-secondary workspace-add-stop">
                                     <Plus size={16} />
                                     Agregar parada
                                 </button>
@@ -617,8 +690,8 @@ const NewQuote = () => {
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
-                                    <div style={{ gridColumn: 'span 2' }}>
+                                <div className="workspace-form-split">
+                                    <div className="workspace-form-split__full">
                                         <label className="form-label" htmlFor="quote-num-trips">NÚMERO DE TRAYECTOS (RECORRIDO)</label>
                                         <input
                                             id="quote-num-trips"
@@ -673,25 +746,15 @@ const NewQuote = () => {
 
                         {expandedSections.includes('servicios') && (
                             <div className="accordion-content">
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div className="workspace-services-list">
                                     {services.map(s => (
                                         <div
                                             key={s.id}
                                             onClick={() => toggleService(s.id)}
-                                            style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center',
-                                                padding: '10px 12px',
-                                                backgroundColor: selectedServices.includes(s.id) ? 'rgba(255, 72, 72, 0.1)' : 'var(--color-bg)',
-                                                border: `1px solid ${selectedServices.includes(s.id) ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                                                borderRadius: 'var(--radius-md)',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s'
-                                            }}
+                                            className={`workspace-service-option ${selectedServices.includes(s.id) ? 'workspace-service-option--selected' : ''}`.trim()}
                                         >
-                                            <span style={{ fontSize: '13px' }}>{s.name}</span>
-                                            <span style={{ fontSize: '13px', fontWeight: 'bold' }}>${parseFloat(s.cost || 0).toLocaleString()}</span>
+                                            <span className="workspace-service-option__name">{s.name}</span>
+                                            <span className="workspace-service-option__price">${parseFloat(s.cost || 0).toLocaleString()}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -702,140 +765,120 @@ const NewQuote = () => {
                 </div>
 
                 {/* Fixed Footer Area for Main Button */}
-                <div style={{ paddingTop: '5px' }}>
+                <div className="workspace-sticky-action">
                     <button
                         onClick={calculateRoute}
                         disabled={loading || searchLoading !== null}
-                        style={{
-                            backgroundColor: (loading || searchLoading !== null) ? 'var(--color-text-dim)' : 'var(--color-primary)',
-                            color: 'white',
-                            border: 'none',
-                            padding: '16px',
-                            borderRadius: 'var(--radius-md)',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            gap: '10px',
-                            fontWeight: 'bold',
-                            fontSize: '16px',
-                            cursor: (loading || searchLoading !== null) ? 'default' : 'pointer',
-                            width: '100%',
-                            boxShadow: '0 4px 12px rgba(255, 72, 72, 0.2)'
-                        }}>
+                        className="btn btn-primary workspace-calc-button">
                         {loading ? <Loader2 className="animate-spin" size={20} /> : <Calculator size={20} />}
                         Calcular Cotización
                     </button>
                 </div>
-            </div>
+            </section>
 
-            <div style={{ flexGrow: 1, position: 'relative' }}>
-                <MapComponent points={points} routeData={routeData} onMarkerDrag={updatePoint} />
+            <section className={`workspace-shell__map ${isMapTabVisible ? '' : 'workspace-shell__map--hidden'}`.trim()}>
+                <div className="workspace-shell__map-canvas">
+                    <MapComponent points={points} routeData={routeData} onMarkerDrag={updatePoint} />
+                </div>
 
-                <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 1000, width: '280px' }}>
+                <div className={`workspace-shell__overlay ${isCompactLayout ? 'workspace-shell__overlay--stacked' : ''}`.trim()}>
                     {/* Route Summary */}
-                    <div style={{ backgroundColor: 'var(--color-surface)', padding: '15px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-md)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    <div className="workspace-summary-card">
                         <div>
-                            <p className="text-muted" style={{ fontSize: '10px', marginBottom: '4px' }}>DISTANCIA</p>
-                            <p style={{ fontWeight: 'bold', fontSize: '18px' }}>{(parseFloat(summary.distance) || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <span style={{ fontSize: '18px', fontWeight: 'bold' }}>km</span></p>
+                            <p className="summary-stat__label">DISTANCIA</p>
+                            <p className="summary-stat__value">{(parseFloat(summary.distance) || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <span className="summary-stat__unit">km</span></p>
                         </div>
                         <div>
-                            <p className="text-muted" style={{ fontSize: '10px', marginBottom: '4px' }}>TIEMPO EST.</p>
-                            <p style={{ fontWeight: 'bold', fontSize: '18px' }}>{CalculationMotor.formatMinutes(summary.duration)}</p>
+                            <p className="summary-stat__label">TIEMPO EST.</p>
+                            <p className="summary-stat__value">{CalculationMotor.formatMinutes(summary.duration)}</p>
                         </div>
                     </div>
 
                     {/* Cost Breakdown */}
                     {breakdown && (
-                        <div style={{ backgroundColor: 'var(--color-surface)', padding: '15px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-xl)', animation: 'fade-in 0.3s', maxHeight: '550px', overflowY: 'auto' }}>
-                            <h3 style={{ fontSize: '14px', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-primary)' }}>
+                        <div className="workspace-breakdown-card">
+                            <h3 className="cost-breakdown__title">
                                 <Calculator size={16} /> DESGLOSE DETALLADO
                             </h3>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div className="cost-breakdown__stack">
                                 {/* Distances & Times */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '5px' }}>
-                                    <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '4px' }}>
-                                        <p className="text-muted" style={{ fontSize: '9px', textTransform: 'uppercase' }}>Dist. Total</p>
-                                        <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{(breakdown.distancia_total || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km</p>
+                                <div className="cost-breakdown__metrics">
+                                    <div className="cost-breakdown__metric">
+                                        <p className="cost-breakdown__metric-label">Dist. Total</p>
+                                        <p className="cost-breakdown__metric-value">{(breakdown.distancia_total || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km</p>
                                     </div>
-                                    <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '4px' }}>
-                                        <p className="text-muted" style={{ fontSize: '9px', textTransform: 'uppercase' }}>Tiempo Total</p>
-                                        <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{CalculationMotor.formatMinutes(breakdown.tiempo_total_min)}</p>
+                                    <div className="cost-breakdown__metric">
+                                        <p className="cost-breakdown__metric-label">Tiempo Total</p>
+                                        <p className="cost-breakdown__metric-value">{CalculationMotor.formatMinutes(breakdown.tiempo_total_min)}</p>
                                     </div>
-                                    <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '4px' }}>
-                                        <p className="text-muted" style={{ fontSize: '9px', textTransform: 'uppercase' }}>C/ Tráfico</p>
-                                        <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{CalculationMotor.formatMinutes(breakdown.tiempo_con_trafico_min)}</p>
+                                    <div className="cost-breakdown__metric">
+                                        <p className="cost-breakdown__metric-label">C/ Tráfico</p>
+                                        <p className="cost-breakdown__metric-value">{CalculationMotor.formatMinutes(breakdown.tiempo_con_trafico_min)}</p>
                                     </div>
-                                    <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '8px', borderRadius: '4px' }}>
-                                        <p className="text-muted" style={{ fontSize: '9px', textTransform: 'uppercase' }}>C/ Servicios</p>
-                                        <p style={{ fontSize: '14px', fontWeight: 'bold' }}>{breakdown.time_formatted}</p>
+                                    <div className="cost-breakdown__metric">
+                                        <p className="cost-breakdown__metric-label">C/ Servicios</p>
+                                        <p className="cost-breakdown__metric-value">{breakdown.time_formatted}</p>
                                     </div>
                                 </div>
 
                                 {/* Logistics Breakdown */}
-                                <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                                <div className="cost-breakdown__row">
                                     <span className="text-muted">Gasolina ({(breakdown.gasolina_litros || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L)</span>
                                     <span>${breakdown.gas_cost.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
-                                <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                                <div className="cost-breakdown__row">
                                     <span className="text-muted">Casetas ({breakdown.num_tolls})</span>
                                     <span>${breakdown.toll_cost.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
-                                <div style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between', color: 'var(--color-primary)' }}>
-                                    <span style={{ fontWeight: 'bold' }}>Costo Logístico (Flete)</span>
-                                    <span style={{ fontWeight: 'bold' }}>${breakdown.logistics_cost_rounded.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <div className="cost-breakdown__row cost-breakdown__row--accent">
+                                    <span className="cost-breakdown__row-label--strong">Costo Logístico (Flete)</span>
+                                    <span className="cost-breakdown__row-value--strong">${breakdown.logistics_cost_rounded.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
-                                <p style={{ fontSize: '9px', color: 'var(--color-text-dim)', textAlign: 'right', marginTop: '-5px' }}>
+                                <p className="cost-breakdown__note">
                                     Bruto: ${breakdown.logistics_cost_raw.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </p>
 
-                                <div style={{ height: '1px', backgroundColor: 'var(--color-border)', margin: '5px 0' }} />
+                                <div className="cost-breakdown__divider" />
 
                                 {/* Viáticos & Services */}
                                 {breakdown.lodging_cost > 0 && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                    <div className="cost-breakdown__row">
                                         <span className="text-muted">Viáticos Hospedaje</span>
                                         <span>${breakdown.lodging_cost.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 )}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                <div className="cost-breakdown__row">
                                     <span className="text-muted">Viáticos Alimentos</span>
                                     <span>${breakdown.meal_cost.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
 
                                 {services.filter(s => selectedServices.includes(s.id)).map(s => (
-                                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                    <div key={s.id} className="cost-breakdown__row">
                                         <span className="text-muted">{s.name}</span>
                                         <span>${parseFloat(s.cost).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 ))}
 
-                                <div style={{ height: '2px', backgroundColor: 'var(--color-border)', margin: '10px 0' }} />
+                                <div className="cost-breakdown__divider cost-breakdown__divider--strong" />
 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                                <div className="cost-breakdown__row">
                                     <span className="text-muted">Subtotal</span>
-                                    <span style={{ fontWeight: 'bold' }}>${breakdown.subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span className="cost-breakdown__row-value">${breakdown.subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                                <div className="cost-breakdown__row">
                                     <span className="text-muted">IVA (16%)</span>
-                                    <span style={{ fontWeight: 'bold' }}>${breakdown.iva.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span className="cost-breakdown__row-value">${breakdown.iva.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
 
-                                <div style={{
-                                    backgroundColor: 'rgba(255, 72, 72, 0.05)',
-                                    padding: '12px',
-                                    borderRadius: '8px',
-                                    marginTop: '10px',
-                                    border: '1px solid rgba(255, 72, 72, 0.2)',
-                                    textAlign: 'right'
-                                }}>
-                                    <p className="text-muted" style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '2px' }}>TOTAL NETO</p>
-                                    <p style={{ fontSize: '28px', fontWeight: 'bold', color: 'var(--color-primary)', margin: 0 }}>
+                                <div className="cost-breakdown__total">
+                                    <p className="cost-breakdown__total-label">TOTAL NETO</p>
+                                    <p className="cost-breakdown__total-value">
                                         ${breakdown.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </p>
                                 </div>
                             </div>
-                            <p style={{ fontSize: '10px', color: 'var(--color-text-dim)', textAlign: 'center', marginTop: '15px', fontStyle: 'italic' }}>
+                            <p className="cost-breakdown__footnote">
                                 * Precios aproximados sujetos a cambios en ruta.
                             </p>
                         </div>
@@ -889,7 +932,7 @@ const NewQuote = () => {
                         </div>
                     </div>
                 )}
-            </div>
+            </section>
         </div>
     );
 };

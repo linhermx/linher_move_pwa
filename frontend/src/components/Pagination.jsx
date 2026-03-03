@@ -7,7 +7,7 @@ const Pagination = ({ pagination, onPageChange, onLimitChange }) => {
         return null;
     }
 
-    const { total, limit, pages, current_page } = pagination;
+    const { total, limit, pages, current_page: currentPage } = pagination;
     const showNavigation = pages > 1;
     const limits = [
         { value: 10, label: '10 filas' },
@@ -35,25 +35,25 @@ const Pagination = ({ pagination, onPageChange, onLimitChange }) => {
                     <>
                         <div className="pagination__meta">
                             <span className="text-muted">
-                                Pág. <strong>{current_page}</strong> / {pages}
+                                Pag. <strong>{currentPage}</strong> / {pages}
                             </span>
                         </div>
                         <div className="pagination__nav">
                             <button
                                 type="button"
                                 className="pagination__button"
-                                onClick={() => onPageChange(current_page - 1)}
-                                disabled={current_page === 1}
-                                aria-label="Página anterior"
+                                onClick={() => onPageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                aria-label="Pagina anterior"
                             >
                                 <ChevronLeft size={16} />
                             </button>
                             <button
                                 type="button"
                                 className="pagination__button"
-                                onClick={() => onPageChange(current_page + 1)}
-                                disabled={current_page === pages}
-                                aria-label="Página siguiente"
+                                onClick={() => onPageChange(currentPage + 1)}
+                                disabled={currentPage === pages}
+                                aria-label="Pagina siguiente"
                             >
                                 <ChevronRight size={16} />
                             </button>

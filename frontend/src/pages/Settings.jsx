@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Save, Info, MapPin } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
-import { settingsService, mapsService } from '../services/api';
+import { mapsService, settingsService } from '../services/api';
 import MapComponent from '../components/MapComponent';
 import PageHeader from '../components/PageHeader';
 
@@ -45,17 +45,18 @@ const Settings = () => {
             try {
                 const data = await settingsService.get();
                 if (data && Object.keys(data).length > 0) {
-                    setSettings(prev => ({ ...prev, ...data }));
+                    setSettings((prev) => ({ ...prev, ...data }));
                 }
             } catch (err) {
                 console.error('Error fetching settings:', err);
             }
         };
+
         fetchSettings();
     }, []);
 
-    const handleChange = (e) => {
-        setSettings({ ...settings, [e.target.name]: e.target.value });
+    const handleChange = (event) => {
+        setSettings({ ...settings, [event.target.name]: event.target.value });
     };
 
     const handleSave = async () => {
@@ -70,6 +71,7 @@ const Settings = () => {
 
     const handleAddressSearch = async (text) => {
         setSettings({ ...settings, default_origin_address: text });
+
         if (text.length > 3) {
             setActiveSearchIdx(0);
             try {
@@ -78,9 +80,10 @@ const Settings = () => {
             } catch (err) {
                 console.error('Autocomplete error:', err);
             }
-        } else {
-            setSuggestions([]);
+            return;
         }
+
+        setSuggestions([]);
     };
 
     const selectSuggestion = (suggestion) => {
@@ -98,19 +101,19 @@ const Settings = () => {
         const roundedLat = parseFloat(lat.toFixed(6));
         const roundedLng = parseFloat(lng.toFixed(6));
 
-        setSettings(prev => ({
+        setSettings((prev) => ({
             ...prev,
-            default_origin_address: 'Buscando dirección...',
+            default_origin_address: 'Buscando direccion...',
             default_origin_lat: roundedLat.toString(),
             default_origin_lng: roundedLng.toString()
         }));
 
         try {
             const result = await mapsService.reverseGeocode(roundedLat, roundedLng);
-            setSettings(prev => ({ ...prev, default_origin_address: result.label }));
+            setSettings((prev) => ({ ...prev, default_origin_address: result.label }));
         } catch (err) {
             console.error('Reverse geocode error:', err);
-            setSettings(prev => ({
+            setSettings((prev) => ({
                 ...prev,
                 default_origin_address: `${roundedLat}, ${roundedLng}`
             }));
@@ -118,65 +121,57 @@ const Settings = () => {
     };
 
     return (
-        <div className="page-shell fade-in">
+        <div className="page-shell fade-in stack-lg settings-page">
             <PageHeader
                 title="Parámetros Globales"
                 subtitle="Configura los valores base y reglas de negocio para las cotizaciones."
             />
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--spacing-lg)' }}>
-                {/* SECCIÓN 1: UBICACIÓN POR DEFECTO - OCUPA TODO EL ANCHO */}
-                <div className="card" style={{ gridColumn: 'span 2' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 'var(--spacing-lg)', borderBottom: '1px solid var(--color-border)', paddingBottom: '10px' }}>
-                        <div style={{ color: 'var(--color-primary)' }}><MapPin size={20} /></div>
-                        <h3 style={{ fontSize: '18px' }}>Ubicación de Origen Predefinida</h3>
+            <div className="settings-layout">
+                <div className="card settings-layout__hero">
+                    <div className="settings-section__header">
+                        <div className="settings-section__icon"><MapPin size={20} /></div>
+                        <h3 className="settings-section__title">Ubicación de Origen Predefinida</h3>
                     </div>
-                    <p className="text-muted" style={{ fontSize: '12px', marginBottom: 'var(--spacing-md)' }}>Define el punto de partida que aparecerá automáticamente en cada nueva cotización. Arrastra el marcador en el mapa para mayor precisión.</p>
+                    <p className="text-muted settings-section__intro">
+                        Define el punto de partida que aparecerá automáticamente en cada nueva cotización. Arrastra el marcador en el mapa para mayor precisión.
+                    </p>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-lg)', minHeight: '350px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                            <div style={{ position: 'relative' }}>
-                                <label className="text-muted" htmlFor="settings-default-origin-address" style={{ display: 'block', marginBottom: '8px', fontSize: '12px' }}>BUSCAR DIRECCIÓN</label>
-                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '8px' }}>
+                    <div className="settings-layout__hero-body settings-layout__hero-body--tall">
+                        <div className="settings-stack">
+                            <div className="settings-search">
+                                <label className="text-muted settings-search__label" htmlFor="settings-default-origin-address">
+                                    BUSCAR DIRECCIÓN
+                                </label>
+                                <div className="form-field-group">
                                     <input
                                         id="settings-default-origin-address"
                                         name="default_origin_address"
                                         type="text"
                                         value={settings.default_origin_address}
-                                        onChange={(e) => handleAddressSearch(e.target.value)}
-                                        style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: '14px' }}
+                                        onChange={(event) => handleAddressSearch(event.target.value)}
+                                        className="form-input-clean"
                                         placeholder="Ej: Puebla, Pue., México"
                                     />
                                 </div>
-                                {activeSearchIdx !== null && suggestions.length > 0 && (
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: '100%',
-                                        left: 0,
-                                        right: 0,
-                                        backgroundColor: 'var(--color-surface)',
-                                        border: '1px solid var(--color-border)',
-                                        borderRadius: 'var(--radius-sm)',
-                                        zIndex: 2000,
-                                        maxHeight: '150px',
-                                        overflowY: 'auto'
-                                    }}>
-                                        {suggestions.map((s, idx) => (
-                                            <div
+
+                                {activeSearchIdx !== null && suggestions.length > 0 ? (
+                                    <div className="search-suggestions">
+                                        {suggestions.map((suggestion, idx) => (
+                                            <button
                                                 key={idx}
-                                                onClick={() => selectSuggestion(s)}
-                                                style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--color-border)', fontSize: '12px' }}
-                                                onMouseOver={(e) => e.target.style.backgroundColor = 'var(--color-surface-hover)'}
-                                                onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                                                type="button"
+                                                onClick={() => selectSuggestion(suggestion)}
+                                                className="search-suggestions__item"
                                             >
-                                                {s.label}
-                                            </div>
+                                                {suggestion.label}
+                                            </button>
                                         ))}
                                     </div>
-                                )}
+                                ) : null}
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
+                            <div className="settings-coordinates-grid">
                                 <div>
                                     <label className="form-label" htmlFor="settings-default-origin-lat">LATITUD</label>
                                     <input
@@ -201,12 +196,12 @@ const Settings = () => {
                                 </div>
                             </div>
 
-                            <p className="text-muted" style={{ fontSize: '11px', marginTop: 'auto', padding: '10px', backgroundColor: 'rgba(255, 72, 72, 0.05)', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--color-primary)' }}>
+                            <p className="text-muted settings-tip">
                                 Tip: Busca la dirección principal y luego ajusta el marcador rojo en el mapa para fijar el predio exacto de carga.
                             </p>
                         </div>
 
-                        <div style={{ height: '300px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
+                        <div className="settings-map settings-map--compact">
                             <MapComponent
                                 points={mapPoints}
                                 onMarkerDrag={handleMarkerDrag}
@@ -215,27 +210,33 @@ const Settings = () => {
                     </div>
                 </div>
 
-                {/* SECCIÓN 2: COMBUSTIBLE Y EFICIENCIA */}
                 <div className="card">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 'var(--spacing-lg)', borderBottom: '1px solid var(--color-border)', paddingBottom: '10px' }}>
-                        <div style={{ color: 'var(--color-primary)' }}><Info size={20} /></div>
-                        <h3 style={{ fontSize: '18px' }}>Combustible y Eficiencia</h3>
+                    <div className="settings-section__header">
+                        <div className="settings-section__icon"><Info size={20} /></div>
+                        <h3 className="settings-section__title">{'Combustible y Eficiencia'}</h3>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                    <div className="settings-stack">
                         <div>
-                            <label className="form-label" htmlFor="settings-gasoline-price">PRECIO GASOLINA ($/L)</label>
+                            <label className="form-label" htmlFor="settings-gasoline-price">{'PRECIO GASOLINA ($/L)'}</label>
                             <input
                                 id="settings-gasoline-price"
-                                type="number" name="gasoline_price" value={settings.gasoline_price} onChange={handleChange}
+                                type="number"
+                                name="gasoline_price"
+                                value={settings.gasoline_price}
+                                onChange={handleChange}
                                 className="form-field"
                                 placeholder="24.50"
                             />
                         </div>
                         <div>
-                            <label className="form-label" htmlFor="settings-base-efficiency">FACTOR EFICIENCIA BASE</label>
+                            <label className="form-label" htmlFor="settings-base-efficiency">{'FACTOR EFICIENCIA BASE'}</label>
                             <input
                                 id="settings-base-efficiency"
-                                type="number" step="0.1" name="base_efficiency" value={settings.base_efficiency} onChange={handleChange}
+                                type="number"
+                                step="0.1"
+                                name="base_efficiency"
+                                value={settings.base_efficiency}
+                                onChange={handleChange}
                                 className="form-field"
                                 placeholder="1.0"
                             />
@@ -243,18 +244,21 @@ const Settings = () => {
                     </div>
                 </div>
 
-                {/* SECCIÓN 3: AJUSTES DE RUTA */}
                 <div className="card">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 'var(--spacing-lg)', borderBottom: '1px solid var(--color-border)', paddingBottom: '10px' }}>
-                        <div style={{ color: 'var(--color-primary)' }}><Info size={20} /></div>
-                        <h3 style={{ fontSize: '18px' }}>Ajustes de Ruta</h3>
+                    <div className="settings-section__header">
+                        <div className="settings-section__icon"><Info size={20} /></div>
+                        <h3 className="settings-section__title">{'Ajustes de Ruta'}</h3>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+                    <div className="settings-stack">
                         <div>
-                            <label className="form-label" htmlFor="settings-maneuver-factor">FACTOR MANIOBRA (MULTIPLICADOR)</label>
+                            <label className="form-label" htmlFor="settings-maneuver-factor">{'FACTOR MANIOBRA (MULTIPLICADOR)'}</label>
                             <input
                                 id="settings-maneuver-factor"
-                                type="number" step="0.1" name="maneuver_factor" value={settings.maneuver_factor} onChange={handleChange}
+                                type="number"
+                                step="0.1"
+                                name="maneuver_factor"
+                                value={settings.maneuver_factor}
+                                onChange={handleChange}
                                 className="form-field"
                                 placeholder="1.2"
                             />
@@ -263,7 +267,11 @@ const Settings = () => {
                             <label className="form-label" htmlFor="settings-traffic-factor">FACTOR TRÁFICO (TIEMPO)</label>
                             <input
                                 id="settings-traffic-factor"
-                                type="number" step="0.1" name="traffic_factor" value={settings.traffic_factor} onChange={handleChange}
+                                type="number"
+                                step="0.1"
+                                name="traffic_factor"
+                                value={settings.traffic_factor}
+                                onChange={handleChange}
                                 className="form-field"
                                 placeholder="1.5"
                             />
@@ -271,31 +279,42 @@ const Settings = () => {
                     </div>
                 </div>
 
-                {/* SECCIÓN 4: HOSPEDAJE */}
                 <div className="card">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 'var(--spacing-lg)', borderBottom: '1px solid var(--color-border)', paddingBottom: '10px' }}>
-                        <div style={{ color: 'var(--color-primary)' }}><Info size={20} /></div>
-                        <h3 style={{ fontSize: '18px' }}>Costos de Hospedaje</h3>
+                    <div className="settings-section__header">
+                        <div className="settings-section__icon"><Info size={20} /></div>
+                        <h3 className="settings-section__title">{'Costos de Hospedaje'}</h3>
                     </div>
-                    <p className="text-muted" style={{ fontSize: '12px', marginBottom: 'var(--spacing-md)' }}>Define las horas de trayecto de ida y el costo por noche según la duración.</p>
+                    <p className="text-muted settings-section__intro">
+                        Define las horas de trayecto de ida y el costo por noche según la duración.
+                    </p>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                        {[1, 2, 3].map(tier => (
-                            <div key={`lodging-tier-${tier}`} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                    <div className="settings-stack">
+                        {[1, 2, 3].map((tier) => (
+                            <div key={`lodging-tier-${tier}`} className="settings-tier settings-tier-grid">
                                 <div>
-                                    <label className="form-label" htmlFor={`settings-lodging-tier${tier}-hours`}>UMBRAL NIVEL {tier} (HORAS IDA)</label>
+                                    <label className="form-label" htmlFor={`settings-lodging-tier${tier}-hours`}>
+                                        {`UMBRAL NIVEL ${tier} (HORAS IDA)`}
+                                    </label>
                                     <input
                                         id={`settings-lodging-tier${tier}-hours`}
-                                        type="number" name={`lodging_tier${tier}_hours`} value={settings[`lodging_tier${tier}_hours`]} onChange={handleChange}
+                                        type="number"
+                                        name={`lodging_tier${tier}_hours`}
+                                        value={settings[`lodging_tier${tier}_hours`]}
+                                        onChange={handleChange}
                                         className="form-field"
                                         placeholder={`${tier === 1 ? '6' : tier === 2 ? '11' : '17'}`}
                                     />
                                 </div>
                                 <div>
-                                    <label className="form-label" htmlFor={`settings-lodging-tier${tier}-cost`}>COSTO ASIGNADO ($)</label>
+                                    <label className="form-label" htmlFor={`settings-lodging-tier${tier}-cost`}>
+                                        {'COSTO ASIGNADO ($)'}
+                                    </label>
                                     <input
                                         id={`settings-lodging-tier${tier}-cost`}
-                                        type="number" name={`lodging_tier${tier}_cost`} value={settings[`lodging_tier${tier}_cost`]} onChange={handleChange}
+                                        type="number"
+                                        name={`lodging_tier${tier}_cost`}
+                                        value={settings[`lodging_tier${tier}_cost`]}
+                                        onChange={handleChange}
                                         className="form-field"
                                         placeholder={`${tier === 1 ? '1500' : tier === 2 ? '2400' : '3600'}`}
                                     />
@@ -305,62 +324,78 @@ const Settings = () => {
                     </div>
                 </div>
 
-                {/* SECCIÓN 5: ALIMENTOS */}
                 <div className="card">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 'var(--spacing-lg)', borderBottom: '1px solid var(--color-border)', paddingBottom: '10px' }}>
-                        <div style={{ color: 'var(--color-primary)' }}><Info size={20} /></div>
-                        <h3 style={{ fontSize: '18px' }}>Costos de Alimentos / Viáticos</h3>
+                    <div className="settings-section__header">
+                        <div className="settings-section__icon"><Info size={20} /></div>
+                        <h3 className="settings-section__title">Costos de Alimentos / Viáticos</h3>
                     </div>
-                    <p className="text-muted" style={{ fontSize: '12px', marginBottom: 'var(--spacing-md)' }}>Configura los viáticos según la jornada laboral total o si hay pernocta.</p>
+                    <p className="text-muted settings-section__intro">
+                        Configura los viáticos según la jornada laboral total o si hay pernocta.
+                    </p>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                    <div className="settings-stack">
+                        <div className="settings-tier settings-tier-grid">
                             <div>
-                                <label className="form-label" htmlFor="settings-meal-tier1-hours">UMBRAL NIVEL 1 - JORNADA (HORAS)</label>
+                                <label className="form-label" htmlFor="settings-meal-tier1-hours">{'UMBRAL NIVEL 1 - JORNADA (HORAS)'}</label>
                                 <input
                                     id="settings-meal-tier1-hours"
-                                    type="number" name="meal_tier1_hours" value={settings.meal_tier1_hours} onChange={handleChange}
+                                    type="number"
+                                    name="meal_tier1_hours"
+                                    value={settings.meal_tier1_hours}
+                                    onChange={handleChange}
                                     className="form-field"
                                     placeholder="8"
                                 />
                             </div>
                             <div>
-                                <label className="text-muted" htmlFor="settings-meal-tier1-cost" style={{ display: 'block', marginBottom: '6px', fontSize: '10px', fontWeight: 'bold' }}>COSTO ASIGNADO ($)</label>
+                                <label className="form-label" htmlFor="settings-meal-tier1-cost">{'COSTO ASIGNADO ($)'}</label>
                                 <input
                                     id="settings-meal-tier1-cost"
-                                    type="number" name="meal_tier1_cost" value={settings.meal_tier1_cost} onChange={handleChange}
+                                    type="number"
+                                    name="meal_tier1_cost"
+                                    value={settings.meal_tier1_cost}
+                                    onChange={handleChange}
                                     className="form-field"
                                     placeholder="200"
                                 />
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)', padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
+                        <div className="settings-tier settings-tier-grid">
                             <div>
-                                <label className="form-label" htmlFor="settings-meal-tier2-hours">UMBRAL NIVEL 2 - VIAJE LARGO (HORAS TOTAL)</label>
+                                <label className="form-label" htmlFor="settings-meal-tier2-hours">{'UMBRAL NIVEL 2 - VIAJE LARGO (HORAS TOTAL)'}</label>
                                 <input
                                     id="settings-meal-tier2-hours"
-                                    type="number" name="meal_tier2_hours" value={settings.meal_tier2_hours} onChange={handleChange}
+                                    type="number"
+                                    name="meal_tier2_hours"
+                                    value={settings.meal_tier2_hours}
+                                    onChange={handleChange}
                                     className="form-field"
                                     placeholder="12"
                                 />
                             </div>
                             <div>
-                                <label className="text-muted" htmlFor="settings-meal-tier2-cost" style={{ display: 'block', marginBottom: '6px', fontSize: '10px', fontWeight: 'bold' }}>COSTO ASIGNADO ($)</label>
+                                <label className="form-label" htmlFor="settings-meal-tier2-cost">{'COSTO ASIGNADO ($)'}</label>
                                 <input
                                     id="settings-meal-tier2-cost"
-                                    type="number" name="meal_tier2_cost" value={settings.meal_tier2_cost} onChange={handleChange}
+                                    type="number"
+                                    name="meal_tier2_cost"
+                                    value={settings.meal_tier2_cost}
+                                    onChange={handleChange}
                                     className="form-field"
                                     placeholder="300"
                                 />
                             </div>
                         </div>
 
-                        <div style={{ padding: '12px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}>
-                            <label className="form-label" htmlFor="settings-meal-tier3-cost">COSTO ASIGNADO CUANDO APLICA HOSPEDAJE ($)</label>
+                        <div className="settings-tier">
+                            <label className="form-label" htmlFor="settings-meal-tier3-cost">{'COSTO ASIGNADO CUANDO APLICA HOSPEDAJE ($)'}</label>
                             <input
                                 id="settings-meal-tier3-cost"
-                                type="number" name="meal_tier3_cost" value={settings.meal_tier3_cost} onChange={handleChange}
+                                type="number"
+                                name="meal_tier3_cost"
+                                value={settings.meal_tier3_cost}
+                                onChange={handleChange}
                                 className="form-field"
                                 placeholder="500"
                             />
@@ -368,17 +403,14 @@ const Settings = () => {
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gridColumn: '1 / -1' }}>
-                    <button
-                        onClick={handleSave}
-                        className="btn btn-primary"
-                    >
+                <div className="settings-save-row">
+                    <button onClick={handleSave} className="btn btn-primary">
                         <Save size={18} />
                         Guardar Configuración
                     </button>
                 </div>
             </div>
-        </div >
+        </div>
     );
 };
 

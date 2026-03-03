@@ -1,4 +1,5 @@
 import api from './api';
+import { buildApiUrl } from '../utils/url';
 
 export const backupService = {
     list: async (params = {}) => {
@@ -17,10 +18,7 @@ export const backupService = {
     },
 
     download: (id) => {
-        // Since it's a file download, we use a direct window.open or hidden link with token if needed
-        // For local development with current auth, direct URL works if server allows
-        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/backups/download/${id}`;
-        window.open(url, '_blank');
+        window.open(buildApiUrl(`/backups/download/${id}`), '_blank');
     },
 
     delete: async (id) => {

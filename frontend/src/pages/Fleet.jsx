@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Truck, Plus, Edit2, Trash2, Search, Gauge } from 'lucide-react';
 import { vehicleService } from '../services/api';
 import VehicleModal from '../components/VehicleModal';
@@ -7,21 +7,23 @@ import { useNotification } from '../context/NotificationContext';
 import CustomMenu from '../components/CustomMenu';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
+import { resolveAssetUrl } from '../utils/url';
 
 const getEfficiency = (vehicle) => {
     if (vehicle.status === 'maintenance') {
-        return { label: 'N/A', color: 'var(--color-text-muted)', pct: null };
+        return { label: 'N/A', toneClass: 'tone-muted' };
     }
+
     if (!vehicle.rendimiento_real || !vehicle.rendimiento_teorico) {
-        return { label: 'Sin datos', color: 'var(--color-text-muted)', pct: null };
+        return { label: 'Sin datos', toneClass: 'tone-muted' };
     }
 
     const pct = (vehicle.rendimiento_real / vehicle.rendimiento_teorico) * 100;
 
-    if (pct >= 90) return { label: `Óptima (${pct.toFixed(0)}%)`, color: '#28A745', pct };
-    if (pct >= 70) return { label: `Regular (${pct.toFixed(0)}%)`, color: '#FFC107', pct };
+    if (pct >= 90) return { label: `Optima (${pct.toFixed(0)}%)`, toneClass: 'tone-success' };
+    if (pct >= 70) return { label: `Regular (${pct.toFixed(0)}%)`, toneClass: 'tone-warning' };
 
-    return { label: `Crítica (${pct.toFixed(0)}%)`, color: '#DC3545', pct };
+    return { label: `Critica (${pct.toFixed(0)}%)`, toneClass: 'tone-danger' };
 };
 
 const getVehicleStatusBadge = (status) => {
@@ -72,11 +74,6 @@ const Fleet = () => {
         setEditingVehicle(null);
     };
 
-    const handleEdit = (vehicle) => {
-        setEditingVehicle(vehicle);
-        setIsModalOpen(true);
-    };
-
     const handleDeleteClick = (id) => {
         setVehicleToDelete(id);
         setIsConfirmOpen(true);
@@ -103,7 +100,7 @@ const Fleet = () => {
     );
 
     return (
-        <div className="page-shell fade-in">
+        <div className="page-shell fade-in stack-lg">
             <PageHeader
                 title="Gestión de Flota"
                 subtitle="Administra los vehículos y sus rendimientos."
@@ -142,7 +139,7 @@ const Fleet = () => {
                 type="danger"
             />
 
-            <div className="form-field-group" style={{ marginBottom: 'var(--spacing-lg)' }}>
+            <div className="form-field-group fleet-search">
                 <label className="sr-only" htmlFor="fleet-search">Buscar vehículos</label>
                 <Search size={18} className="text-muted" />
                 <input
@@ -151,39 +148,28 @@ const Fleet = () => {
                     type="text"
                     placeholder="Buscar vehículos por nombre o placas..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(event) => setSearchTerm(event.target.value)}
                 />
             </div>
 
             {loading ? (
-                <div style={{ textAlign: 'center', padding: '40px' }} className="text-muted">Cargando flota...</div>
+                <div className="resource-card__empty text-muted">{'Cargando flota...'}</div>
             ) : filteredVehicles.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px' }} className="text-muted">No se encontraron vehículos.</div>
+                <div className="resource-card__empty text-muted">No se encontraron vehículos.</div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--spacing-lg)' }}>
+                <div className="resource-cards-grid">
                     {filteredVehicles.map((vehicle) => {
                         const efficiency = getEfficiency(vehicle);
                         const statusBadge = getVehicleStatusBadge(vehicle.status);
 
                         return (
-                            <div key={vehicle.id} className="card" style={{ position: 'relative', overflow: 'visible' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--spacing-md)' }}>
-                                    <div style={{
-                                        width: '40px',
-                                        height: '40px',
-                                        borderRadius: '10px',
-                                        backgroundColor: 'rgba(255, 72, 72, 0.1)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: 'var(--color-primary)',
-                                        overflow: 'hidden'
-                                    }}>
+                            <div key={vehicle.id} className="card resource-card">
+                                <div className="resource-card__header">
+                                    <div className="resource-card__media">
                                         {vehicle.photo_path ? (
                                             <img
-                                                src={`http://localhost:3000/${vehicle.photo_path}`}
+                                                src={resolveAssetUrl(vehicle.photo_path)}
                                                 alt={vehicle.name}
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                             />
                                         ) : (
                                             <Truck size={24} />
@@ -194,7 +180,10 @@ const Fleet = () => {
                                             {
                                                 label: 'Editar',
                                                 icon: <Edit2 />,
-                                                onClick: () => handleEdit(vehicle)
+                                                onClick: () => {
+                                                    setEditingVehicle(vehicle);
+                                                    setIsModalOpen(true);
+                                                }
                                             },
                                             {
                                                 label: 'Eliminar',
@@ -206,31 +195,29 @@ const Fleet = () => {
                                     />
                                 </div>
 
-                                <h3 style={{ fontSize: '18px', marginBottom: '4px' }}>{vehicle.name}</h3>
-                                <p className="text-muted" style={{ fontSize: '13px', marginBottom: 'var(--spacing-md)' }}>
-                                    Placas: <strong>{vehicle.plate}</strong>
+                                <h3 className="resource-card__title">{vehicle.name}</h3>
+                                <p className="resource-card__subtitle">
+                                    {'Placas: '}<strong>{vehicle.plate}</strong>
                                 </p>
 
-                                <div style={{ display: 'flex', gap: 'var(--spacing-md)', borderTop: '1px solid var(--color-border)', paddingTop: 'var(--spacing-md)' }}>
-                                    <div style={{ flex: 1 }}>
-                                        <span className="form-label">RENDIMIENTO REAL</span>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
+                                <div className="resource-card__metrics">
+                                    <div className="resource-card__metric">
+                                        <span className="form-label">{'RENDIMIENTO REAL'}</span>
+                                        <div className="resource-card__metric-value">
                                             <Gauge size={14} />
                                             <span>{vehicle.rendimiento_real} km/L</span>
                                         </div>
                                     </div>
-                                    <div style={{ flex: 1 }}>
+                                    <div className="resource-card__metric">
                                         <span className="form-label">EFICIENCIA</span>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
-                                            <Gauge size={14} style={{ color: efficiency.color }} />
-                                            <span style={{ color: efficiency.color, fontSize: '12px' }}>
-                                                {efficiency.label}
-                                            </span>
+                                        <div className={`resource-card__metric-value ${efficiency.toneClass}`.trim()}>
+                                            <Gauge size={14} />
+                                            <span>{efficiency.label}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div style={{ marginTop: '12px' }}>
+                                <div className="resource-card__status">
                                     <StatusBadge variant={statusBadge.variant} showDot>
                                         {statusBadge.label}
                                     </StatusBadge>

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Menu } from 'lucide-react';
 import './index.css';
 import Sidebar from './components/Sidebar';
 import Fleet from './pages/Fleet';
@@ -17,6 +18,8 @@ import { NotificationProvider } from './context/NotificationContext';
 import Login from './pages/Login';
 
 const App = () => {
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
   const getUser = () => {
     try {
       // Check localStorage first (remember me = on), then sessionStorage (remember me = off)
@@ -33,6 +36,14 @@ const App = () => {
 
   const user = getUser();
 
+  useEffect(() => {
+    document.body.classList.toggle('sidebar-drawer-open', isMobileSidebarOpen);
+
+    return () => {
+      document.body.classList.remove('sidebar-drawer-open');
+    };
+  }, [isMobileSidebarOpen]);
+
   return (
     <NotificationProvider>
       <Router>
@@ -44,7 +55,29 @@ const App = () => {
             element={
               user ? (
                 <div className="layout-container">
-                  <Sidebar />
+                  <Sidebar
+                    isMobileOpen={isMobileSidebarOpen}
+                    onRequestCloseMobile={() => setIsMobileSidebarOpen(false)}
+                  />
+                  {!isMobileSidebarOpen ? (
+                    <button
+                      type="button"
+                      className="app-shell__mobile-trigger"
+                      aria-label="Abrir menu de navegacion"
+                      aria-controls="app-sidebar"
+                      aria-expanded={false}
+                      onClick={() => setIsMobileSidebarOpen(true)}
+                    >
+                      <Menu size={20} />
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className={`sidebar-scrim ${isMobileSidebarOpen ? 'sidebar-scrim--visible' : ''}`.trim()}
+                    aria-label="Cerrar navegacion"
+                    tabIndex={isMobileSidebarOpen ? 0 : -1}
+                    onClick={() => setIsMobileSidebarOpen(false)}
+                  />
                   <main id="app-main" className="main-content" tabIndex="-1">
                     <Routes>
                       <Route path="/" element={<Dashboard />} />

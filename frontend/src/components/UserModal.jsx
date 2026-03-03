@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, AlertCircle, User, Shield, Camera } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { X, Save, User, Shield, Camera } from 'lucide-react';
 import { userService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import CustomSelect from './CustomSelect';
 import useModalAccessibility from '../hooks/useModalAccessibility';
+import Alert from './Alert';
+import { resolveAssetUrl } from '../utils/url';
 
 const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }) => {
-    const isEdit = !!editData;
+    const isEdit = Boolean(editData);
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -41,18 +43,19 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                 role_id: editData.role_id,
                 status: editData.status
             });
-            setPhotoPreview(editData.photo_path ? `http://localhost:3000/${editData.photo_path}` : null);
-        } else {
-            setFormData({
-                name: '',
-                email: '',
-                password: '',
-                role_id: roles.length > 0 ? roles[roles.length - 1].id : '',
-                status: 'active'
-            });
-            setPhoto(null);
-            setPhotoPreview(null);
+            setPhotoPreview(resolveAssetUrl(editData.photo_path));
+            return;
         }
+
+        setFormData({
+            name: '',
+            email: '',
+            password: '',
+            role_id: roles.length > 0 ? roles[roles.length - 1].id : '',
+            status: 'active'
+        });
+        setPhoto(null);
+        setPhotoPreview(null);
     }, [editData, isOpen, roles]);
 
     useModalAccessibility({
@@ -64,8 +67,8 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
 
     if (!isOpen) return null;
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = async (event) => {
+        event.preventDefault();
         setLoading(true);
         setError(null);
 
@@ -98,102 +101,86 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
             onUserSaved();
             onClose();
         } catch (err) {
-            const msg = err.response?.data?.message || err.message;
-            setError(msg);
-            showNotification(msg, 'error');
+            const message = err.response?.data?.message || err.message;
+            setError(message);
+            showNotification(message, 'error');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+    const handleChange = (event) => {
+        const { name, value } = event.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handlePhotoChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setPhoto(file);
-            const reader = new FileReader();
-            reader.onloadend = () => setPhotoPreview(reader.result);
-            reader.readAsDataURL(file);
-        }
+    const handlePhotoChange = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        setPhoto(file);
+        const reader = new FileReader();
+        reader.onloadend = () => setPhotoPreview(reader.result);
+        reader.readAsDataURL(file);
     };
 
     return (
-        <div style={{
-            position: 'fixed',
-            top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            display: 'flex', justifyContent: 'center', alignItems: 'center',
-            zIndex: 1000,
-            backdropFilter: 'blur(4px)'
-        }} onClick={onClose}>
+        <div className="modal-overlay modal-overlay--legacy" onClick={onClose}>
             <div
                 ref={dialogRef}
-                className="card"
+                className="card modal-shell modal-shell--sm legacy-modal modal-shell--animated"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={labelledBy}
                 aria-describedby={describedBy}
                 tabIndex={-1}
                 onClick={(event) => event.stopPropagation()}
-                style={{
-                width: '100%',
-                maxWidth: '450px',
-                padding: 'var(--spacing-xl)',
-                position: 'relative',
-                animation: 'modal-appear 0.3s ease-out'
-            }}>
+            >
                 <button
                     ref={closeButtonRef}
+                    type="button"
                     onClick={onClose}
-                    style={{
-                        position: 'absolute', top: '20px', right: '20px',
-                        background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer'
-                    }}
+                    className="modal-close legacy-modal__close"
                 >
                     <X size={24} />
                 </button>
 
-                <h2 id={labelledBy} style={{ marginBottom: 'var(--spacing-sm)', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h2 id={labelledBy} className="legacy-modal__title legacy-modal__title-row">
                     <Shield size={20} className="text-primary" />
                     {isEdit ? 'Editar Usuario' : 'Nuevo Usuario'}
                 </h2>
-                <p id={describedBy} className="text-muted" style={{ marginBottom: 'var(--spacing-lg)' }}>
-                    Completa los datos del usuario y define su rol dentro del sistema.
+                <p id={describedBy} className="text-muted legacy-modal__subtitle">
+                    {'Completa los datos del usuario y define su rol dentro del sistema.'}
                 </p>
 
-                {error && (
-                    <div style={{
-                        backgroundColor: 'rgba(255, 72, 72, 0.1)', color: 'var(--color-primary)',
-                        padding: '12px', borderRadius: 'var(--radius-md)', marginBottom: 'var(--spacing-md)',
-                        display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px'
-                    }}>
-                        <AlertCircle size={18} />
-                        {error}
-                    </div>
-                )}
+                {error ? <Alert className="legacy-modal__error">{error}</Alert> : null}
 
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--spacing-sm)' }}>
-                        <div
-                            onClick={() => document.getElementById(fieldIds.photo).click()}
-                            style={{
-                                width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.05)',
-                                border: '2px dashed var(--color-border)', display: 'flex', flexDirection: 'column',
-                                alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden'
-                            }}>
+                <form onSubmit={handleSubmit} className="legacy-modal-form">
+                    <div className="legacy-modal__media">
+                        <button
+                            type="button"
+                            onClick={() => document.getElementById(fieldIds.photo)?.click()}
+                            className="legacy-modal__preview-trigger legacy-modal__preview-trigger--avatar"
+                        >
                             {photoPreview ? (
-                                <img src={photoPreview} alt="Vista previa del usuario" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={photoPreview} alt="Vista previa del usuario" />
                             ) : (
                                 <Camera size={24} className="text-muted" />
                             )}
-                            <input id={fieldIds.photo} name="photo" type="file" accept="image/*" onChange={handlePhotoChange} aria-label="Subir foto del usuario" style={{ display: 'none' }} />
-                        </div>
-                    </div>                    <div>
-                        <label className="form-label" htmlFor={fieldIds.name}>NOMBRE COMPLETO</label>
+                        </button>
+                        <input
+                            id={fieldIds.photo}
+                            name="photo"
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePhotoChange}
+                            aria-label="Subir foto del usuario"
+                            className="hidden-file-input"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="form-label" htmlFor={fieldIds.name}>{'NOMBRE COMPLETO'}</label>
                         <input
                             id={fieldIds.name}
                             type="text"
@@ -201,12 +188,12 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                             className="form-field"
                             value={formData.name}
                             onChange={handleChange}
-                            placeholder="Ej. Juan Pérez"
+                            placeholder={'Ej. Juan Perez'}
                         />
                     </div>
 
                     <div>
-                        <label className="form-label" htmlFor={fieldIds.email}>CORREO ELECTRÓNICO</label>
+                        <label className="form-label" htmlFor={fieldIds.email}>{'CORREO ELECTRONICO'}</label>
                         <input
                             id={fieldIds.email}
                             type="email"
@@ -219,7 +206,9 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                     </div>
 
                     <div>
-                        <label className="form-label" htmlFor={fieldIds.password}>CONTRASEÑA {isEdit && '(Dejar en blanco para no cambiar)'}</label>
+                        <label className="form-label" htmlFor={fieldIds.password}>
+                            {`CONTRASENA ${isEdit ? '(Dejar en blanco para no cambiar)' : ''}`}
+                        </label>
                         <input
                             id={fieldIds.password}
                             type="password"
@@ -227,21 +216,21 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                             className="form-field"
                             value={formData.password}
                             onChange={handleChange}
-                            placeholder="••••••••"
+                            placeholder="********"
                         />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 'var(--spacing-md)' }}>
+                    <div className="form-grid form-grid--two">
                         <div>
-                            <label className="form-label" htmlFor={fieldIds.role}>ROL DEL SISTEMA</label>
+                            <label className="form-label" htmlFor={fieldIds.role}>{'ROL DEL SISTEMA'}</label>
                             <div className="form-select-container">
                                 <CustomSelect
                                     id={fieldIds.role}
                                     name="role_id"
                                     placeholder="Seleccionar rol"
                                     value={formData.role_id}
-                                    onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
-                                    options={roles.map(role => ({ value: role.id, label: role.name.toUpperCase() }))}
+                                    onChange={(event) => setFormData({ ...formData, role_id: event.target.value })}
+                                    options={roles.map((role) => ({ value: role.id, label: role.name.toUpperCase() }))}
                                 />
                             </div>
                         </div>
@@ -252,7 +241,7 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                                     id={fieldIds.status}
                                     name="status"
                                     value={formData.status}
-                                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                    onChange={(event) => setFormData({ ...formData, status: event.target.value })}
                                     options={[
                                         { value: 'active', label: 'ACTIVO' },
                                         { value: 'inactive', label: 'INACTIVO' }
@@ -262,41 +251,17 @@ const UserModal = ({ isOpen, onClose, onUserSaved, editData = null, roles = [] }
                         </div>
                     </div>
 
-                    <div style={{ marginTop: 'var(--spacing-md)', display: 'flex', gap: 'var(--spacing-md)' }}>
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            style={{
-                                flex: 1, padding: '12px', background: 'transparent',
-                                border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
-                                color: 'white', cursor: 'pointer'
-                            }}
-                        >
+                    <div className="modal-actions modal-actions--split">
+                        <button type="button" onClick={onClose} className="btn btn-secondary">
                             Cancelar
                         </button>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            style={{
-                                flex: 1, padding: '12px', backgroundColor: loading ? 'rgba(255, 72, 72, 0.5)' : 'var(--color-primary)',
-                                border: 'none', borderRadius: 'var(--radius-md)', color: 'white', fontWeight: 'bold',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                cursor: loading ? 'not-allowed' : 'pointer'
-                            }}
-                        >
+                        <button type="submit" disabled={loading} className="btn btn-primary">
                             <Save size={18} />
                             {loading ? 'Guardando...' : (isEdit ? 'Actualizar' : 'Crear Usuario')}
                         </button>
                     </div>
                 </form>
             </div>
-
-            <style>{`
-                @keyframes modal-appear {
-                    from { transform: translateY(20px); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
-                }
-            `}</style>
         </div>
     );
 };

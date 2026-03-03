@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
     ChevronDown,
     ChevronLeft,
@@ -15,7 +15,8 @@ import {
     ShieldCheck,
     Truck,
     User,
-    Users
+    Users,
+    X
 } from 'lucide-react';
 import logoHorizontalDark from '../assets/logo-horizontal-negativo.svg';
 import logoHorizontalLight from '../assets/logo-horizontal-positivo.svg';
@@ -23,9 +24,14 @@ import logoMonogram from '../assets/logo-monograma-move.svg';
 import ProfileModal from './ProfileModal';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
+import { resolveAssetUrl } from '../utils/url';
 
-const Sidebar = () => {
+const Sidebar = ({
+    isMobileOpen = false,
+    onRequestCloseMobile = () => {}
+}) => {
     const { theme } = useTheme();
+    const location = useLocation();
     const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user')) || {});
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -33,6 +39,8 @@ const Sidebar = () => {
     const userPermissions = user.permissions || [];
     const profileMenuRef = useRef(null);
     const profileTriggerRef = useRef(null);
+    const previousPathnameRef = useRef(location.pathname);
+    const closeMobileSidebarRef = useRef(onRequestCloseMobile);
 
     useEffect(() => {
         const handleStorageChange = () => {
@@ -43,6 +51,19 @@ const Sidebar = () => {
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
+
+    useEffect(() => {
+        closeMobileSidebarRef.current = onRequestCloseMobile;
+    }, [onRequestCloseMobile]);
+
+    useEffect(() => {
+        if (previousPathnameRef.current === location.pathname) {
+            return;
+        }
+
+        previousPathnameRef.current = location.pathname;
+        closeMobileSidebarRef.current();
+    }, [location.pathname]);
 
     useEffect(() => {
         if (!isProfileOpen) {
@@ -74,6 +95,24 @@ const Sidebar = () => {
             document.removeEventListener('keydown', handleKeyDown);
         };
     }, [isProfileOpen]);
+
+    useEffect(() => {
+        if (!isMobileOpen) {
+            return undefined;
+        }
+
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                closeMobileSidebarRef.current();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isMobileOpen]);
 
     const currentMenuGroups = useMemo(() => ([
         {
@@ -121,19 +160,36 @@ const Sidebar = () => {
         window.location.href = '/login';
     };
 
-    const logoSource = isCollapsed ? logoMonogram : (theme === 'light' ? logoHorizontalLight : logoHorizontalDark);
+    const showExpandedContent = !isCollapsed || isMobileOpen;
+    const logoSource = showExpandedContent ? (theme === 'light' ? logoHorizontalLight : logoHorizontalDark) : logoMonogram;
+    const handleNavigation = () => {
+        setIsProfileOpen(false);
+        closeMobileSidebarRef.current();
+    };
 
     return (
-        <aside className={`sidebar ${isCollapsed ? 'sidebar--collapsed' : ''}`} aria-label="Navegación principal">
+        <aside
+            id="app-sidebar"
+            className={`sidebar sidebar--mobile ${isMobileOpen ? 'sidebar--mobile-open' : ''} ${isCollapsed ? 'sidebar--collapsed' : ''}`.trim()}
+            aria-label="Navegacion principal"
+        >
             <div className="sidebar__brand">
                 <NavLink
                     to="/"
                     className="sidebar__brand-link"
                     aria-label="Ir al Dashboard"
-                    onClick={() => setIsProfileOpen(false)}
+                    onClick={handleNavigation}
                 >
                     <img src={logoSource} alt="LINHER Move" className="sidebar__logo" />
                 </NavLink>
+                <button
+                    type="button"
+                    className="sidebar__mobile-close icon-button"
+                    onClick={() => closeMobileSidebarRef.current()}
+                    aria-label="Cerrar menu de navegacion"
+                >
+                    <X size={18} />
+                </button>
             </div>
 
             <nav className="sidebar__nav custom-scrollbar">
@@ -155,7 +211,7 @@ const Sidebar = () => {
 
                     return (
                         <section key={group.title} aria-label={group.title}>
-                            {!isCollapsed ? (
+                            {showExpandedContent ? (
                                 <p className="sidebar__section-title">{group.title}</p>
                             ) : null}
                             <div className="sidebar__links">
@@ -165,9 +221,10 @@ const Sidebar = () => {
                                         to={item.path}
                                         title={item.name}
                                         className={({ isActive }) => `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`.trim()}
+                                        onClick={handleNavigation}
                                     >
                                         <span aria-hidden="true">{item.icon}</span>
-                                        {!isCollapsed ? <span className="sidebar__label">{item.name}</span> : null}
+                                        {showExpandedContent ? <span className="sidebar__label">{item.name}</span> : null}
                                     </NavLink>
                                 ))}
                             </div>
@@ -189,7 +246,7 @@ const Sidebar = () => {
                 {isProfileOpen ? (
                     <div
                         ref={profileMenuRef}
-                        className={`sidebar__menu fade-in-up ${isCollapsed ? 'sidebar__menu--floating' : ''}`.trim()}
+                        className={`sidebar__menu fade-in-up ${showExpandedContent ? '' : 'sidebar__menu--floating'}`.trim()}
                         role="menu"
                         aria-label="Opciones de cuenta"
                     >
@@ -229,13 +286,13 @@ const Sidebar = () => {
                 >
                     <span className="avatar">
                         {user.photo_path ? (
-                            <img src={`http://localhost:3000/${user.photo_path}`} alt={user.name || 'Usuario'} />
+                            <img src={resolveAssetUrl(user.photo_path)} alt={user.name || 'Usuario'} />
                         ) : (
                             <strong className="text-primary">{user.name?.charAt(0) || 'U'}</strong>
                         )}
                     </span>
 
-                    {!isCollapsed ? (
+                    {showExpandedContent ? (
                         <>
                             <span className="sidebar__profile-meta">
                                 <span className="sidebar__profile-name">{user.name || 'Usuario'}</span>
