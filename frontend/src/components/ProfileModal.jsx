@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Save, User, Camera, Lock, Mail } from 'lucide-react';
 import { userService } from '../services/api';
@@ -21,12 +21,25 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
     const closeButtonRef = useRef(null);
     const labelledBy = 'profile-modal-title';
     const describedBy = 'profile-modal-description';
+    const passwordFeedbackId = 'profile-password-feedback';
     const fieldIds = {
         photo: 'profile-photo',
         name: 'profile-name',
         password: 'profile-password',
         confirmPassword: 'profile-confirm-password'
     };
+    const hasPasswordAttempt = Boolean(formData.password || formData.confirmPassword);
+    const passwordMismatch = Boolean(formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword);
+    const passwordIncomplete = Boolean(hasPasswordAttempt && (!formData.password || !formData.confirmPassword) && !passwordMismatch);
+    const passwordsMatch = Boolean(formData.password && formData.confirmPassword && formData.password === formData.confirmPassword);
+    const passwordFeedbackMessage = passwordMismatch
+        ? 'Las contrase\u00f1as no coinciden.'
+        : passwordIncomplete
+            ? 'Completa ambos campos para cambiar la contrase\u00f1a.'
+            : passwordsMatch
+                ? 'Las contrase\u00f1as coinciden.'
+                : '';
+    const isSubmitDisabled = loading || passwordMismatch || passwordIncomplete;
 
     useEffect(() => {
         if (isOpen) {
@@ -51,8 +64,8 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
 
     if (!isOpen) return null;
 
-    const handlePhotoChange = (e) => {
-        const file = e.target.files[0];
+    const handlePhotoChange = (event) => {
+        const file = event.target.files[0];
         if (file) {
             setPhoto(file);
             const reader = new FileReader();
@@ -61,10 +74,24 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
         }
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (formData.password && formData.password !== formData.confirmPassword) {
-            showNotification('Las contraseñas no coinciden', 'error');
+    const handleChange = (event) => {
+        const { name, value } = event.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+
+        if (passwordIncomplete) {
+            showNotification('Completa ambos campos para cambiar la contrase\u00f1a', 'error');
+            return;
+        }
+
+        if (passwordMismatch) {
+            showNotification('Las contrase\u00f1as no coinciden', 'error');
             return;
         }
 
@@ -75,10 +102,8 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
             if (formData.password) data.append('password', formData.password);
             if (photo) data.append('photo', photo);
 
-            // We use the current user id for the update
             const response = await userService.update(user.id, data);
 
-            // Update local storage with new data
             const updatedUser = {
                 ...user,
                 name: formData.name,
@@ -98,13 +123,23 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
     };
 
     return createPortal(
-        <div style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            display: 'flex', justifyContent: 'center', alignItems: 'center',
-            zIndex: 10000, backdropFilter: 'blur(8px)',
-            animation: 'fade-in 0.3s ease-out'
-        }} onClick={onClose}>
+        <div
+            style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 10000,
+                backdropFilter: 'blur(8px)',
+                animation: 'fade-in 0.3s ease-out'
+            }}
+            onClick={onClose}
+        >
             <div
                 ref={dialogRef}
                 className="card"
@@ -115,45 +150,88 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                 tabIndex={-1}
                 onClick={(event) => event.stopPropagation()}
                 style={{
-                width: '100%', maxWidth: '450px',
-                padding: 'var(--spacing-xl)', position: 'relative',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-                border: '1px solid rgba(255,255,255,0.1)'
-            }}>
-                <button ref={closeButtonRef} onClick={onClose} style={{
-                    position: 'absolute', top: '20px', right: '20px',
-                    background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer'
-                }}>
+                    width: '100%',
+                    maxWidth: '450px',
+                    padding: 'var(--spacing-xl)',
+                    position: 'relative',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                }}
+            >
+                <button
+                    ref={closeButtonRef}
+                    onClick={onClose}
+                    style={{
+                        position: 'absolute',
+                        top: '20px',
+                        right: '20px',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--color-text-muted)',
+                        cursor: 'pointer'
+                    }}
+                >
                     <X size={24} />
                 </button>
 
-                <h2 id={labelledBy} style={{ marginBottom: 'var(--spacing-sm)', fontSize: '22px', fontWeight: 'bold', textAlign: 'center' }}>Mi Perfil</h2>
-                <p id={describedBy} className="text-muted" style={{ marginBottom: 'var(--spacing-xl)', textAlign: 'center' }}>
-                    Actualiza tu nombre, foto y contraseña desde esta ventana.
+                <h2
+                    id={labelledBy}
+                    style={{
+                        marginBottom: 'var(--spacing-sm)',
+                        fontSize: '22px',
+                        fontWeight: 'bold',
+                        textAlign: 'center'
+                    }}
+                >
+                    {'Mi Perfil'}
+                </h2>
+                <p
+                    id={describedBy}
+                    className="text-muted"
+                    style={{ marginBottom: 'var(--spacing-xl)', textAlign: 'center' }}
+                >
+                    {'Actualiza tu nombre, foto y contrase\u00f1a desde esta ventana.'}
                 </p>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    {/* Photo Upload Section */}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                         <div
                             onClick={() => fileInputRef.current.click()}
                             style={{
-                                width: '100px', height: '100px', borderRadius: '50%',
+                                width: '100px',
+                                height: '100px',
+                                borderRadius: '50%',
                                 backgroundColor: 'rgba(255,255,255,0.05)',
                                 border: '2px solid var(--color-primary)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                cursor: 'pointer', overflow: 'hidden', position: 'relative'
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                overflow: 'hidden',
+                                position: 'relative'
                             }}
                         >
                             {photoPreview ? (
-                                <img src={photoPreview} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Vista previa del perfil" />
+                                <img
+                                    src={photoPreview}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    alt="Vista previa del perfil"
+                                />
                             ) : (
                                 <User size={40} className="text-muted" />
                             )}
-                            <div style={{
-                                position: 'absolute', bottom: 0, width: '100%', height: '30%',
-                                backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                            }}>
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    bottom: 0,
+                                    width: '100%',
+                                    height: '30%',
+                                    backgroundColor: 'rgba(0,0,0,0.5)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                            >
                                 <Camera size={14} color="white" />
                             </div>
                         </div>
@@ -167,25 +245,26 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                             aria-label="Subir foto de perfil"
                             style={{ display: 'none' }}
                         />
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Haz click para cambiar foto</span>
+                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{'Haz click para cambiar foto'}</span>
                     </div>
 
-                    {/* Email (Read-only) */}
                     <div>
-                        <p className="form-label">CORREO ELECTRÓNICO (SOLO LECTURA)</p>
-                        <div className="form-field-group" style={{
-                            backgroundColor: 'rgba(255,255,255,0.02)',
-                            color: 'var(--color-text-muted)',
-                            cursor: 'default'
-                        }}>
+                        <p className="form-label">{'CORREO ELECTR\u00d3NICO (SOLO LECTURA)'}</p>
+                        <div
+                            className="form-field-group"
+                            style={{
+                                backgroundColor: 'rgba(255,255,255,0.02)',
+                                color: 'var(--color-text-muted)',
+                                cursor: 'default'
+                            }}
+                        >
                             <Mail size={16} />
                             <span style={{ fontSize: '14px', opacity: 0.8 }}>{user.email}</span>
                         </div>
                     </div>
 
-                    {/* Name */}
                     <div>
-                        <label className="form-label" htmlFor={fieldIds.name}>NOMBRE COMPLETO</label>
+                        <label className="form-label" htmlFor={fieldIds.name}>{'NOMBRE COMPLETO'}</label>
                         <div className="form-field-group">
                             <User size={16} className="text-primary" />
                             <input
@@ -195,7 +274,7 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                                 className="form-input-clean"
                                 style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', height: '100%', fontSize: '14px' }}
                                 value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                onChange={handleChange}
                                 autoComplete="name"
                                 placeholder="Tu nombre"
                                 required
@@ -203,58 +282,78 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
                         </div>
                     </div>
 
-                    {/* Password */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-md)' }}>
                         <div>
-                            <label className="form-label" htmlFor={fieldIds.password}>NUEVA CONTRASEÑA</label>
-                            <div className="form-field-group">
+                            <label className="form-label" htmlFor={fieldIds.password}>{'NUEVA CONTRASE\u00d1A'}</label>
+                            <div className={`form-field-group ${passwordMismatch ? 'form-field-group--error' : ''}`.trim()}>
                                 <Lock size={14} className="text-muted" />
                                 <input
                                     id={fieldIds.password}
                                     name="password"
                                     type="password"
                                     className="form-input-clean"
+                                    aria-invalid={passwordMismatch}
+                                    aria-describedby={hasPasswordAttempt ? passwordFeedbackId : undefined}
                                     style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', height: '100%', fontSize: '13px' }}
                                     value={formData.password}
-                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    onChange={handleChange}
                                     autoComplete="new-password"
-                                    placeholder="••••••••"
+                                    placeholder={'\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
                                 />
                             </div>
                         </div>
                         <div>
-                            <label className="form-label" htmlFor={fieldIds.confirmPassword}>CONFIRMAR</label>
-                            <div className="form-field-group">
+                            <label className="form-label" htmlFor={fieldIds.confirmPassword}>{'CONFIRMAR'}</label>
+                            <div className={`form-field-group ${passwordMismatch ? 'form-field-group--error' : ''}`.trim()}>
                                 <Lock size={14} className="text-muted" />
                                 <input
                                     id={fieldIds.confirmPassword}
                                     name="confirmPassword"
                                     type="password"
                                     className="form-input-clean"
+                                    aria-invalid={passwordMismatch}
+                                    aria-describedby={hasPasswordAttempt ? passwordFeedbackId : undefined}
                                     style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', height: '100%', fontSize: '13px' }}
                                     value={formData.confirmPassword}
-                                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                    onChange={handleChange}
                                     autoComplete="new-password"
-                                    placeholder="••••••••"
+                                    placeholder={'\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
                                 />
                             </div>
                         </div>
                     </div>
 
+                    {passwordFeedbackMessage ? (
+                        <p
+                            id={passwordFeedbackId}
+                            className={`form-feedback ${passwordMismatch ? 'form-feedback--error' : passwordsMatch ? 'form-feedback--success' : 'text-muted'}`.trim()}
+                            aria-live="polite"
+                            role={passwordMismatch ? 'alert' : 'status'}
+                        >
+                            {passwordFeedbackMessage}
+                        </p>
+                    ) : null}
+
                     <button
                         type="submit"
-                        disabled={loading}
+                        disabled={isSubmitDisabled}
                         style={{
                             marginTop: '10px',
                             padding: '14px',
-                            backgroundColor: loading ? 'rgba(255,72,72,0.5)' : 'var(--color-primary)',
-                            color: 'white', border: 'none', borderRadius: 'var(--radius-md)',
-                            fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                            backgroundColor: isSubmitDisabled ? 'rgba(255,72,72,0.5)' : 'var(--color-primary)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 'var(--radius-md)',
+                            fontWeight: 'bold',
+                            cursor: isSubmitDisabled ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '10px',
                             transition: 'all 0.2s'
                         }}
                     >
-                        {loading ? 'Guardando...' : <><Save size={18} /> Guardar Cambios</>}
+                        {loading ? 'Guardando...' : <><Save size={18} /> {'Guardar Cambios'}</>}
                     </button>
                 </form>
             </div>
