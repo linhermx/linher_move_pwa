@@ -643,13 +643,13 @@ export const DashboardController = (db) => {
                     const { clause: dc, params: dp } = dateClause();    // no-join queries
                     const { clause: dqc, params: dqp } = dateClause('q'); // join queries (alias q)
 
-                    // Revenue: always filtered by period (defaults to current month if no filter)
+                    // Revenue follows the selected period; with no filter it returns the historical total.
                     let revenueQuery, revenueParams;
                     if (date_from || date_to) {
                         revenueQuery = `SELECT COALESCE(SUM(qc.total), 0) as revenue FROM quotations q JOIN quotation_costs qc ON q.id = qc.quotation_id WHERE q.status='completada'${dqc}`;
                         revenueParams = dqp;
                     } else {
-                        revenueQuery = `SELECT COALESCE(SUM(qc.total), 0) as revenue FROM quotations q JOIN quotation_costs qc ON q.id = qc.quotation_id WHERE q.status='completada' AND MONTH(q.created_at)=MONTH(NOW()) AND YEAR(q.created_at)=YEAR(NOW())`;
+                        revenueQuery = `SELECT COALESCE(SUM(qc.total), 0) as revenue FROM quotations q JOIN quotation_costs qc ON q.id = qc.quotation_id WHERE q.status='completada'`;
                         revenueParams = [];
                     }
 
