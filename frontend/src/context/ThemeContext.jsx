@@ -19,6 +19,17 @@ export const ThemeProvider = ({ children }) => {
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem(STORAGE_KEY, theme);
+
+        const themeColor = theme === 'light' ? '#e3e8ee' : '#0f1013';
+        let themeColorMeta = document.querySelector('meta[name="theme-color"]');
+
+        if (!themeColorMeta) {
+            themeColorMeta = document.createElement('meta');
+            themeColorMeta.setAttribute('name', 'theme-color');
+            document.head.appendChild(themeColorMeta);
+        }
+
+        themeColorMeta.setAttribute('content', themeColor);
     }, [theme]);
 
     const value = useMemo(() => ({

@@ -2224,6 +2224,104 @@ input:-webkit-autofill:active {
   gap: 10px;
 }
 
+.pwa-install-banner {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 2900;
+  width: min(23.5rem, calc(100vw - 40px));
+  padding: 0.875rem;
+  border-radius: var(--radius-md);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 34%, var(--color-border-strong));
+  background:
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--color-primary-soft) 90%, transparent) 0%, transparent 48%),
+    linear-gradient(160deg, color-mix(in srgb, var(--color-surface-contrast) 62%, var(--color-surface)) 0%, var(--color-surface) 100%);
+  box-shadow:
+    0 16px 38px color-mix(in srgb, var(--color-primary) 20%, transparent),
+    var(--shadow-lg);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  overflow: hidden;
+}
+
+.pwa-install-banner__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pwa-install-banner__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 2rem;
+}
+
+.pwa-install-banner__badge {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
+  color: var(--color-primary);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 46%, transparent);
+}
+
+.pwa-install-banner__eyebrow {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-primary) 78%, var(--color-text-main));
+}
+
+.pwa-install-banner__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 1.95rem;
+  height: 1.95rem;
+  min-height: 1.95rem;
+  border-color: color-mix(in srgb, var(--color-border-strong) 80%, transparent);
+  background: color-mix(in srgb, var(--color-surface-strong) 64%, transparent);
+  color: var(--color-text-muted);
+}
+
+.pwa-install-banner__close:hover {
+  background: color-mix(in srgb, var(--color-primary-soft) 68%, transparent);
+  color: var(--color-text-main);
+}
+
+.pwa-install-banner__title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.pwa-install-banner__message {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.pwa-install-banner__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+}
+
+.pwa-install-banner__later {
+  min-width: 6.75rem;
+}
+
+.pwa-install-banner__install {
+  min-width: 8.75rem;
+}
+
 .inline-filter-grid {
   display: flex;
   gap: 12px;
@@ -5101,6 +5199,22 @@ input:-webkit-autofill:active {
     left: 16px;
     right: 16px;
     top: 16px;
+  }
+
+  .pwa-install-banner {
+    left: 16px;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    width: auto;
+  }
+
+  .pwa-install-banner__actions {
+    justify-content: stretch;
+  }
+
+  .pwa-install-banner__actions .btn {
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   .toast {

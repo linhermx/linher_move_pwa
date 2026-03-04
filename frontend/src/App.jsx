@@ -14,6 +14,7 @@ import Users from './pages/Users';
 import AuditLogs from './pages/AuditLogs';
 import Backups from './pages/Backups';
 import { NotificationProvider } from './context/NotificationContext';
+import PwaInstallPrompt from './components/PwaInstallPrompt';
 
 import Login from './pages/Login';
 
@@ -99,6 +100,7 @@ const App = () => {
             }
           />
         </Routes>
+        <PwaInstallPrompt />
       </Router>
     </NotificationProvider>
   );

@@ -5,16 +5,10 @@ import App from './App.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import { installGlobalErrorLogging } from './services/clientLogger.js';
+import { registerPwaServiceWorker } from './services/pwa.js';
 
 installGlobalErrorLogging();
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then((registrations) => {
-    for (const registration of registrations) {
-      registration.unregister();
-    }
-  });
-}
+registerPwaServiceWorker();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
