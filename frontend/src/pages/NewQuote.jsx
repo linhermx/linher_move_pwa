@@ -4,7 +4,7 @@ import MapComponent from '../components/MapComponent';
 import { mapsService, vehicleService, serviceService, settingsService, quotationService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import CustomSelect from '../components/CustomSelect';
-import { MapPin, Trash2, Plus, Loader2, Calculator, Truck, Package, ChevronRight, ChevronDown, Clock, X, Link as LinkIcon } from 'lucide-react';
+import { MapPin, Trash2, Plus, Loader2, Calculator, Truck, Package, ChevronRight, ChevronDown, Clock, X, Link as LinkIcon, PencilLine, Route } from 'lucide-react';
 import { CalculationMotor } from '../utils/CalculationMotor';
 
 const DEFAULT_EXPANDED_SECTIONS = ['ruta', 'logistica', 'servicios'];
@@ -29,6 +29,15 @@ const createInitialPoints = (settings = {}) => {
         { id: 'destination', label: 'Destino', address: '', lat: null, lng: null }
     ];
 };
+
+const buildRouteSignature = (points = []) => JSON.stringify(
+    points.map(({ id, address, lat, lng }) => ({
+        id,
+        address: (address || '').trim(),
+        lat: lat === null || lat === undefined ? null : Number(lat),
+        lng: lng === null || lng === undefined ? null : Number(lng)
+    }))
+);
 
 const NewQuote = () => {
     const navigate = useNavigate();
@@ -59,6 +68,7 @@ const NewQuote = () => {
     const [isFabOpen, setIsFabOpen] = useState(false);
     const [activeWorkspaceTab, setActiveWorkspaceTab] = useState('form');
     const [isCompactLayout, setIsCompactLayout] = useState(() => window.matchMedia(COMPACT_WORKSPACE_QUERY).matches);
+    const [lastCalculatedRouteSignature, setLastCalculatedRouteSignature] = useState(null);
     const fabRef = useRef(null);
     const panelBodyRef = useRef(null);
     const [hasPanelOverflow, setHasPanelOverflow] = useState(false);
@@ -400,6 +410,7 @@ const NewQuote = () => {
                     distance: (distance / 1000).toFixed(1),
                     duration: Math.round(duration / 60)
                 });
+                setLastCalculatedRouteSignature(buildRouteSignature(points));
                 if (isCompactLayout) {
                     setActiveWorkspaceTab('map');
                 }
@@ -461,6 +472,7 @@ const NewQuote = () => {
         setExpandedSections(DEFAULT_EXPANDED_SECTIONS);
         setIsFabOpen(false);
         setActiveWorkspaceTab('form');
+        setLastCalculatedRouteSignature(null);
     };
 
     const handleSave = async (status = 'pendiente') => {
@@ -521,19 +533,41 @@ const NewQuote = () => {
     };
 
     const hasCalculatedRoute = Boolean(routeData && summary.distance > 0);
+    const hasRouteInputsChanged = Boolean(
+        hasCalculatedRoute
+        && lastCalculatedRouteSignature
+        && lastCalculatedRouteSignature !== buildRouteSignature(points)
+    );
+    const canReturnToCalculatedRoute = isCompactLayout && hasCalculatedRoute && activeWorkspaceTab === 'form' && !hasRouteInputsChanged;
+    const shouldShowRouteChangeHint = isCompactLayout && hasCalculatedRoute && activeWorkspaceTab === 'form' && hasRouteInputsChanged;
     const shouldRenderFormSection = !isCompactLayout || activeWorkspaceTab === 'form' || !hasCalculatedRoute;
     const shouldRenderMapSection = !isCompactLayout || (activeWorkspaceTab === 'map' && hasCalculatedRoute);
     const showCompactMapResults = isCompactLayout && shouldRenderMapSection && hasCalculatedRoute;
 
     const summaryCard = (
-        <div className="workspace-summary-card">
-            <div>
-                <p className="summary-stat__label">DISTANCIA</p>
-                <p className="summary-stat__value">{(parseFloat(summary.distance) || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <span className="summary-stat__unit">km</span></p>
-            </div>
-            <div>
-                <p className="summary-stat__label">TIEMPO EST.</p>
-                <p className="summary-stat__value">{CalculationMotor.formatMinutes(summary.duration)}</p>
+        <div className={`workspace-summary-card ${showCompactMapResults ? 'workspace-summary-card--compact' : ''}`.trim()}>
+            {showCompactMapResults ? (
+                <div className="workspace-summary-card__header">
+                    <span className="workspace-summary-card__eyebrow">Ruta calculada</span>
+                    <button
+                        type="button"
+                        className="workspace-inline-action workspace-inline-action--compact workspace-summary-card__edit"
+                        onClick={() => setActiveWorkspaceTab('form')}
+                    >
+                        <PencilLine size={14} />
+                        Editar datos
+                    </button>
+                </div>
+            ) : null}
+            <div className="workspace-summary-card__stats">
+                <div className="workspace-summary-card__stat">
+                    <p className="summary-stat__label">DISTANCIA</p>
+                    <p className="summary-stat__value">{(parseFloat(summary.distance) || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} <span className="summary-stat__unit">km</span></p>
+                </div>
+                <div className="workspace-summary-card__stat">
+                    <p className="summary-stat__label">TIEMPO EST.</p>
+                    <p className="summary-stat__value">{CalculationMotor.formatMinutes(summary.duration)}</p>
+                </div>
             </div>
         </div>
     );
@@ -626,350 +660,349 @@ const NewQuote = () => {
 
     return (
         <div className="page-shell page-shell--workspace fade-in workspace-shell">
-
             {shouldRenderFormSection ? (
-            <section className="workspace-shell__panel">
-                <div
-                    ref={panelBodyRef}
-                    className={`workspace-shell__panel-body ${hasPanelOverflow ? 'workspace-shell__panel-body--scrollable custom-scrollbar' : ''}`.trim()}
-                >
+                <section className="workspace-shell__panel">
+                    <div
+                        ref={panelBodyRef}
+                        className={`workspace-shell__panel-body ${hasPanelOverflow ? 'workspace-shell__panel-body--scrollable custom-scrollbar' : ''}`.trim()}
+                    >
 
-                    {/* Ruta Section */}
-                    <div className="card accordion-card">
-                        <div
-                            onClick={() => toggleSection('ruta')}
-                            className={`accordion-header ${expandedSections.includes('ruta') ? 'expanded' : ''}`}
-                        >
-                            <h2>
-                                <MapPin size={18} className="text-primary" /> Ruta
-                            </h2>
-                            {expandedSections.includes('ruta') ? <ChevronDown size={18} className="text-muted" /> : <ChevronRight size={18} className="text-muted" />}
-                        </div>
+                        {/* Ruta Section */}
+                        <div className="card accordion-card">
+                            <div
+                                onClick={() => toggleSection('ruta')}
+                                className={`accordion-header ${expandedSections.includes('ruta') ? 'expanded' : ''}`}
+                            >
+                                <h2>
+                                    <MapPin size={18} className="text-primary" /> Ruta
+                                </h2>
+                                {expandedSections.includes('ruta') ? <ChevronDown size={18} className="text-muted" /> : <ChevronRight size={18} className="text-muted" />}
+                            </div>
 
-                        {expandedSections.includes('ruta') && (
-                            <div className="accordion-content">
-                                {/* Unified Scroll - No nested scroll here */}
-                                <div className="workspace-route-points">
-                                    {points.map((p, idx) => (
-                                        <div key={p.id} className="workspace-route-point">
-                                            <div className="workspace-route-point__header">
-                                                <label className="form-label" htmlFor={`quote-point-${p.id}`}>
-                                                    {p.label}
-                                                </label>
-                                                {p.id !== 'origin' && p.id !== 'destination' && (
-                                                    <Trash2 size={14} className="text-primary" onClick={() => removeStop(p.id)} cursor="pointer" />
-                                                )}
-                                            </div>
-                                            <div className="form-field-group">
-                                                {searchLoading === idx ? (
-                                                    <Loader2 size={16} className="animate-spin text-primary" />
-                                                ) : (
-                                                    <MapPin size={16} className={idx === 0 ? 'text-primary' : (idx === points.length - 1 ? 'text-primary' : 'text-muted')} />
-                                                )}
-                                                <input
-                                                    id={`quote-point-${p.id}`}
-                                                    name={`quote_point_${p.id}`}
-                                                    type="text"
-                                                    value={p.address}
-                                                    onChange={(e) => handleSearch(idx, e.target.value)}
-                                                    placeholder={`Buscar ${p.label}...`}
-                                                    autoComplete="street-address"
-                                                />
-                                            </div>
-
-                                            {activeSearchIdx === idx && suggestions.length > 0 && (
-                                                <div className="search-suggestions">
-                                                    {suggestions.map((s, sIdx) => (
-                                                        <button
-                                                            key={sIdx}
-                                                            type="button"
-                                                            onClick={() => selectSuggestion(idx, s)}
-                                                            className="search-suggestions__item"
-                                                        >
-                                                            {s.label}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            )}
-                                            {idx === points.length - 1 && (
-                                                <div className="workspace-maps-link">
-                                                    {!showMapsUrl ? (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setShowMapsUrl(true)}
-                                                            className="workspace-maps-toggle"
-                                                            disabled={!p.lat || !p.lng}
-                                                        >
-                                                            <LinkIcon size={12} />
-                                                            {mapsUrl ? '+ Ver link de Google Maps (Destino)' : '+ Añadir link de Google Maps (Destino)'}
-                                                        </button>
-                                                    ) : (
-                                                        <div className="workspace-maps-link__body">
-                                                            <div className="workspace-maps-link__header">
-                                                                <label className="form-label" htmlFor="quote-maps-url">LINK DE GOOGLE MAPS (DESTINO)</label>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setShowMapsUrl(false)}
-                                                                    className="workspace-inline-button"
-                                                                >
-                                                                    <X size={12} />
-                                                                </button>
-                                                            </div>
-                                                            <div className="form-field-group workspace-field-group--dashed">
-                                                                <input
-                                                                    id="quote-maps-url"
-                                                                    name="google_maps_link"
-                                                                    type="text"
-                                                                    value={mapsUrl}
-                                                                    onChange={(e) => setMapsUrl(e.target.value)}
-                                                                    placeholder="Pega el link de Maps aquí..."
-                                                                    autoFocus
-                                                                    autoComplete="url"
-                                                                />
-                                                            </div>
-                                                        </div>
+                            {expandedSections.includes('ruta') && (
+                                <div className="accordion-content">
+                                    {/* Unified Scroll - No nested scroll here */}
+                                    <div className="workspace-route-points">
+                                        {points.map((p, idx) => (
+                                            <div key={p.id} className="workspace-route-point">
+                                                <div className="workspace-route-point__header">
+                                                    <label className="form-label" htmlFor={`quote-point-${p.id}`}>
+                                                        {p.label}
+                                                    </label>
+                                                    {p.id !== 'origin' && p.id !== 'destination' && (
+                                                        <Trash2 size={14} className="text-primary" onClick={() => removeStop(p.id)} cursor="pointer" />
                                                     )}
                                                 </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={addStop}
-                                    className="btn btn-secondary workspace-add-stop">
-                                    <Plus size={16} />
-                                    Agregar parada
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                                                <div className="form-field-group">
+                                                    {searchLoading === idx ? (
+                                                        <Loader2 size={16} className="animate-spin text-primary" />
+                                                    ) : (
+                                                        <MapPin size={16} className={idx === 0 ? 'text-primary' : (idx === points.length - 1 ? 'text-primary' : 'text-muted')} />
+                                                    )}
+                                                    <input
+                                                        id={`quote-point-${p.id}`}
+                                                        name={`quote_point_${p.id}`}
+                                                        type="text"
+                                                        value={p.address}
+                                                        onChange={(e) => handleSearch(idx, e.target.value)}
+                                                        placeholder={`Buscar ${p.label}...`}
+                                                        autoComplete="street-address"
+                                                    />
+                                                </div>
 
-                    {/* Logistics Section */}
-                    <div className="card accordion-card">
-                        <div
-                            onClick={() => toggleSection('logistica')}
-                            className={`accordion-header ${expandedSections.includes('logistica') ? 'expanded' : ''}`}
-                        >
-                            <h2>
-                                <Truck size={18} className="text-primary" /> Logística
-                            </h2>
-                            {expandedSections.includes('logistica') ? <ChevronDown size={18} className="text-muted" /> : <ChevronRight size={18} className="text-muted" />}
+                                                {activeSearchIdx === idx && suggestions.length > 0 && (
+                                                    <div className="search-suggestions">
+                                                        {suggestions.map((s, sIdx) => (
+                                                            <button
+                                                                key={sIdx}
+                                                                type="button"
+                                                                onClick={() => selectSuggestion(idx, s)}
+                                                                className="search-suggestions__item"
+                                                            >
+                                                                {s.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {idx === points.length - 1 && (
+                                                    <div className="workspace-maps-link">
+                                                        {!showMapsUrl ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setShowMapsUrl(true)}
+                                                                className="workspace-maps-toggle"
+                                                                disabled={!p.lat || !p.lng}
+                                                            >
+                                                                <LinkIcon size={12} />
+                                                                {mapsUrl ? '+ Ver link de Google Maps (Destino)' : '+ Añadir link de Google Maps (Destino)'}
+                                                            </button>
+                                                        ) : (
+                                                            <div className="workspace-maps-link__body">
+                                                                <div className="workspace-maps-link__header">
+                                                                    <label className="form-label" htmlFor="quote-maps-url">LINK DE GOOGLE MAPS (DESTINO)</label>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setShowMapsUrl(false)}
+                                                                        className="workspace-inline-button"
+                                                                    >
+                                                                        <X size={12} />
+                                                                    </button>
+                                                                </div>
+                                                                <div className="form-field-group workspace-field-group--dashed">
+                                                                    <input
+                                                                        id="quote-maps-url"
+                                                                        name="google_maps_link"
+                                                                        type="text"
+                                                                        value={mapsUrl}
+                                                                        onChange={(e) => setMapsUrl(e.target.value)}
+                                                                        placeholder="Pega el link de Maps aquí..."
+                                                                        autoFocus
+                                                                        autoComplete="url"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={addStop}
+                                        className="btn btn-secondary workspace-add-stop">
+                                        <Plus size={16} />
+                                        Agregar parada
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
-                        {expandedSections.includes('logistica') && (
-                            <div className="accordion-content">
-                                <div>
-                                    <label className="form-label" htmlFor="quote-vehicle">VEHÍCULO</label>
-                                    <div className="form-select-container">
-                                        <CustomSelect
-                                            id="quote-vehicle"
-                                            name="vehicle_id"
-                                            placeholder="Seleccionar vehículo..."
-                                            value={selectedVehicle?.id || ''}
-                                            onChange={(e) => {
-                                                const vehicle = vehicles.find(v => v.id === parseInt(e.target.value));
-                                                setSelectedVehicle(vehicle);
-                                            }}
-                                            options={vehicles.map(v => ({ value: v.id, label: `${v.name} (${v.plate})` }))}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="workspace-form-split">
-                                    <div className="workspace-form-split__full">
-                                        <label className="form-label" htmlFor="quote-num-trips">NÚMERO DE TRAYECTOS (RECORRIDO)</label>
-                                        <input
-                                            id="quote-num-trips"
-                                            name="num_trips"
-                                            className="form-field"
-                                            type="number"
-                                            value={numTrips || ''}
-                                            onChange={(e) => setNumTrips(e.target.value)}
-                                            placeholder="1"
-                                            autoComplete="off"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="form-label" htmlFor="quote-num-tolls">NÚM. CASETAS (IDA)</label>
-                                        <input
-                                            id="quote-num-tolls"
-                                            name="num_tolls"
-                                            className="form-field"
-                                            type="number"
-                                            value={numTolls || ''}
-                                            onChange={(e) => setNumTolls(e.target.value)}
-                                            placeholder="0"
-                                            autoComplete="off"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="form-label" htmlFor="quote-cost-per-toll">COSTO C/U ($)</label>
-                                        <input
-                                            id="quote-cost-per-toll"
-                                            name="cost_per_toll"
-                                            className="form-field"
-                                            type="number"
-                                            value={costPerToll || ''}
-                                            onChange={(e) => setCostPerToll(e.target.value)}
-                                            placeholder="0.00"
-                                            autoComplete="off"
-                                        />
-                                    </div>
-                                </div>
+                        {/* Logistics Section */}
+                        <div className="card accordion-card">
+                            <div
+                                onClick={() => toggleSection('logistica')}
+                                className={`accordion-header ${expandedSections.includes('logistica') ? 'expanded' : ''}`}
+                            >
+                                <h2>
+                                    <Truck size={18} className="text-primary" /> Logística
+                                </h2>
+                                {expandedSections.includes('logistica') ? <ChevronDown size={18} className="text-muted" /> : <ChevronRight size={18} className="text-muted" />}
                             </div>
-                        )}
-                    </div>
 
-                    {/* Services Section */}
-                    <div className="card accordion-card">
-                        <div
-                            onClick={() => toggleSection('servicios')}
-                            className={`accordion-header ${expandedSections.includes('servicios') ? 'expanded' : ''}`}
-                        >
-                            <h2>
-                                <Package size={18} className="text-primary" /> Servicios Adicionales
-                            </h2>
-                            {expandedSections.includes('servicios') ? <ChevronDown size={18} className="text-muted" /> : <ChevronRight size={18} className="text-muted" />}
+                            {expandedSections.includes('logistica') && (
+                                <div className="accordion-content">
+                                    <div>
+                                        <label className="form-label" htmlFor="quote-vehicle">VEHÍCULO</label>
+                                        <div className="form-select-container">
+                                            <CustomSelect
+                                                id="quote-vehicle"
+                                                name="vehicle_id"
+                                                placeholder="Seleccionar vehículo..."
+                                                value={selectedVehicle?.id || ''}
+                                                onChange={(e) => {
+                                                    const vehicle = vehicles.find(v => v.id === parseInt(e.target.value));
+                                                    setSelectedVehicle(vehicle);
+                                                }}
+                                                options={vehicles.map(v => ({ value: v.id, label: `${v.name} (${v.plate})` }))}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="workspace-form-split">
+                                        <div className="workspace-form-split__full">
+                                            <label className="form-label" htmlFor="quote-num-trips">NÚMERO DE TRAYECTOS (RECORRIDO)</label>
+                                            <input
+                                                id="quote-num-trips"
+                                                name="num_trips"
+                                                className="form-field"
+                                                type="number"
+                                                value={numTrips || ''}
+                                                onChange={(e) => setNumTrips(e.target.value)}
+                                                placeholder="1"
+                                                autoComplete="off"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="form-label" htmlFor="quote-num-tolls">NÚM. CASETAS (IDA)</label>
+                                            <input
+                                                id="quote-num-tolls"
+                                                name="num_tolls"
+                                                className="form-field"
+                                                type="number"
+                                                value={numTolls || ''}
+                                                onChange={(e) => setNumTolls(e.target.value)}
+                                                placeholder="0"
+                                                autoComplete="off"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="form-label" htmlFor="quote-cost-per-toll">COSTO C/U ($)</label>
+                                            <input
+                                                id="quote-cost-per-toll"
+                                                name="cost_per_toll"
+                                                className="form-field"
+                                                type="number"
+                                                value={costPerToll || ''}
+                                                onChange={(e) => setCostPerToll(e.target.value)}
+                                                placeholder="0.00"
+                                                autoComplete="off"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
-                        {expandedSections.includes('servicios') && (
-                            <div className="accordion-content">
-                                <div className="workspace-services-list">
-                                    {services.map(s => (
-                                        <div
-                                            key={s.id}
-                                            onClick={() => toggleService(s.id)}
-                                            className={`workspace-service-option ${selectedServices.includes(s.id) ? 'workspace-service-option--selected' : ''}`.trim()}
-                                        >
-                                            <span className="workspace-service-option__name">{s.name}</span>
-                                            <span className="workspace-service-option__price">${parseFloat(s.cost || 0).toLocaleString()}</span>
-                                        </div>
-                                    ))}
-                                </div>
+                        {/* Services Section */}
+                        <div className="card accordion-card">
+                            <div
+                                onClick={() => toggleSection('servicios')}
+                                className={`accordion-header ${expandedSections.includes('servicios') ? 'expanded' : ''}`}
+                            >
+                                <h2>
+                                    <Package size={18} className="text-primary" /> Servicios Adicionales
+                                </h2>
+                                {expandedSections.includes('servicios') ? <ChevronDown size={18} className="text-muted" /> : <ChevronRight size={18} className="text-muted" />}
                             </div>
-                        )}
-                    </div>
-                    {/* Removed fixed spacer to avoid unnecessary scrollbar */}
-                </div>
 
-                {/* Fixed Footer Area for Main Button */}
-                <div className="workspace-sticky-action">
-                    <button
-                        onClick={calculateRoute}
-                        disabled={loading || searchLoading !== null}
-                        className="btn btn-primary workspace-calc-button">
-                        {loading ? <Loader2 className="animate-spin" size={20} /> : <Calculator size={20} />}
-                        Calcular cotización
-                    </button>
-                </div>
-            </section>
+                            {expandedSections.includes('servicios') && (
+                                <div className="accordion-content">
+                                    <div className="workspace-services-list">
+                                        {services.map(s => (
+                                            <div
+                                                key={s.id}
+                                                onClick={() => toggleService(s.id)}
+                                                className={`workspace-service-option ${selectedServices.includes(s.id) ? 'workspace-service-option--selected' : ''}`.trim()}
+                                            >
+                                                <span className="workspace-service-option__name">{s.name}</span>
+                                                <span className="workspace-service-option__price">${parseFloat(s.cost || 0).toLocaleString()}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        {/* Removed fixed spacer to avoid unnecessary scrollbar */}
+                    </div>
+
+                    {/* Fixed Footer Area for Main Button */}
+                    <div className="workspace-sticky-action">
+                        {canReturnToCalculatedRoute ? (
+                            <button
+                                type="button"
+                                className="workspace-inline-action workspace-inline-action--subtle workspace-inline-action--center workspace-sticky-action__return"
+                                onClick={() => setActiveWorkspaceTab('map')}
+                            >
+                                <Route size={14} />
+                                Ver ruta calculada
+                            </button>
+                        ) : null}
+                        {shouldShowRouteChangeHint ? (
+                            <p className="workspace-sticky-action__hint">
+                                La ruta cambió. Recalcula para actualizar el mapa.
+                            </p>
+                        ) : null}
+                        <button
+                            onClick={calculateRoute}
+                            disabled={loading || searchLoading !== null}
+                            className="btn btn-primary workspace-calc-button">
+                            {loading ? <Loader2 className="animate-spin" size={20} /> : <Calculator size={20} />}
+                            Calcular cotización
+                        </button>
+                    </div>
+                </section>
             ) : null}
 
             {shouldRenderMapSection ? (
-            <section className="workspace-shell__map">
-                <div className="workspace-shell__map-stage">
-                    <div className="workspace-shell__map-canvas">
-                        <MapComponent points={points} routeData={routeData} onMarkerDrag={updatePoint} />
-                    </div>
-
-                    {!showCompactMapResults && hasCalculatedRoute ? (
-                        <div className={`workspace-shell__overlay ${isCompactLayout ? 'workspace-shell__overlay--mobile' : ''}`.trim()}>
-                            {summaryCard}
-                            {breakdownCard}
+                <section className="workspace-shell__map">
+                    <div className="workspace-shell__map-stage">
+                        <div className="workspace-shell__map-canvas">
+                            <MapComponent points={points} routeData={routeData} onMarkerDrag={updatePoint} />
                         </div>
-                    ) : null}
-                </div>
 
-                {showCompactMapResults ? (
-                    <div className="workspace-mobile-results-stack fade-in-up">
-                        <div className="workspace-mobile-results-bar">
-                            <div className="workspace-mobile-results-bar__copy">
-                                <span className="workspace-mobile-results-bar__eyebrow">{breakdown ? 'Ruta calculada' : 'Vista de ruta'}</span>
-                                <strong className="workspace-mobile-results-bar__title">
-                                    {breakdown ? 'Revisa el trayecto y el total estimado' : 'Ajusta la ruta directo en el mapa'}
-                                </strong>
-                            </div>
-                            <button
-                                type="button"
-                                className="btn btn-secondary workspace-mobile-results-bar__button"
-                                onClick={() => setActiveWorkspaceTab('form')}
-                            >
-                                Editar datos
-                            </button>
-                        </div>
-                        {summaryCard}
-                        {breakdownCard}
-                        {breakdown ? (
-                            <div className="workspace-mobile-results-actions">
-                                <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    onClick={resetQuotation}
-                                >
-                                    <Plus size={18} />
-                                    Nueva cotización
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn btn-primary"
-                                    onClick={() => handleSave('pendiente')}
-                                >
-                                    <Clock size={18} />
-                                    Guardar como pendiente
-                                </button>
+                        {!showCompactMapResults && hasCalculatedRoute ? (
+                            <div className={`workspace-shell__overlay ${isCompactLayout ? 'workspace-shell__overlay--mobile' : ''}`.trim()}>
+                                {summaryCard}
+                                {breakdownCard}
                             </div>
                         ) : null}
                     </div>
-                ) : null}
 
-                {breakdown && !showCompactMapResults ? (
-                    <div className="fab-container" ref={fabRef}>
-                        <div className="fab-speed-dial">
-                            {isFabOpen ? (
-                                <div className="fab-speed-dial__actions fade-in-up" id="quote-speed-dial-menu" role="menu" aria-label="Acciones de cotización">
-                                    <div className="fab-item" role="none">
-                                        <span className="fab-item-label">Nueva cotización</span>
-                                        <button
-                                            type="button"
-                                            className="fab-action-button"
-                                            onClick={resetQuotation}
-                                            title="Nueva cotización"
-                                            role="menuitem"
-                                        >
-                                            <Plus size={20} />
-                                        </button>
-                                    </div>
-                                    <div className="fab-item" role="none">
-                                        <span className="fab-item-label">Guardar como pendiente</span>
-                                        <button
-                                            type="button"
-                                            className="fab-action-button fab-action-button--primary"
-                                            onClick={() => handleSave('pendiente')}
-                                            title="Guardar como pendiente"
-                                            role="menuitem"
-                                        >
-                                            <Clock size={20} />
-                                        </button>
-                                    </div>
+                    {showCompactMapResults ? (
+                        <div className="workspace-mobile-results-stack fade-in-up">
+                            {summaryCard}
+                            {breakdownCard}
+                            {breakdown ? (
+                                <div className="workspace-mobile-results-actions">
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        onClick={resetQuotation}
+                                    >
+                                        <Plus size={18} />
+                                        Nueva cotización
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary"
+                                        onClick={() => handleSave('pendiente')}
+                                    >
+                                        <Clock size={18} />
+                                        Guardar como pendiente
+                                    </button>
                                 </div>
                             ) : null}
-
-                            <button
-                                type="button"
-                                className={`fab-main ${isFabOpen ? '' : 'fab-pulse'}`.trim()}
-                                onClick={() => setIsFabOpen((currentState) => !currentState)}
-                                title={isFabOpen ? 'Cerrar acciones de cotización' : 'Abrir acciones de cotización'}
-                                aria-expanded={isFabOpen}
-                                aria-haspopup="menu"
-                                aria-controls="quote-speed-dial-menu"
-                            >
-                                {isFabOpen ? <X size={26} /> : <Plus size={28} />}
-                            </button>
                         </div>
-                    </div>
-                ) : null}
-            </section>
+                    ) : null}
+
+                    {breakdown && !showCompactMapResults ? (
+                        <div className="fab-container" ref={fabRef}>
+                            <div className="fab-speed-dial">
+                                {isFabOpen ? (
+                                    <div className="fab-speed-dial__actions fade-in-up" id="quote-speed-dial-menu" role="menu" aria-label="Acciones de cotización">
+                                        <div className="fab-item" role="none">
+                                            <span className="fab-item-label">Nueva cotización</span>
+                                            <button
+                                                type="button"
+                                                className="fab-action-button"
+                                                onClick={resetQuotation}
+                                                title="Nueva cotización"
+                                                role="menuitem"
+                                            >
+                                                <Plus size={20} />
+                                            </button>
+                                        </div>
+                                        <div className="fab-item" role="none">
+                                            <span className="fab-item-label">Guardar como pendiente</span>
+                                            <button
+                                                type="button"
+                                                className="fab-action-button fab-action-button--primary"
+                                                onClick={() => handleSave('pendiente')}
+                                                title="Guardar como pendiente"
+                                                role="menuitem"
+                                            >
+                                                <Clock size={20} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : null}
+
+                                <button
+                                    type="button"
+                                    className={`fab-main ${isFabOpen ? '' : 'fab-pulse'}`.trim()}
+                                    onClick={() => setIsFabOpen((currentState) => !currentState)}
+                                    title={isFabOpen ? 'Cerrar acciones de cotización' : 'Abrir acciones de cotización'}
+                                    aria-expanded={isFabOpen}
+                                    aria-haspopup="menu"
+                                    aria-controls="quote-speed-dial-menu"
+                                >
+                                    {isFabOpen ? <X size={26} /> : <Plus size={28} />}
+                                </button>
+                            </div>
+                        </div>
+                    ) : null}
+                </section>
             ) : null}
         </div>
     );
