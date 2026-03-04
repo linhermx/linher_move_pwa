@@ -16,6 +16,7 @@ import CustomSelect from '../components/CustomSelect';
 import PageHeader from '../components/PageHeader';
 import Pagination from '../components/Pagination';
 import StatusBadge from '../components/StatusBadge';
+import TableScrollFade from '../components/TableScrollFade';
 import { formatDateTime } from '../utils/formatters';
 import { useNotification } from '../context/NotificationContext';
 
@@ -422,7 +423,7 @@ const Backups = () => {
                     </div>
                 ) : null}
 
-                <div className="table-scroll">
+                <TableScrollFade>
                     <table className="table table--backups">
                         <caption className="sr-only">Historial de respaldos</caption>
                         <thead>
@@ -485,7 +486,7 @@ const Backups = () => {
                             )}
                         </tbody>
                     </table>
-                </div>
+                </TableScrollFade>
 
                 <Pagination
                     pagination={pagination}

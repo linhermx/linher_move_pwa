@@ -9,6 +9,7 @@ import CustomSelect from '../components/CustomSelect';
 import Pagination from '../components/Pagination';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
+import TableScrollFade from '../components/TableScrollFade';
 
 const MOBILE_FILTER_QUERY = '(max-width: 768px)';
 
@@ -286,7 +287,7 @@ const History = () => {
                     </div>
                 ) : null}
 
-                <div className="table-scroll">
+                <TableScrollFade>
                     <table className="table table--history">
                         <caption className="sr-only">Tabla de historial de cotizaciones</caption>
                         <thead>
@@ -357,7 +358,7 @@ const History = () => {
                             )}
                         </tbody>
                     </table>
-                </div>
+                </TableScrollFade>
 
                 <Pagination
                     pagination={pagination}

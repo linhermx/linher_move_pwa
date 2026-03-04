@@ -7,6 +7,7 @@ import Pagination from '../components/Pagination';
 import StatusBadge from '../components/StatusBadge';
 import ModalShell from '../components/ModalShell';
 import Alert from '../components/Alert';
+import TableScrollFade from '../components/TableScrollFade';
 import { formatDateTime } from '../utils/formatters';
 
 const LOG_TYPE_OPTIONS = [
@@ -368,7 +369,7 @@ const AuditLogs = () => {
                     </div>
                 </div>
 
-                <div className="table-scroll">
+                <TableScrollFade>
                     <table className="table">
                         <caption className="sr-only">Tabla de auditoría</caption>
                         <thead>
@@ -419,7 +420,7 @@ const AuditLogs = () => {
                             )}
                         </tbody>
                     </table>
-                </div>
+                </TableScrollFade>
 
                 <Pagination
                     pagination={pagination}

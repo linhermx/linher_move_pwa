@@ -1,8 +1,9 @@
 import React from 'react';
+import TableScrollFade from './TableScrollFade';
 
 const DataTable = ({ caption, columns, children, empty, colSpan }) => (
     <div className="card card--flush table-shell">
-        <div className="table-scroll">
+        <TableScrollFade>
             <table className="table">
                 {caption ? <caption>{caption}</caption> : null}
                 <thead>
@@ -29,7 +30,7 @@ const DataTable = ({ caption, columns, children, empty, colSpan }) => (
                     ) : children}
                 </tbody>
             </table>
-        </div>
+        </TableScrollFade>
     </div>
 );
 

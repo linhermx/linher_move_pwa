@@ -8,6 +8,7 @@ import CustomMenu from '../components/CustomMenu';
 import Pagination from '../components/Pagination';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
+import TableScrollFade from '../components/TableScrollFade';
 import { resolveAssetUrl } from '../utils/url';
 import ModalShell from '../components/ModalShell';
 import { formatDate } from '../utils/formatters';
@@ -146,7 +147,7 @@ const Users = () => {
                     </div>
                 </div>
 
-                <div className="table-scroll">
+                <TableScrollFade>
                     <table className="table table--users">
                         <caption className="sr-only">Tabla de usuarios</caption>
                         <thead>
@@ -227,7 +228,7 @@ const Users = () => {
                             )}
                         </tbody>
                     </table>
-                </div>
+                </TableScrollFade>
 
                 <Pagination
                     pagination={pagination}
