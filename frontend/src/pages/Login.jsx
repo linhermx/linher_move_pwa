@@ -66,13 +66,11 @@ const Login = () => {
             <ForgotPasswordModal isOpen={showForgot} onClose={() => setShowForgot(false)} />
 
             <main className="auth-layout">
-                <div className="auth-layout__toggle">
-                    <div className="auth-layout__toggle-control">
-                        <ThemeToggle />
-                    </div>
-                </div>
-
                 <section className="auth-shell" aria-labelledby="login-title">
+                    <div className="auth-layout__toggle">
+                        <ThemeToggle variant="auth" />
+                    </div>
+
                     <header className="auth-brand">
                         <img
                             src={theme === 'light' ? logoVerticalLight : logoVerticalDark}
@@ -81,13 +79,13 @@ const Login = () => {
                         />
                     </header>
 
-                    <article className="card auth-card stack-lg">
-                        <header className="stack-sm text-center">
+                    <article className="card auth-card">
+                        <header className="auth-card__header stack-sm text-center">
                             <h1 id="login-title" className="auth-title">Bienvenido de nuevo</h1>
-                            <p className="text-muted">Ingresa con tu cuenta para continuar.</p>
+                            <p className="auth-card__subtitle text-muted">Ingresa con tu cuenta para continuar.</p>
                         </header>
 
-                        <form className="stack-md" onSubmit={handleSubmit}>
+                        <form className="auth-form stack-md" onSubmit={handleSubmit}>
                             <div>
                                 <label className="form-label" htmlFor="login-email">CORREO ELECTRÓNICO</label>
                                 <div className="form-field-group">
@@ -131,8 +129,8 @@ const Login = () => {
                                 </div>
                             </div>
 
-                            <div className="cluster-md justify-between">
-                                <label className="cluster-sm text-muted">
+                            <div className="auth-card__options">
+                                <label className="auth-card__remember cluster-sm text-muted" htmlFor="login-remember">
                                     <input
                                         id="login-remember"
                                         name="remember_me"
@@ -143,12 +141,12 @@ const Login = () => {
                                     />
                                     <span>Recordarme</span>
                                 </label>
-                                <button type="button" className="btn btn-ghost" onClick={() => setShowForgot(true)}>
+                                <button type="button" className="btn btn-ghost auth-card__forgot" onClick={() => setShowForgot(true)}>
                                     ¿Olvidaste tu contraseña?
                                 </button>
                             </div>
 
-                            <button type="submit" className="btn btn-primary">
+                            <button type="submit" className="btn btn-primary auth-submit">
                                 Iniciar sesión
                             </button>
                         </form>
