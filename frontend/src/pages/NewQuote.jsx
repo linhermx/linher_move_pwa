@@ -9,6 +9,12 @@ import { CalculationMotor } from '../utils/CalculationMotor';
 
 const DEFAULT_EXPANDED_SECTIONS = ['ruta', 'logistica', 'servicios'];
 const COMPACT_WORKSPACE_QUERY = '(max-width: 1024px)';
+const EMPTY_ROUTE_VALIDATION_ERRORS = {
+    origin: false,
+    destination: false,
+    vehicle: false,
+    numTrips: false
+};
 
 const createInitialPoints = (settings = {}) => {
     if (settings.default_origin_address && settings.default_origin_lat && settings.default_origin_lng) {
@@ -39,6 +45,38 @@ const buildRouteSignature = (points = []) => JSON.stringify(
     }))
 );
 
+const hasPointCoordinates = (point) => (
+    Number.isFinite(Number(point?.lat)) && Number.isFinite(Number(point?.lng))
+);
+
+const validateRequiredRouteFields = ({ points, selectedVehicle, numTrips }) => {
+    const origin = points.find((point) => point.id === 'origin');
+    const destination = points.find((point) => point.id === 'destination');
+    const parsedTrips = Number(numTrips);
+    const errors = {
+        origin: !hasPointCoordinates(origin),
+        destination: !hasPointCoordinates(destination),
+        vehicle: !selectedVehicle,
+        numTrips: !Number.isInteger(parsedTrips) || parsedTrips <= 0
+    };
+    const missingFields = [];
+
+    if (errors.origin) {
+        missingFields.push('Origen');
+    }
+    if (errors.destination) {
+        missingFields.push('Destino');
+    }
+    if (errors.vehicle) {
+        missingFields.push('Vehículo');
+    }
+    if (errors.numTrips) {
+        missingFields.push('Número de trayectos');
+    }
+
+    return { errors, missingFields };
+};
+
 const NewQuote = () => {
     const navigate = useNavigate();
     const [points, setPoints] = useState(() => createInitialPoints());
@@ -63,12 +101,13 @@ const NewQuote = () => {
     const [mapsUrl, setMapsUrl] = useState('');
     const [numTolls, setNumTolls] = useState(0);
     const [costPerToll, setCostPerToll] = useState(0);
-    const [numTrips, setNumTrips] = useState(1);
+    const [numTrips, setNumTrips] = useState(2);
     const [expandedSections, setExpandedSections] = useState(DEFAULT_EXPANDED_SECTIONS);
     const [isFabOpen, setIsFabOpen] = useState(false);
     const [activeWorkspaceTab, setActiveWorkspaceTab] = useState('form');
     const [isCompactLayout, setIsCompactLayout] = useState(() => window.matchMedia(COMPACT_WORKSPACE_QUERY).matches);
     const [lastCalculatedRouteSignature, setLastCalculatedRouteSignature] = useState(null);
+    const [routeValidationErrors, setRouteValidationErrors] = useState(EMPTY_ROUTE_VALIDATION_ERRORS);
     const fabRef = useRef(null);
     const panelBodyRef = useRef(null);
     const [hasPanelOverflow, setHasPanelOverflow] = useState(false);
@@ -213,7 +252,11 @@ const NewQuote = () => {
     }, [summary, selectedVehicle, selectedServices, globalSettings, numTolls, costPerToll, numTrips]);
 
     const handleCalculate = () => {
-        if (summary.distance <= 0) return;
+        const parsedTrips = Number(numTrips);
+        if (summary.distance <= 0 || !selectedVehicle || !Number.isInteger(parsedTrips) || parsedTrips <= 0) {
+            setBreakdown(null);
+            return;
+        }
 
         const serviceInfo = selectedServices.reduce((acc, sId) => {
             const service = services.find(s => s.id === sId);
@@ -267,6 +310,11 @@ const NewQuote = () => {
     const updatePoint = async (idx, lat, lng) => {
         const roundedLat = parseFloat(lat.toFixed(6));
         const roundedLng = parseFloat(lng.toFixed(6));
+        const pointKey = points[idx]?.id === 'origin' || points[idx]?.id === 'destination' ? points[idx].id : null;
+
+        if (pointKey) {
+            setRouteValidationErrors((currentErrors) => ({ ...currentErrors, [pointKey]: false }));
+        }
 
         setPoints(currentPoints => {
             const updated = [...currentPoints];
@@ -300,6 +348,9 @@ const NewQuote = () => {
         const newPoints = [...points];
         newPoints[idx].address = text;
         setPoints(newPoints);
+        if (newPoints[idx]?.id === 'origin' || newPoints[idx]?.id === 'destination') {
+            setRouteValidationErrors((currentErrors) => ({ ...currentErrors, [newPoints[idx].id]: false }));
+        }
 
         // Clear previous timeout
         if (searchTimeoutRef.current) {
@@ -373,20 +424,42 @@ const NewQuote = () => {
             lng: suggestion.lng
         };
         setPoints(newPoints);
+        if (newPoints[pointIdx]?.id === 'origin' || newPoints[pointIdx]?.id === 'destination') {
+            setRouteValidationErrors((currentErrors) => ({ ...currentErrors, [newPoints[pointIdx].id]: false }));
+        }
         setSuggestions([]);
         setActiveSearchIdx(null);
     };
 
     const calculateRoute = async () => {
-        const validPoints = points.filter(p => p.lat && p.lng);
-        if (validPoints.length < 2) {
-            setAlertConfig({
-                isOpen: true,
-                title: 'Información faltante',
-                message: 'Por favor selecciona al menos origen y destino para calcular la ruta.'
+        const { errors, missingFields } = validateRequiredRouteFields({
+            points,
+            selectedVehicle,
+            numTrips
+        });
+
+        if (missingFields.length > 0) {
+            setRouteValidationErrors(errors);
+            setExpandedSections((currentSections) => {
+                const nextSections = [...currentSections];
+                if ((errors.origin || errors.destination) && !nextSections.includes('ruta')) {
+                    nextSections.push('ruta');
+                }
+                if ((errors.vehicle || errors.numTrips) && !nextSections.includes('logistica')) {
+                    nextSections.push('logistica');
+                }
+                return nextSections;
             });
+            if (isCompactLayout) {
+                setActiveWorkspaceTab('form');
+            }
+            showNotification(`Completa los campos obligatorios: ${missingFields.join(', ')}`, 'info');
             return;
         }
+
+        setRouteValidationErrors(EMPTY_ROUTE_VALIDATION_ERRORS);
+
+        const validPoints = points.filter((point) => hasPointCoordinates(point));
 
         setLoading(true);
         try {
@@ -473,6 +546,7 @@ const NewQuote = () => {
         setIsFabOpen(false);
         setActiveWorkspaceTab('form');
         setLastCalculatedRouteSignature(null);
+        setRouteValidationErrors(EMPTY_ROUTE_VALIDATION_ERRORS);
     };
 
     const handleSave = async (status = 'pendiente') => {
@@ -685,30 +759,45 @@ const NewQuote = () => {
                                     <div className="workspace-route-points">
                                         {points.map((p, idx) => (
                                             <div key={p.id} className="workspace-route-point">
-                                                <div className="workspace-route-point__header">
-                                                    <label className="form-label" htmlFor={`quote-point-${p.id}`}>
-                                                        {p.label}
-                                                    </label>
-                                                    {p.id !== 'origin' && p.id !== 'destination' && (
-                                                        <Trash2 size={14} className="text-primary" onClick={() => removeStop(p.id)} cursor="pointer" />
-                                                    )}
-                                                </div>
-                                                <div className="form-field-group">
-                                                    {searchLoading === idx ? (
-                                                        <Loader2 size={16} className="animate-spin text-primary" />
-                                                    ) : (
-                                                        <MapPin size={16} className={idx === 0 ? 'text-primary' : (idx === points.length - 1 ? 'text-primary' : 'text-muted')} />
-                                                    )}
-                                                    <input
-                                                        id={`quote-point-${p.id}`}
-                                                        name={`quote_point_${p.id}`}
-                                                        type="text"
-                                                        value={p.address}
-                                                        onChange={(e) => handleSearch(idx, e.target.value)}
-                                                        placeholder={`Buscar ${p.label}...`}
-                                                        autoComplete="street-address"
-                                                    />
-                                                </div>
+                                                {(() => {
+                                                    const routeFieldKey = p.id === 'origin' || p.id === 'destination' ? p.id : null;
+                                                    const hasRouteFieldError = routeFieldKey ? routeValidationErrors[routeFieldKey] : false;
+
+                                                    return (
+                                                        <>
+                                                            <div className="workspace-route-point__header">
+                                                                <label className="form-label" htmlFor={`quote-point-${p.id}`}>
+                                                                    {p.label}
+                                                                </label>
+                                                                {p.id !== 'origin' && p.id !== 'destination' && (
+                                                                    <Trash2 size={14} className="text-primary" onClick={() => removeStop(p.id)} cursor="pointer" />
+                                                                )}
+                                                            </div>
+                                                            <div className={`form-field-group ${hasRouteFieldError ? 'form-field-group--error' : ''}`.trim()}>
+                                                                {searchLoading === idx ? (
+                                                                    <Loader2 size={16} className="animate-spin text-primary" />
+                                                                ) : (
+                                                                    <MapPin size={16} className={idx === 0 ? 'text-primary' : (idx === points.length - 1 ? 'text-primary' : 'text-muted')} />
+                                                                )}
+                                                                <input
+                                                                    id={`quote-point-${p.id}`}
+                                                                    name={`quote_point_${p.id}`}
+                                                                    type="text"
+                                                                    value={p.address}
+                                                                    onChange={(e) => handleSearch(idx, e.target.value)}
+                                                                    placeholder={`Buscar ${p.label}...`}
+                                                                    autoComplete="street-address"
+                                                                    aria-invalid={hasRouteFieldError}
+                                                                />
+                                                            </div>
+                                                            {hasRouteFieldError ? (
+                                                                <p className="form-feedback form-feedback--error">
+                                                                    {p.id === 'origin' ? 'Selecciona un origen válido.' : 'Selecciona un destino válido.'}
+                                                                </p>
+                                                            ) : null}
+                                                        </>
+                                                    );
+                                                })()}
 
                                                 {activeSearchIdx === idx && suggestions.length > 0 && (
                                                     <div className="search-suggestions">
@@ -794,7 +883,7 @@ const NewQuote = () => {
                                 <div className="accordion-content">
                                     <div>
                                         <label className="form-label" htmlFor="quote-vehicle">VEHÍCULO</label>
-                                        <div className="form-select-container">
+                                        <div className={`form-select-container ${routeValidationErrors.vehicle ? 'form-select-container--error' : ''}`.trim()}>
                                             <CustomSelect
                                                 id="quote-vehicle"
                                                 name="vehicle_id"
@@ -803,10 +892,14 @@ const NewQuote = () => {
                                                 onChange={(e) => {
                                                     const vehicle = vehicles.find(v => v.id === parseInt(e.target.value));
                                                     setSelectedVehicle(vehicle);
+                                                    setRouteValidationErrors((currentErrors) => ({ ...currentErrors, vehicle: false }));
                                                 }}
                                                 options={vehicles.map(v => ({ value: v.id, label: `${v.name} (${v.plate})` }))}
                                             />
                                         </div>
+                                        {routeValidationErrors.vehicle ? (
+                                            <p className="form-feedback form-feedback--error">Selecciona un vehículo.</p>
+                                        ) : null}
                                     </div>
 
                                     <div className="workspace-form-split">
@@ -815,13 +908,23 @@ const NewQuote = () => {
                                             <input
                                                 id="quote-num-trips"
                                                 name="num_trips"
-                                                className="form-field"
+                                                className={`form-field ${routeValidationErrors.numTrips ? 'form-field--error' : ''}`.trim()}
                                                 type="number"
                                                 value={numTrips || ''}
-                                                onChange={(e) => setNumTrips(e.target.value)}
+                                                onChange={(e) => {
+                                                    setNumTrips(e.target.value);
+                                                    setRouteValidationErrors((currentErrors) => ({ ...currentErrors, numTrips: false }));
+                                                }}
                                                 placeholder="1"
                                                 autoComplete="off"
+                                                min="1"
+                                                step="1"
+                                                inputMode="numeric"
+                                                aria-invalid={routeValidationErrors.numTrips}
                                             />
+                                            {routeValidationErrors.numTrips ? (
+                                                <p className="form-feedback form-feedback--error">Ingresa un número de trayectos mayor a 0.</p>
+                                            ) : null}
                                         </div>
                                         <div>
                                             <label className="form-label" htmlFor="quote-num-tolls">NÚM. CASETAS (IDA)</label>
