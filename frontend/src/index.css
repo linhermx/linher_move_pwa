@@ -3353,12 +3353,88 @@ input:-webkit-autofill:active {
   text-align: center;
 }
 
+.quote-detail-page .page-header__actions {
+  align-items: stretch;
+}
+
+.quote-detail-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+}
+
+.quote-detail-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.quote-detail-header-title__label {
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.quote-detail-header-title__folio {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.quote-detail-header-status {
+  display: inline-flex;
+}
+
+.quote-detail-mobile-status,
+.quote-detail-mobile-actions-shell {
+  display: none;
+}
+
+.quote-detail-mobile-status__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.quote-detail-mobile-status__summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.quote-detail-mobile-status__eyebrow {
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.quote-detail-mobile-status__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
 .quote-detail-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: var(--spacing-sm);
+}
+
+.quote-detail-actions__button {
+  min-width: 0;
 }
 
 .quote-status-switch {
@@ -3375,15 +3451,84 @@ input:-webkit-autofill:active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
   min-height: 2.5rem;
   padding: 8px 14px;
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
   font-size: 0.6875rem;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.quote-status-switch__button:hover {
+  color: var(--color-text-main);
+  border-color: var(--color-border);
+  background: var(--color-muted-block);
+}
+
+.quote-status-switch__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.quote-status-switch__content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.quote-status-switch__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.quote-status-switch__label {
+  min-width: 0;
+}
+
+.quote-status-switch__hint {
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.quote-status-switch__indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.quote-status-switch__indicator--active {
+  color: var(--color-text-main);
+  border-color: transparent;
+  background: var(--color-muted-block);
 }
 
 .quote-detail-layout {
@@ -3447,16 +3592,28 @@ input:-webkit-autofill:active {
   height: 100%;
 }
 
-.quote-status-switch__button {
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
+.quote-status-switch__button--active {
+  border-color: transparent;
 }
 
-.quote-status-switch__button--active {
-  background: var(--quote-status-accent, var(--color-primary));
-  color: var(--quote-status-text, var(--color-primary-foreground));
+.quote-status-switch__button--active.quote-status-switch__button--success {
+  background: var(--color-success);
+  color: var(--color-primary-foreground);
+}
+
+.quote-status-switch__button--active.quote-status-switch__button--warning {
+  background: var(--color-warning);
+  color: var(--color-text-inverse);
+}
+
+.quote-status-switch__button--active.quote-status-switch__button--info {
+  background: var(--color-info);
+  color: var(--color-primary-foreground);
+}
+
+.quote-status-switch__button--active.quote-status-switch__button--neutral {
+  background: var(--color-surface-strong);
+  color: var(--color-text-main);
 }
 
 .quote-status-switch__button--locked {
@@ -3464,7 +3621,7 @@ input:-webkit-autofill:active {
 }
 
 .quote-status-switch__button--muted {
-  opacity: 0.3;
+  opacity: 0.36;
 }
 
 .quote-detail-vehicle-card {
@@ -4042,6 +4199,7 @@ input:-webkit-autofill:active {
 }
 
 @media (max-width: 1200px) {
+  .quote-detail-header-actions,
   .quote-detail-actions {
     width: 100%;
     justify-content: flex-start;
@@ -4095,9 +4253,477 @@ input:-webkit-autofill:active {
   .quote-detail-map-card .map-canvas {
     min-height: 280px;
   }
+
+  .quote-detail-page .page-header {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .quote-detail-page .page-header__main {
+    width: 100%;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .quote-detail-page .page-header__title-row {
+    align-items: flex-start;
+  }
+
+  .quote-detail-page .page-header__title {
+    font-size: 1.5rem;
+  }
+
+  .quote-detail-page .page-header__subtitle,
+  .quote-detail-page .page-header__actions,
+  .quote-detail-header-status--desktop {
+    display: none;
+  }
+
+  .quote-detail-mobile-status,
+  .quote-detail-mobile-actions-shell {
+    display: block;
+  }
+
+  .quote-detail-mobile-status {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .quote-detail-mobile-actions-shell {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-sm);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2px);
+    background: linear-gradient(180deg, transparent 0%, var(--color-bg) 28%);
+  }
+
+  .quote-detail-mobile-status__header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .quote-detail-mobile-status__meta {
+    flex-wrap: wrap;
+    font-size: 0.75rem;
+  }
+
+  .quote-detail-mobile-status__summary {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .quote-detail-stack {
+    display: contents;
+  }
+
+  .quote-detail-map-card {
+    order: 1;
+  }
+
+  .quote-detail-layout__route {
+    order: 2;
+  }
+
+  .quote-detail-layout__vehicle {
+    order: 3;
+  }
+
+  .quote-detail-layout__services {
+    order: 4;
+  }
+
+  .quote-detail-layout__review {
+    order: 5;
+  }
+
+  .quote-detail-layout__breakdown {
+    order: 6;
+  }
+
+  .quote-status-switch--mobile {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0;
+    border: none;
+    background: transparent;
+    scrollbar-width: none;
+  }
+
+  .quote-status-switch--mobile::-webkit-scrollbar {
+    display: none;
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button {
+    flex: 0 0 auto;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0.7rem 0.85rem;
+    border-color: var(--color-border);
+    background: color-mix(in srgb, var(--color-surface-contrast) 28%, transparent);
+    white-space: nowrap;
+    text-align: left;
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button:hover {
+    transform: none;
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__content {
+    gap: 8px;
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__icon {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__label {
+    font-size: 0.75rem;
+    line-height: 1.2;
+    color: inherit;
+  }
+
+  .quote-status-switch--compact .quote-status-switch__copy {
+    gap: 0;
+  }
+
+  .quote-status-switch--compact .quote-status-switch__hint,
+  .quote-status-switch--compact .quote-status-switch__indicator {
+    display: none;
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--warning {
+    color: color-mix(in srgb, var(--color-warning) 72%, var(--color-text-main));
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--info {
+    color: color-mix(in srgb, var(--color-info) 72%, var(--color-text-main));
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--success {
+    color: color-mix(in srgb, var(--color-success) 72%, var(--color-text-main));
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--neutral {
+    color: var(--color-text-muted);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--active.quote-status-switch__button--warning {
+    border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border));
+    background: color-mix(in srgb, var(--color-warning-soft) 86%, var(--color-surface));
+    color: var(--color-warning);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--active.quote-status-switch__button--info {
+    border-color: color-mix(in srgb, var(--color-info) 45%, var(--color-border));
+    background: color-mix(in srgb, var(--color-info-soft) 86%, var(--color-surface));
+    color: var(--color-info);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--active.quote-status-switch__button--success {
+    border-color: color-mix(in srgb, var(--color-success) 45%, var(--color-border));
+    background: color-mix(in srgb, var(--color-success-soft) 86%, var(--color-surface));
+    color: var(--color-success);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--active.quote-status-switch__button--neutral {
+    border-color: var(--color-border-strong);
+    background: color-mix(in srgb, var(--color-surface-strong) 72%, var(--color-surface));
+    color: var(--color-text-main);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--warning .quote-status-switch__icon {
+    color: var(--color-warning);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--info .quote-status-switch__icon {
+    color: var(--color-info);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--success .quote-status-switch__icon {
+    color: var(--color-success);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--neutral .quote-status-switch__icon {
+    color: var(--color-text-muted);
+  }
+
+  .quote-detail-actions--mobile {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: var(--spacing-sm);
+  }
+
+  .quote-detail-actions--mobile:not(.quote-detail-actions--with-save) {
+    grid-template-columns: 1fr;
+  }
+
+  .quote-detail-actions--mobile .quote-detail-actions__button {
+    width: 100%;
+  }
+
+  .quote-detail-breakdown__badge {
+    position: static;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .quote-detail-breakdown__content {
+    margin-top: 0;
+  }
 }
 
 @media (max-width: 1024px) {
+  .quote-detail-page .page-header {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .quote-detail-page .page-header__main {
+    width: 100%;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .quote-detail-page .page-header__title-row {
+    align-items: flex-start;
+  }
+
+  .quote-detail-page .page-header__title {
+    font-size: 1.5rem;
+  }
+
+  .quote-detail-page .page-header__subtitle,
+  .quote-detail-page .page-header__actions,
+  .quote-detail-header-status--desktop {
+    display: none;
+  }
+
+  .quote-detail-mobile-status,
+  .quote-detail-mobile-actions-shell {
+    display: block;
+  }
+
+  .quote-detail-mobile-status {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .quote-detail-mobile-actions-shell {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-sm);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2px);
+    background: linear-gradient(180deg, transparent 0%, var(--color-bg) 28%);
+  }
+
+  .quote-detail-mobile-status__header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .quote-detail-mobile-status__meta {
+    flex-wrap: wrap;
+    font-size: 0.75rem;
+  }
+
+  .quote-detail-mobile-status__summary {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .quote-detail-stack {
+    display: contents;
+  }
+
+  .quote-detail-map-card {
+    order: 1;
+  }
+
+  .quote-detail-layout__route {
+    order: 2;
+  }
+
+  .quote-detail-layout__vehicle {
+    order: 3;
+  }
+
+  .quote-detail-layout__services {
+    order: 4;
+  }
+
+  .quote-detail-layout__review {
+    order: 5;
+  }
+
+  .quote-detail-layout__breakdown {
+    order: 6;
+  }
+
+  .quote-status-switch--mobile {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0;
+    border: none;
+    background: transparent;
+    scrollbar-width: none;
+  }
+
+  .quote-status-switch--mobile::-webkit-scrollbar {
+    display: none;
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button {
+    flex: 0 0 auto;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0.7rem 0.85rem;
+    border-color: var(--color-border);
+    background: color-mix(in srgb, var(--color-surface-contrast) 28%, transparent);
+    white-space: nowrap;
+    text-align: left;
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button:hover {
+    transform: none;
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__content {
+    gap: 8px;
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__icon {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__label {
+    font-size: 0.75rem;
+    line-height: 1.2;
+    color: inherit;
+  }
+
+  .quote-status-switch--compact .quote-status-switch__copy {
+    gap: 0;
+  }
+
+  .quote-status-switch--compact .quote-status-switch__hint,
+  .quote-status-switch--compact .quote-status-switch__indicator {
+    display: none;
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--warning {
+    color: color-mix(in srgb, var(--color-warning) 72%, var(--color-text-main));
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--info {
+    color: color-mix(in srgb, var(--color-info) 72%, var(--color-text-main));
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--success {
+    color: color-mix(in srgb, var(--color-success) 72%, var(--color-text-main));
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--neutral {
+    color: var(--color-text-muted);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--active.quote-status-switch__button--warning {
+    border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border));
+    background: color-mix(in srgb, var(--color-warning-soft) 86%, var(--color-surface));
+    color: var(--color-warning);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--active.quote-status-switch__button--info {
+    border-color: color-mix(in srgb, var(--color-info) 45%, var(--color-border));
+    background: color-mix(in srgb, var(--color-info-soft) 86%, var(--color-surface));
+    color: var(--color-info);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--active.quote-status-switch__button--success {
+    border-color: color-mix(in srgb, var(--color-success) 45%, var(--color-border));
+    background: color-mix(in srgb, var(--color-success-soft) 86%, var(--color-surface));
+    color: var(--color-success);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--active.quote-status-switch__button--neutral {
+    border-color: var(--color-border-strong);
+    background: color-mix(in srgb, var(--color-surface-strong) 72%, var(--color-surface));
+    color: var(--color-text-main);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--warning .quote-status-switch__icon {
+    color: var(--color-warning);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--info .quote-status-switch__icon {
+    color: var(--color-info);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--success .quote-status-switch__icon {
+    color: var(--color-success);
+  }
+
+  .quote-status-switch--mobile .quote-status-switch__button--neutral .quote-status-switch__icon {
+    color: var(--color-text-muted);
+  }
+
+  .quote-detail-actions--mobile {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: var(--spacing-sm);
+  }
+
+  .quote-detail-actions--mobile:not(.quote-detail-actions--with-save) {
+    grid-template-columns: 1fr;
+  }
+
+  .quote-detail-actions--mobile .quote-detail-actions__button {
+    width: 100%;
+  }
+
+  .quote-detail-breakdown__badge {
+    position: static;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .quote-detail-breakdown__content {
+    margin-top: 0;
+  }
+
   .resource-cards-grid {
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   }
@@ -4258,7 +4884,7 @@ input:-webkit-autofill:active {
     justify-content: space-between;
   }
 
-  .quote-status-switch__button {
+  .quote-status-switch--desktop .quote-status-switch__button {
     flex: 1 1 140px;
   }
 
@@ -4624,7 +5250,7 @@ input:-webkit-autofill:active {
     grid-template-columns: 1fr;
   }
 
-  .quote-status-switch__button {
+  .quote-status-switch--desktop .quote-status-switch__button {
     flex-basis: calc(50% - 2px);
     min-width: 0;
     padding-inline: 10px;

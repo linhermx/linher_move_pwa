@@ -1,28 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { quotationService, vehicleService, settingsService, serviceService, mapsService } from '../services/api';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+    Calculator,
+    Calendar,
+    CheckCircle,
+    ChevronLeft,
+    Download,
+    Loader2,
+    MapPin,
+    Save,
+    Truck,
+    XCircle
+} from 'lucide-react';
+import { mapsService, quotationService, serviceService, settingsService, vehicleService } from '../services/api';
 import MapComponent from '../components/MapComponent';
 import { CalculationMotor } from '../utils/CalculationMotor';
 import { useNotification } from '../context/NotificationContext';
-import {
-    ChevronLeft,
-    Calculator,
-    MapPin,
-    Truck,
-    Calendar,
-    FileText,
-    Save,
-    CheckCircle,
-    XCircle,
-    Loader2,
-    Download,
-    Fuel
-} from 'lucide-react';
 import { PDFService } from '../services/PDFService';
 import { formatDate } from '../utils/formatters';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import { resolveAssetUrl } from '../utils/url';
+
+const STATUS_OPTIONS = ['pendiente', 'en_proceso', 'completada', 'cancelada'];
 
 const QuoteDetail = () => {
     const { id } = useParams();
@@ -176,21 +176,6 @@ const QuoteDetail = () => {
         }
     };
 
-    const handleStatusChange = async (newStatus) => {
-        setSaving(true);
-        try {
-            await quotationService.update(id, { status: newStatus });
-            showNotification(`Estado actualizado a ${newStatus}`, 'success');
-            setQuote({ ...quote, status: newStatus });
-            setCurrentBreakdown({ ...currentBreakdown, status: newStatus });
-        } catch (err) {
-            console.error('Error updating status:', err);
-            showNotification('Error al actualizar el estado', 'error');
-        } finally {
-            setSaving(false);
-        }
-    };
-
     if (loading) {
         return (
             <div className="quote-detail-loading">
@@ -201,19 +186,134 @@ const QuoteDetail = () => {
 
     const getStatusInfo = (status) => {
         switch (status) {
-            case 'completada': return { color: 'var(--color-success)', text: 'Completada', icon: <CheckCircle size={16} />, variant: 'success' };
-            case 'pendiente': return { color: 'var(--color-warning)', text: 'Pendiente', icon: <Calculator size={16} />, variant: 'warning' };
-            case 'en_proceso': return { color: 'var(--color-info)', text: 'En Proceso', icon: <Loader2 size={16} />, variant: 'info' };
-            case 'cancelada': return { color: 'var(--color-text-muted)', text: 'Cancelada', icon: <XCircle size={16} />, variant: 'neutral' };
-            default: return { color: 'var(--color-text-main)', text: status, icon: null, variant: 'neutral' };
+            case 'completada':
+                return { text: 'Completada', icon: <CheckCircle size={16} />, variant: 'success' };
+            case 'pendiente':
+                return { text: 'Pendiente', icon: <Calculator size={16} />, variant: 'warning' };
+            case 'en_proceso':
+                return { text: 'En proceso', icon: <Loader2 size={16} />, variant: 'info' };
+            case 'cancelada':
+                return { text: 'Cancelada', icon: <XCircle size={16} />, variant: 'neutral' };
+            default:
+                return { text: status, icon: null, variant: 'neutral' };
+        }
+    };
+
+    const handleStatusChange = async (newStatus) => {
+        setSaving(true);
+        try {
+            await quotationService.update(id, { status: newStatus });
+            showNotification(`Estado actualizado a ${getStatusInfo(newStatus).text}`, 'success');
+            setQuote({ ...quote, status: newStatus });
+            setCurrentBreakdown({ ...currentBreakdown, status: newStatus });
+        } catch (err) {
+            console.error('Error updating status:', err);
+            showNotification('Error al actualizar el estado', 'error');
+        } finally {
+            setSaving(false);
         }
     };
 
     const statusInfo = getStatusInfo(quote.status);
     const isLocked = ['completada', 'cancelada'].includes(quote.status);
+    const assignedVehicle = vehicles.find((vehicle) => vehicle.id === quote.vehicle_id);
+
+    const renderStatusSwitch = ({ className = '', showAllLabels = false, showHints = false } = {}) => (
+        <div
+            className={['quote-status-switch', className].filter(Boolean).join(' ')}
+            role="group"
+            aria-label="Cambiar estado de la cotización"
+        >
+            {STATUS_OPTIONS.map((status) => {
+                const info = getStatusInfo(status);
+                const isActive = quote.status === status;
+
+                return (
+                    <button
+                        key={status}
+                        type="button"
+                        onClick={() => !isLocked && handleStatusChange(status)}
+                        disabled={isLocked && !isActive}
+                        title={info.text}
+                        aria-label={`Cambiar estado a ${info.text}`}
+                        aria-pressed={isActive}
+                        className={[
+                            'quote-status-switch__button',
+                            `quote-status-switch__button--${info.variant}`,
+                            isActive ? 'quote-status-switch__button--active' : '',
+                            isLocked ? 'quote-status-switch__button--locked' : '',
+                            isLocked && !isActive ? 'quote-status-switch__button--muted' : '',
+                            showAllLabels ? 'quote-status-switch__button--expanded' : ''
+                        ].filter(Boolean).join(' ')}
+                    >
+                        <span className="quote-status-switch__content">
+                            {info.icon ? (
+                                <span className="quote-status-switch__icon" aria-hidden="true">
+                                    {React.cloneElement(info.icon, { size: showAllLabels ? 16 : 14 })}
+                                </span>
+                            ) : null}
+                            {showAllLabels || isActive ? (
+                                <span className="quote-status-switch__copy">
+                                    <span className="quote-status-switch__label">{info.text}</span>
+                                    {showHints ? (
+                                        <span className="quote-status-switch__hint">
+                                            {isActive ? 'Estado actual' : isLocked ? 'Sin cambios disponibles' : 'Tocar para cambiar'}
+                                        </span>
+                                    ) : null}
+                                </span>
+                            ) : (
+                                <span className="sr-only">{info.text}</span>
+                            )}
+                        </span>
+                        {showHints ? (
+                            <span
+                                className={[
+                                    'quote-status-switch__indicator',
+                                    isActive ? 'quote-status-switch__indicator--active' : ''
+                                ].filter(Boolean).join(' ')}
+                            >
+                                {isActive ? 'Actual' : isLocked ? 'Fijo' : 'Cambiar'}
+                            </span>
+                        ) : null}
+                    </button>
+                );
+            })}
+        </div>
+    );
+
+    const renderActionButtons = (className = '') => (
+        <div
+            className={[
+                'quote-detail-actions',
+                className,
+                !isLocked ? 'quote-detail-actions--with-save' : ''
+            ].filter(Boolean).join(' ')}
+        >
+            {!isLocked && (
+                <button
+                    type="button"
+                    onClick={handleSaveUpdates}
+                    disabled={saving}
+                    className="btn btn-primary quote-detail-actions__button"
+                >
+                    {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                    Guardar ajustes
+                </button>
+            )}
+
+            <button
+                type="button"
+                onClick={() => PDFService.generateQuotationPDF(quote)}
+                className="btn btn-secondary quote-detail-actions__button"
+            >
+                <Download size={18} />
+                PDF
+            </button>
+        </div>
+    );
 
     return (
-        <div className="page-shell fade-in">
+        <div className="page-shell fade-in quote-detail-page">
             <PageHeader
                 leading={(
                     <button
@@ -225,65 +325,42 @@ const QuoteDetail = () => {
                         <ChevronLeft size={20} />
                     </button>
                 )}
-                title={`Cotización ${quote.folio}`}
-                titleMeta={<StatusBadge variant={statusInfo.variant}>{statusInfo.text}</StatusBadge>}
+                title={(
+                    <span className="quote-detail-header-title">
+                        <span className="quote-detail-header-title__label">Cotización</span>
+                        <span className="quote-detail-header-title__folio">{quote.folio}</span>
+                    </span>
+                )}
+                titleMeta={(
+                    <span className="quote-detail-header-status quote-detail-header-status--desktop">
+                        <StatusBadge variant={statusInfo.variant}>{statusInfo.text}</StatusBadge>
+                    </span>
+                )}
                 subtitle={`Creada el ${formatDate(quote.created_at)}`}
                 actions={(
-                    <div className="quote-detail-actions">
-                    <div className="quote-status-switch">
-                        {['pendiente', 'en_proceso', 'completada', 'cancelada'].map((s) => {
-                            const info = getStatusInfo(s);
-                            const isActive = quote.status === s;
-                            return (
-                                <button
-                                    key={s}
-                                    onClick={() => !isLocked && handleStatusChange(s)}
-                                    disabled={isLocked && quote.status !== s}
-                                    title={info.text}
-                                    className={`quote-status-switch__button ${isActive ? 'quote-status-switch__button--active' : ''} ${isLocked ? 'quote-status-switch__button--locked' : ''} ${isLocked && !isActive ? 'quote-status-switch__button--muted' : ''}`.trim()}
-                                    style={isActive ? {
-                                        '--quote-status-accent': info.color,
-                                        '--quote-status-text': s === 'pendiente' ? 'var(--color-text-main)' : 'var(--color-primary-foreground)'
-                                    } : undefined}
-                                >
-                                    {isActive ? (
-                                        <>
-                                            {React.cloneElement(info.icon, { size: 14 })}
-                                            {info.text.toUpperCase()}
-                                        </>
-                                    ) : (
-                                        React.cloneElement(info.icon, { size: 16 })
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    {!isLocked && (
-                        <button
-                            type="button"
-                            onClick={handleSaveUpdates}
-                            disabled={saving}
-                            className="btn btn-primary"
-                        >
-                            {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                            Guardar Ajustes
-                        </button>
-                    )}
-
-                    <button
-                        type="button"
-                        onClick={() => PDFService.generateQuotationPDF(quote)}
-                        className="btn btn-secondary"
-                    >
-                        <Download size={18} />
-                        PDF
-                    </button>
+                    <div className="quote-detail-header-actions">
+                        {renderStatusSwitch({ className: 'quote-status-switch--desktop' })}
+                        {renderActionButtons('quote-detail-actions--desktop')}
                     </div>
                 )}
             />
 
-            {/* Main Content Layout */}
+            <section className="card quote-detail-mobile-status" aria-labelledby="quote-detail-mobile-status-title">
+                <div className="quote-detail-mobile-status__header">
+                    <div className="quote-detail-mobile-status__summary">
+                        <p id="quote-detail-mobile-status-title" className="quote-detail-mobile-status__eyebrow">
+                            Status actual
+                        </p>
+                        <StatusBadge variant={statusInfo.variant}>{statusInfo.text}</StatusBadge>
+                    </div>
+                    <p className="quote-detail-mobile-status__meta">
+                        <Calendar size={14} aria-hidden="true" />
+                        <span>Creada el {formatDate(quote.created_at)}</span>
+                    </p>
+                </div>
+                {renderStatusSwitch({ className: 'quote-status-switch--mobile quote-status-switch--compact', showAllLabels: true })}
+            </section>
+
             <div className="quote-detail-layout">
 
                 {/* Top Row: Map & Main Breakdown */}
@@ -304,36 +381,31 @@ const QuoteDetail = () => {
                     {/* Right Column: Vehicle & Breakdown */}
                     <div className="quote-detail-stack">
                         {/* Vehicle Assigned Card */}
-                        {(() => {
-                            const assignedVehicle = vehicles.find(v => v.id === quote.vehicle_id);
-                            if (!assignedVehicle) return null;
+                        {assignedVehicle && (
+                            <div className="card quote-detail-layout__vehicle quote-detail-vehicle-card">
+                                <div className="quote-detail-vehicle-card__body">
+                                    {/* Vehicle Photo (Smaller) */}
+                                    <div className="quote-detail-vehicle-card__media">
+                                        {assignedVehicle.photo_path ? (
+                                            <img src={resolveAssetUrl(assignedVehicle.photo_path)} alt={assignedVehicle.name} />
+                                        ) : (
+                                            <Truck size={20} className="text-muted" />
+                                        )}
+                                    </div>
 
-                            return (
-                                <div className="card quote-detail-layout__vehicle quote-detail-vehicle-card">
-                                    <div className="quote-detail-vehicle-card__body">
-                                        {/* Vehicle Photo (Smaller) */}
-                                        <div className="quote-detail-vehicle-card__media">
-                                            {assignedVehicle.photo_path ? (
-                                                <img src={resolveAssetUrl(assignedVehicle.photo_path)} alt={assignedVehicle.name} />
-                                            ) : (
-                                                <Truck size={20} className="text-muted" />
-                                            )}
-                                        </div>
-
-                                        {/* Vehicle Info (Compacted) */}
-                                        <div className="quote-detail-vehicle-card__content">
-                                            <p className="quote-detail-vehicle-card__eyebrow">Unidad Asignada</p>
-                                            <div className="quote-detail-vehicle-card__row">
-                                                <h4 className="quote-detail-vehicle-card__title">{assignedVehicle.name}</h4>
-                                                <span className="quote-detail-vehicle-card__plate">
-                                                    {assignedVehicle.plate}
-                                                </span>
-                                            </div>
+                                    {/* Vehicle Info (Compacted) */}
+                                    <div className="quote-detail-vehicle-card__content">
+                                        <p className="quote-detail-vehicle-card__eyebrow">Unidad asignada</p>
+                                        <div className="quote-detail-vehicle-card__row">
+                                            <h4 className="quote-detail-vehicle-card__title">{assignedVehicle.name}</h4>
+                                            <span className="quote-detail-vehicle-card__plate">
+                                                {assignedVehicle.plate}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
-                            );
-                        })()}
+                            </div>
+                        )}
 
                         {/* Detailed Breakdown Card */}
                         <div className="card quote-detail-layout__breakdown quote-detail-breakdown">
@@ -352,7 +424,7 @@ const QuoteDetail = () => {
                                     <p className="cost-breakdown__metric-value">{CalculationMotor.formatMinutes(currentBreakdown.time_total || quote.time_total)}</p>
                                 </div>
                                 <div className="cost-breakdown__metric">
-                                    <p className="cost-breakdown__metric-label">C/ TRAFICO</p>
+                                    <p className="cost-breakdown__metric-label">C/ TRÁFICO</p>
                                     <p className="cost-breakdown__metric-value">{CalculationMotor.formatMinutes(currentBreakdown.time_traffic_min || quote.time_traffic_min || (quote.time_total * 1.15))}</p>
                                 </div>
                                 <div className="cost-breakdown__metric">
@@ -371,7 +443,7 @@ const QuoteDetail = () => {
                                     <span>${Number(quote.toll_cost || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <div className="cost-breakdown__row cost-breakdown__row--accent">
-                                    <span className="cost-breakdown__row-label--strong">Costo Logístico (Flete)</span>
+                                    <span className="cost-breakdown__row-label--strong">Costo logístico (flete)</span>
                                     <span className="cost-breakdown__row-value--strong">${Number(quote.logistics_cost_rounded || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <div className="cost-breakdown__divider" />
@@ -390,7 +462,7 @@ const QuoteDetail = () => {
                                     </span>
                                 </div>
                                 <div className="cost-breakdown__row">
-                                    <span className="text-muted">Servicios Extra</span>
+                                    <span className="text-muted">Servicios extra</span>
                                     <span className={currentBreakdown.service_costs !== quote.service_costs ? 'text-primary' : ''}>
                                         ${Number(currentBreakdown.service_costs || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </span>
@@ -423,7 +495,7 @@ const QuoteDetail = () => {
                     {/* Column 1: Route Details */}
                     <div className="card quote-detail-layout__route quote-detail-section-card">
                         <h3 className="quote-detail-card-title">
-                            <MapPin size={16} className="text-primary" /> Detalles de la Ruta
+                            <MapPin size={16} className="text-primary" /> Detalles de la ruta
                         </h3>
                         <div className="quote-detail-route-timeline">
                             {/* ORIGEN */}
@@ -456,7 +528,7 @@ const QuoteDetail = () => {
                     {/* Column 2: Extra Services */}
                     <div className="card quote-detail-layout__services quote-detail-section-card">
                         <h3 className="quote-detail-card-title">
-                            <Calculator size={16} className="text-primary" /> Servicios Extra
+                            <Calculator size={16} className="text-primary" /> Servicios extra
                         </h3>
                         <div className="quote-detail-services-grid">
                             {services.map((s) => {
@@ -495,7 +567,7 @@ const QuoteDetail = () => {
 
                     {/* Column 3: Review Adjustments (aligned with breakdown) */}
                     <div className="card quote-detail-layout__review quote-detail-review-card">
-                        <h3 className="quote-detail-review-card__title">Ajustes de Revisión</h3>
+                        <h3 className="quote-detail-review-card__title">Ajustes de revisión</h3>
                         <div className="quote-detail-review-card__fields">
                             <div>
                                 <label className="form-label" htmlFor="quote-detail-lodging-cost">VIÁTICOS HOSPEDAJE ($)</label>
@@ -526,6 +598,10 @@ const QuoteDetail = () => {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div className="workspace-sticky-action quote-detail-mobile-actions-shell">
+                {renderActionButtons('quote-detail-actions--mobile')}
             </div>
         </div>
     );
