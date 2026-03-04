@@ -215,6 +215,10 @@ input:-webkit-autofill:active {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
+.page-grid--fit>* {
+  min-width: 0;
+}
+
 .stack-xs {
   display: flex;
   flex-direction: column;
@@ -1479,6 +1483,7 @@ input:-webkit-autofill:active {
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: color-mix(in srgb, var(--color-surface-contrast) 38%, transparent);
+  min-width: 0;
 }
 
 .backup-status-panel__header {
@@ -1492,18 +1497,22 @@ input:-webkit-autofill:active {
 .backup-status-panel__window {
   font-size: 0.75rem;
   color: var(--color-text-muted);
+  min-width: 0;
 }
 
 .backup-status-panel__summary {
   color: var(--color-text-muted);
   font-size: 0.8125rem;
   line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .backup-status-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
   gap: 0.75rem;
+  align-items: stretch;
+  min-width: 0;
 }
 
 .backup-status-stats__item {
@@ -1511,6 +1520,7 @@ input:-webkit-autofill:active {
   border-radius: var(--radius-md);
   background: var(--color-muted-block);
   border: 1px solid var(--color-border);
+  min-width: 0;
 }
 
 .backup-status-stats__item dt {
@@ -1526,6 +1536,7 @@ input:-webkit-autofill:active {
   font-size: 0.875rem;
   line-height: 1.45;
   color: var(--color-text-main);
+  overflow-wrap: anywhere;
 }
 
 .code-block {
@@ -4796,7 +4807,7 @@ input:-webkit-autofill:active {
   }
 
   .backup-status-stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .filter-toolbar__item,
@@ -4827,6 +4838,16 @@ input:-webkit-autofill:active {
 
   .auth-layout__toggle .theme-toggle {
     max-width: 100%;
+  }
+}
+
+@media (max-width: 900px) {
+  .page-grid--fit {
+    grid-template-columns: 1fr;
+  }
+
+  .table--backups {
+    min-width: 680px;
   }
 }
 
@@ -5080,6 +5101,12 @@ input:-webkit-autofill:active {
   .filter-toolbar__advanced .filter-toolbar__date-range {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .backup-status-stats {
+    grid-template-columns: 1fr;
   }
 }
 
