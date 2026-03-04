@@ -918,7 +918,13 @@ const NewQuote = () => {
                 <section className="workspace-shell__map">
                     <div className="workspace-shell__map-stage">
                         <div className="workspace-shell__map-canvas">
-                            <MapComponent points={points} routeData={routeData} onMarkerDrag={updatePoint} />
+                            <MapComponent
+                                points={points}
+                                routeData={routeData}
+                                onMarkerDrag={updatePoint}
+                                pointsFitPadding={isCompactLayout ? [18, 18] : [40, 40]}
+                                routeFitPadding={isCompactLayout ? [22, 22] : [50, 50]}
+                            />
                         </div>
 
                         {!showCompactMapResults && hasCalculatedRoute ? (

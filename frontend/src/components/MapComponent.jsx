@@ -15,7 +15,26 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const MapComponent = ({ points = [], routeData = null, onMarkerDrag, readOnly = false }) => {
+const normalizePadding = (padding, fallback) => {
+    if (Array.isArray(padding) && padding.length === 2) {
+        return padding;
+    }
+
+    if (typeof padding === 'number') {
+        return [padding, padding];
+    }
+
+    return fallback;
+};
+
+const MapComponent = ({
+    points = [],
+    routeData = null,
+    onMarkerDrag,
+    readOnly = false,
+    pointsFitPadding,
+    routeFitPadding
+}) => {
     const { theme } = useTheme();
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
@@ -123,9 +142,11 @@ const MapComponent = ({ points = [], routeData = null, onMarkerDrag, readOnly = 
         // Fit bounds if we have points
         const validPoints = points.filter(p => p.lat && p.lng).map(p => [p.lat, p.lng]);
         if (validPoints.length > 0) {
-            mapInstance.current.fitBounds(validPoints, { padding: [40, 40] });
+            mapInstance.current.fitBounds(validPoints, {
+                padding: normalizePadding(pointsFitPadding, [40, 40])
+            });
         }
-    }, [points]);
+    }, [points, pointsFitPadding]);
 
     useEffect(() => {
         if (!mapInstance.current) return;
@@ -146,12 +167,14 @@ const MapComponent = ({ points = [], routeData = null, onMarkerDrag, readOnly = 
             if (mapInstance.current && routeLayer.current) {
                 const routeBounds = routeLayer.current.getBounds();
                 if (routeBounds.isValid()) {
-                    mapInstance.current.fitBounds(routeBounds, { padding: [50, 50] });
+                    mapInstance.current.fitBounds(routeBounds, {
+                        padding: normalizePadding(routeFitPadding, [50, 50])
+                    });
                 }
             }
         }, 150);
 
-    }, [routeData]);
+    }, [routeData, routeFitPadding]);
 
     return <div ref={mapRef} className="map-canvas" />;
 };
