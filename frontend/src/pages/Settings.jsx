@@ -125,6 +125,12 @@ const Settings = () => {
             <PageHeader
                 title="Parámetros globales"
                 subtitle="Configura los valores base y reglas de negocio para las cotizaciones."
+                actions={(
+                    <button type="button" onClick={handleSave} className="btn btn-primary">
+                        <Save size={18} />
+                        Guardar configuración
+                    </button>
+                )}
             />
 
             <div className="settings-layout">

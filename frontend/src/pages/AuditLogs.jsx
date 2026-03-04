@@ -370,11 +370,11 @@ const AuditLogs = () => {
                 </div>
 
                 <TableScrollFade>
-                    <table className="table">
+                    <table className="table table--audit">
                         <caption className="sr-only">Tabla de auditoría</caption>
                         <thead>
                             <tr>
-                                <th scope="col">FECHA / HORA</th>
+                                <th scope="col" className="table__head--datetime">FECHA / HORA</th>
                                 <th scope="col">TIPO</th>
                                 <th scope="col">SEVERIDAD</th>
                                 <th scope="col">ORIGEN</th>
@@ -395,7 +395,7 @@ const AuditLogs = () => {
                             ) : (
                                 logs.map((log) => (
                                     <tr key={log.id}>
-                                        <td>{formatDateTime(log.created_at)}</td>
+                                        <td className="table__cell--datetime">{formatDateTime(log.created_at)}</td>
                                         <td>
                                             <StatusBadge variant={getTypeVariant(log.log_type)}>{log.log_type}</StatusBadge>
                                         </td>

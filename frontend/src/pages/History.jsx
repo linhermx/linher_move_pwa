@@ -293,7 +293,7 @@ const History = () => {
                         <thead>
                             <tr>
                                 <th scope="col">FOLIO</th>
-                                <th scope="col">FECHA</th>
+                                <th scope="col" className="table__head--date">FECHA</th>
                                 <th scope="col">RUTA</th>
                                 <th scope="col">TOTAL</th>
                                 <th scope="col">ESTATUS</th>
@@ -318,8 +318,8 @@ const History = () => {
                                             <td>
                                                 <strong className="text-primary">{quote.folio}</strong>
                                             </td>
-                                            <td>
-                                                <div className="cluster-sm">
+                                            <td className="table__cell--date">
+                                                <div className="table__date-inline">
                                                     <Calendar size={14} className="text-muted" />
                                                     <span>{formatDate(quote.created_at)}</span>
                                                 </div>

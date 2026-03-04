@@ -1217,6 +1217,27 @@ input:-webkit-autofill:active {
   letter-spacing: 0.06em;
 }
 
+.table__head--date,
+.table__cell--date {
+  min-width: 8.75rem;
+  white-space: nowrap;
+}
+
+.table__head--datetime,
+.table__cell--datetime {
+  min-width: 11.25rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.table__date-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
 .table__cell--actions {
   text-align: right;
 }
@@ -1283,6 +1304,10 @@ input:-webkit-autofill:active {
 
 .table--backups {
   min-width: 760px;
+}
+
+.table--audit {
+  min-width: 980px;
 }
 
 .pagination {
@@ -2448,9 +2473,7 @@ input:-webkit-autofill:active {
 }
 
 .settings-save-row {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: stretch;
+  display: none;
 }
 
 .settings-save-row>.btn {
@@ -4248,6 +4271,7 @@ input:-webkit-autofill:active {
 }
 
 @media (max-width: 1200px) {
+
   .quote-detail-header-actions,
   .quote-detail-actions {
     width: 100%;
@@ -4258,6 +4282,31 @@ input:-webkit-autofill:active {
   .settings-layout__hero-body,
   .dashboard-three-grid {
     grid-template-columns: 1fr;
+  }
+
+  .settings-tier-grid > div {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .settings-tier-grid .form-label {
+    min-height: 2.25rem;
+    line-height: 1.25;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .settings-page .page-header__actions {
+    display: none;
+  }
+
+  .settings-save-row {
+    grid-column: 1 / -1;
+    display: flex;
+    position: sticky;
+    bottom: 0;
+    z-index: 1100;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2px);
+    background: linear-gradient(180deg, transparent 0%, var(--color-bg) 28%);
   }
 
   .dashboard-two-grid,
@@ -4885,7 +4934,7 @@ input:-webkit-autofill:active {
   }
 
   .table--backups {
-    min-width: 680px;
+    min-width: 760px;
   }
 }
 

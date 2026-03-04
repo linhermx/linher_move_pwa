@@ -428,7 +428,7 @@ const Backups = () => {
                         <caption className="sr-only">Historial de respaldos</caption>
                         <thead>
                             <tr>
-                                <th scope="col">FECHA</th>
+                                <th scope="col" className="table__head--datetime">FECHA</th>
                                 <th scope="col">ARCHIVO</th>
                                 <th scope="col">TAMAÑO</th>
                                 <th scope="col">TIPO</th>
@@ -448,7 +448,7 @@ const Backups = () => {
                             ) : (
                                 backups.map((backup) => (
                                     <tr key={backup.id}>
-                                        <td>{formatDateTime(backup.created_at)}</td>
+                                        <td className="table__cell--datetime">{formatDateTime(backup.created_at)}</td>
                                         <td>{backup.filename}</td>
                                         <td>{formatSize(backup.size_bytes)}</td>
                                         <td>

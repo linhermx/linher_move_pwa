@@ -155,7 +155,7 @@ const Users = () => {
                                 <th scope="col">USUARIO</th>
                                 <th scope="col">ROL</th>
                                 <th scope="col">ESTATUS</th>
-                                <th scope="col">CREADO</th>
+                                <th scope="col" className="table__head--date">CREADO</th>
                                 <th scope="col" align="right">ACCIONES</th>
                             </tr>
                         </thead>
@@ -194,7 +194,7 @@ const Users = () => {
                                                 {user.status === 'active' ? 'Activo' : 'Inactivo'}
                                             </StatusBadge>
                                         </td>
-                                        <td>{formatDate(user.created_at)}</td>
+                                        <td className="table__cell--date">{formatDate(user.created_at)}</td>
                                         <td className="table__cell--actions">
                                             <CustomMenu
                                                 options={[
