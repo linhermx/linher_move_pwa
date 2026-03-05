@@ -7,7 +7,10 @@ export const registerPwaServiceWorker = () => {
         return;
     }
 
-    if (!import.meta.env.PROD) {
+    const isLocalDev = import.meta.env.DEV
+        && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+    if (!import.meta.env.PROD && !isLocalDev) {
         return;
     }
 

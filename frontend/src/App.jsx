@@ -15,11 +15,22 @@ import AuditLogs from './pages/AuditLogs';
 import Backups from './pages/Backups';
 import { NotificationProvider } from './context/NotificationContext';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
+import { ConnectivityOfflineView } from './components/ConnectivityFallback';
+import useConnectivityStatus from './hooks/useConnectivityStatus';
 
 import Login from './pages/Login';
 
 const App = () => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  const {
+    isOffline,
+    isCheckingConnection,
+    showRecoveryNotice,
+    retryConnection
+  } = useConnectivityStatus();
+  const shouldShowConnectivityScreen = isOffline || showRecoveryNotice;
+  const connectivityPhase = isOffline ? 'offline' : 'reconnecting';
 
   const getUser = () => {
     try {
@@ -80,18 +91,26 @@ const App = () => {
                     onClick={() => setIsMobileSidebarOpen(false)}
                   />
                   <main id="app-main" className="main-content" tabIndex="-1">
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/new-quote" element={<NewQuote />} />
-                      <Route path="/history" element={<History />} />
-                      <Route path="/history/:id" element={<QuoteDetail />} />
-                      <Route path="/fleet" element={<Fleet />} />
-                      <Route path="/services" element={<Services />} />
-                      <Route path="/users" element={<Users />} />
-                      <Route path="/audit" element={<AuditLogs />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/backups" element={<Backups />} />
-                    </Routes>
+                    {shouldShowConnectivityScreen ? (
+                      <ConnectivityOfflineView
+                        phase={connectivityPhase}
+                        onRetry={retryConnection}
+                        isCheckingConnection={isCheckingConnection}
+                      />
+                    ) : (
+                      <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/new-quote" element={<NewQuote />} />
+                        <Route path="/history" element={<History />} />
+                        <Route path="/history/:id" element={<QuoteDetail />} />
+                        <Route path="/fleet" element={<Fleet />} />
+                        <Route path="/services" element={<Services />} />
+                        <Route path="/users" element={<Users />} />
+                        <Route path="/audit" element={<AuditLogs />} />
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/backups" element={<Backups />} />
+                      </Routes>
+                    )}
                   </main>
                 </div>
               ) : (
@@ -100,7 +119,7 @@ const App = () => {
             }
           />
         </Routes>
-        <PwaInstallPrompt />
+        {!shouldShowConnectivityScreen ? <PwaInstallPrompt /> : null}
       </Router>
     </NotificationProvider>
   );

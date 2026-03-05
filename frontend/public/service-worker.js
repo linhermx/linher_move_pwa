@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const STATIC_CACHE = `linher-move-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `linher-move-runtime-${CACHE_VERSION}`;
 
@@ -15,7 +15,14 @@ const CORE_ASSETS = [
     '/icons/favicon-16.png'
 ];
 
-const STATIC_EXTENSIONS = /\.(?:js|css|png|jpg|jpeg|webp|svg|ico|woff2?|ttf|map)$/i;
+const OPTIONAL_ASSETS = [
+    '/media/connectivity/offline.gif',
+    '/media/connectivity/online.gif',
+    '/icons/media/connectivity/offline.gif',
+    '/icons/media/connectivity/online.gif'
+];
+
+const STATIC_EXTENSIONS = /\.(?:js|css|png|jpg|jpeg|webp|svg|gif|ico|woff2?|ttf|map)$/i;
 
 const cacheResponse = async (cacheName, request, response) => {
     if (!response || response.status !== 200 || response.type === 'opaque') {
@@ -71,7 +78,12 @@ const staleWhileRevalidate = async (request) => {
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(STATIC_CACHE)
-            .then((cache) => cache.addAll(CORE_ASSETS))
+            .then(async (cache) => {
+                await cache.addAll(CORE_ASSETS);
+                await Promise.allSettled(
+                    OPTIONAL_ASSETS.map((assetPath) => cache.add(assetPath))
+                );
+            })
             .then(() => self.skipWaiting())
     );
 });
@@ -109,9 +121,19 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    const isConnectivityMedia = requestUrl.pathname.startsWith('/media/connectivity/')
+        || requestUrl.pathname.startsWith('/icons/media/connectivity/');
+
+    // Connectivity GIFs must be refreshed from network first so replacements are reflected quickly.
+    if (isConnectivityMedia) {
+        event.respondWith(networkFirst(request));
+        return;
+    }
+
     const shouldUseStaticStrategy = requestUrl.pathname.startsWith('/assets/')
         || requestUrl.pathname === '/manifest.webmanifest'
         || requestUrl.pathname.startsWith('/icons/')
+        || requestUrl.pathname.startsWith('/media/')
         || STATIC_EXTENSIONS.test(requestUrl.pathname);
 
     if (shouldUseStaticStrategy) {
