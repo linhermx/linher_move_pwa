@@ -36,12 +36,21 @@ const CustomMenu = ({ options, icon }) => {
             }
 
             const triggerRect = container.getBoundingClientRect();
+            const tableScrollContainer = container.closest('.table-scroll');
+            const lowerBoundary = tableScrollContainer
+                ? Math.min(window.innerHeight - VIEWPORT_PADDING, tableScrollContainer.getBoundingClientRect().bottom - VIEWPORT_PADDING)
+                : window.innerHeight - VIEWPORT_PADDING;
+            const upperBoundary = tableScrollContainer
+                ? Math.max(VIEWPORT_PADDING, tableScrollContainer.getBoundingClientRect().top + VIEWPORT_PADDING)
+                : VIEWPORT_PADDING;
             const availableWidth = Math.max(180, window.innerWidth - (VIEWPORT_PADDING * 2));
             const menuWidth = Math.min(Math.max(menu.offsetWidth, 180), availableWidth);
             const menuHeight = menu.offsetHeight;
-            const spaceBelow = window.innerHeight - triggerRect.bottom - VIEWPORT_PADDING;
-            const spaceAbove = triggerRect.top - VIEWPORT_PADDING;
+            const spaceBelow = lowerBoundary - triggerRect.bottom;
+            const spaceAbove = triggerRect.top - upperBoundary;
             const shouldOpenUpward = spaceBelow < menuHeight && spaceAbove > spaceBelow;
+            const availableVerticalSpace = shouldOpenUpward ? spaceAbove : spaceBelow;
+            const maxHeight = Math.max(120, Math.floor(availableVerticalSpace));
 
             let left = triggerRect.width - menuWidth;
             let viewportLeft = triggerRect.left + left;
@@ -59,7 +68,7 @@ const CustomMenu = ({ options, icon }) => {
 
             setOpenUpward(shouldOpenUpward);
             menu.style.setProperty('--custom-menu-left', `${left}px`);
-            menu.style.setProperty('--custom-menu-max-height', `min(20rem, calc(100vh - ${VIEWPORT_PADDING * 2}px))`);
+            menu.style.setProperty('--custom-menu-max-height', `${maxHeight}px`);
         };
 
         const handleKeyDown = (event) => {
