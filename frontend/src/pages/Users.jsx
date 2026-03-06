@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Check, Edit2, Search, Shield, Trash2, UserPlus, X } from 'lucide-react';
 import { userService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
@@ -30,7 +30,7 @@ const Users = () => {
     const [userIndividualPerms, setUserIndividualPerms] = useState([]);
     const { showNotification } = useNotification();
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const params = { limit, offset };
@@ -53,12 +53,12 @@ const Users = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [limit, offset, search, showNotification]);
 
     useEffect(() => {
         const timer = setTimeout(fetchData, 250);
         return () => clearTimeout(timer);
-    }, [limit, offset, search]);
+    }, [fetchData]);
 
     const confirmDelete = async () => {
         try {

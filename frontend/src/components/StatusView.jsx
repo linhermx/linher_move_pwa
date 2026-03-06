@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { AlertCircle, RefreshCw, FolderOpen, Loader2 } from 'lucide-react';
 
 const StatusView = ({
@@ -8,26 +8,16 @@ const StatusView = ({
     iconSize = 48,
     fullHeight = false
 }) => {
-    const containerStyle = {
-        padding: 'var(--spacing-xxl)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textAlign: 'center',
-        gap: 'var(--spacing-md)',
-        minHeight: fullHeight ? '60vh' : '200px',
-        width: '100%'
-    };
+    const containerClassName = `status-view fade-in ${fullHeight ? 'status-view--full-height' : 'status-view--inline'}`.trim();
 
     const renderIcon = () => {
         switch (type) {
             case 'loading':
-                return <Loader2 size={iconSize} className="spin" style={{ color: 'var(--color-primary)' }} />;
+                return <Loader2 size={iconSize} className="status-view__icon status-view__icon--loading spin" />;
             case 'error':
-                return <AlertCircle size={iconSize} style={{ color: 'var(--color-primary)' }} />;
+                return <AlertCircle size={iconSize} className="status-view__icon status-view__icon--error" />;
             case 'empty':
-                return <FolderOpen size={iconSize} style={{ color: 'var(--color-text-muted)', opacity: 0.5 }} />;
+                return <FolderOpen size={iconSize} className="status-view__icon status-view__icon--empty" />;
             default:
                 return null;
         }
@@ -40,29 +30,22 @@ const StatusView = ({
     };
 
     return (
-        <div style={containerStyle} className="fade-in">
+        <div className={containerClassName}>
             {renderIcon()}
-            <div>
-                <h3 style={{ fontSize: '18px', marginBottom: '8px', color: type === 'error' ? 'var(--color-primary)' : 'inherit' }}>
+            <div className="status-view__body">
+                <h3 className={`status-view__title ${type === 'error' ? 'status-view__title--error' : ''}`.trim()}>
                     {type === 'error' ? '¡Ups! Algo salió mal' : type === 'empty' ? 'Sin datos' : ''}
                 </h3>
-                <p className="text-muted" style={{ maxWidth: '300px', margin: '0 auto', fontSize: '14px' }}>
+                <p className="status-view__message text-muted">
                     {message || defaultMessages[type]}
                 </p>
             </div>
 
             {type === 'error' && onRetry && (
                 <button
+                    type="button"
                     onClick={onRetry}
-                    className="button-primary"
-                    style={{
-                        marginTop: 'var(--spacing-md)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '8px 20px',
-                        fontSize: '14px'
-                    }}
+                    className="btn btn-primary status-view__retry"
                 >
                     <RefreshCw size={16} /> Reintentar
                 </button>

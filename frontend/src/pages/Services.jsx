@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Plus, Search, Edit2, Trash2, Clock, DollarSign } from 'lucide-react';
 import { serviceService } from '../services/api';
 import ServiceModal from '../components/ServiceModal';
@@ -29,7 +29,7 @@ const Services = () => {
     const [serviceToDelete, setServiceToDelete] = useState(null);
     const { showNotification } = useNotification();
 
-    const fetchServices = async () => {
+    const fetchServices = useCallback(async () => {
         setLoading(true);
         try {
             const data = await serviceService.list();
@@ -40,11 +40,11 @@ const Services = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [showNotification]);
 
     useEffect(() => {
         fetchServices();
-    }, []);
+    }, [fetchServices]);
 
     const handleDelete = async () => {
         try {

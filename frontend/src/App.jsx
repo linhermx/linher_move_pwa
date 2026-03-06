@@ -119,7 +119,7 @@ const App = () => {
             }
           />
         </Routes>
-        {!shouldShowConnectivityScreen ? <PwaInstallPrompt /> : null}
+        {!shouldShowConnectivityScreen && user ? <PwaInstallPrompt /> : null}
       </Router>
     </NotificationProvider>
   );

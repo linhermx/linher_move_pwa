@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCallback } from 'react';
 import MapComponent from '../components/MapComponent';
 import { mapsService, vehicleService, serviceService, settingsService, quotationService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
@@ -142,7 +143,7 @@ const NewQuote = () => {
             }
         };
         fetchMetadata();
-    }, []);
+    }, [showNotification]);
 
     useEffect(() => {
         if (!isFabOpen) {
@@ -244,14 +245,7 @@ const NewQuote = () => {
         suggestions.length
     ]);
 
-    // Real-time calculation when route, vehicle or services change
-    useEffect(() => {
-        if (summary.distance > 0) {
-            handleCalculate();
-        }
-    }, [summary, selectedVehicle, selectedServices, globalSettings, numTolls, costPerToll, numTrips]);
-
-    const handleCalculate = () => {
+    const handleCalculate = useCallback(() => {
         const parsedTrips = Number(numTrips);
         if (summary.distance <= 0 || !selectedVehicle || !Number.isInteger(parsedTrips) || parsedTrips <= 0) {
             setBreakdown(null);
@@ -284,7 +278,14 @@ const NewQuote = () => {
 
         const result = CalculationMotor.calculate(calculationInputs);
         setBreakdown(result);
-    };
+    }, [costPerToll, globalSettings, numTolls, numTrips, selectedServices, selectedVehicle, services, summary.distance, summary.duration]);
+
+    // Real-time calculation when route, vehicle or services change
+    useEffect(() => {
+        if (summary.distance > 0) {
+            handleCalculate();
+        }
+    }, [summary.distance, handleCalculate]);
 
     const toggleService = (serviceId) => {
         setSelectedServices(prev =>

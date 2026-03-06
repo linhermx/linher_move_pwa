@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, ChevronDown, ChevronUp, Eye, FileText, Filter, RotateCcw, Search } from 'lucide-react';
 import { quotationService } from '../services/api';
@@ -28,7 +28,7 @@ const History = () => {
     const [isMobileFilters, setIsMobileFilters] = useState(() => window.matchMedia(MOBILE_FILTER_QUERY).matches);
     const [areFiltersExpanded, setAreFiltersExpanded] = useState(() => !window.matchMedia(MOBILE_FILTER_QUERY).matches);
 
-    const fetchQuotes = async () => {
+    const fetchQuotes = useCallback(async () => {
         setLoading(true);
 
         try {
@@ -84,7 +84,7 @@ const History = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [dateFrom, dateTo, limit, offset, period, search, statusFilter]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -92,7 +92,7 @@ const History = () => {
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [search, statusFilter, period, dateFrom, dateTo, limit, offset]);
+    }, [fetchQuotes]);
 
     useEffect(() => {
         const mediaQuery = window.matchMedia(MOBILE_FILTER_QUERY);

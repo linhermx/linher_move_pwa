@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useCallback } from 'react';
 import {
     DollarSign, FileText, CheckCircle, Truck, Clock,
     Users, AlertTriangle, BarChart2, Activity
@@ -25,6 +26,20 @@ const C = {
     axis: 'var(--dashboard-axis)',
     tooltip: 'var(--dashboard-tooltip-bg)',
     border: 'var(--dashboard-tooltip-border)',
+};
+
+const ACCENT_TONE_BY_COLOR = {
+    [C.primary.toLowerCase()]: 'primary',
+    [C.success.toLowerCase()]: 'success',
+    [C.info.toLowerCase()]: 'info',
+    [C.warning.toLowerCase()]: 'warning',
+    [C.purple.toLowerCase()]: 'purple',
+    [C.muted.toLowerCase()]: 'muted'
+};
+
+const resolveAccentTone = (color) => {
+    const normalized = typeof color === 'string' ? color.trim().toLowerCase() : '';
+    return ACCENT_TONE_BY_COLOR[normalized] || 'neutral';
 };
 
 const STATUS_COLORS = {
@@ -107,8 +122,7 @@ const CustomTooltip = ({ active, payload, label }) => {
             {payload.map((p, i) => (
                 <p
                     key={i}
-                    className="dashboard-tooltip__row"
-                    style={{ '--dashboard-tooltip-accent': p.color || 'var(--color-text-main)' }}
+                    className={`dashboard-tooltip__row dashboard-tooltip__row--${resolveAccentTone(p.color)}`.trim()}
                 >
                     {p.name}: <span className="dashboard-tooltip__value">{p.value}</span>
                 </p>
@@ -123,18 +137,22 @@ const legendFmt = (v) => (
 );
 
 // ── KPI Card ────────────────────────────────────────────────────────────────
-const KpiCard = ({ icon, label, value, color = C.primary, sub, className = '' }) => (
-    <div className={`card dashboard-kpi-card ${className}`.trim()}>
-        <div className="dashboard-kpi-card__icon" style={{ '--dashboard-kpi-accent': color }}>
-            {icon}
+const KpiCard = ({ icon, label, value, color = C.primary, sub, className = '' }) => {
+    const accentTone = resolveAccentTone(color);
+
+    return (
+        <div className={`card dashboard-kpi-card ${className}`.trim()}>
+            <div className={`dashboard-kpi-card__icon dashboard-kpi-card__icon--${accentTone}`.trim()}>
+                {icon}
+            </div>
+            <div>
+                <p className="dashboard-kpi-card__label">{label}</p>
+                <p className="dashboard-kpi-card__value">{value}</p>
+                {sub && <p className="dashboard-kpi-card__sub">{sub}</p>}
+            </div>
         </div>
-        <div>
-            <p className="dashboard-kpi-card__label">{label}</p>
-            <p className="dashboard-kpi-card__value">{value}</p>
-            {sub && <p className="dashboard-kpi-card__sub">{sub}</p>}
-        </div>
-    </div>
-);
+    );
+};
 
 // ── Section Card ───────────────────────────────────────────────────────────
 const Section = ({ title, children, className = '' }) => (
@@ -194,7 +212,7 @@ const AdminDashboard = ({ data }) => {
 
     const maxBar = Math.max(...barData.map(d => d.total), 1);
     const effVal = parseFloat(fleet_efficiency || 0);
-    const effColor = effVal >= 90 ? C.success : effVal >= 70 ? C.warning : C.primary;
+    const effTone = effVal >= 90 ? 'success' : effVal >= 70 ? 'warning' : 'primary';
 
     return (
         <div className="dashboard-stack dashboard-stack--admin">
@@ -335,7 +353,7 @@ const AdminDashboard = ({ data }) => {
                     </ResponsiveContainer>
                     <div className="dashboard-inline-stat">
                         <span className="dashboard-inline-stat__label">Eficiencia promedio: </span>
-                        <span className="dashboard-inline-stat__value" style={{ '--dashboard-inline-accent': effColor }}>{effVal.toFixed(1)}%</span>
+                        <span className={`dashboard-inline-stat__value dashboard-inline-stat__value--${effTone}`.trim()}>{effVal.toFixed(1)}%</span>
                     </div>
                 </Section>
             </div>
@@ -402,7 +420,8 @@ const SupervisorDashboard = ({ data }) => {
     });
 
     const eff = parseFloat(fleet_efficiency || 0);
-    const effColor = eff >= 90 ? C.success : eff >= 70 ? C.warning : C.primary;
+    const effTone = eff >= 90 ? 'success' : eff >= 70 ? 'warning' : 'primary';
+    const effColor = C[effTone];
     const radialData = [{ name: 'Eficiencia', value: Math.min(eff, 100), fill: effColor }];
     const maxBar = Math.max(...barData.map(d => d.total), 1);
 
@@ -425,7 +444,7 @@ const SupervisorDashboard = ({ data }) => {
                                     <p className="dashboard-list-row__title">{q.folio}</p>
                                     <p className="dashboard-list-row__meta">{q.operator}</p>
                                 </div>
-                                <p className="dashboard-list-row__value" style={{ '--dashboard-row-accent': C.warning }}>{formatKpi(q.total)}</p>
+                                <p className="dashboard-list-row__value dashboard-list-row__value--warning">{formatKpi(q.total)}</p>
                             </div>
                         ))
                     }
@@ -554,8 +573,7 @@ const SupervisorDashboard = ({ data }) => {
                             y="52%"
                             textAnchor="middle"
                             dominantBaseline="middle"
-                            className="dashboard-radial-value"
-                            style={{ '--dashboard-radial-accent': effColor }}
+                            className={`dashboard-radial-value dashboard-radial-value--${effTone}`.trim()}
                         >
                             {eff.toFixed(0)}%
                         </text>
@@ -745,7 +763,7 @@ const Dashboard = () => {
         OPERADOR: 'Vista personal — tu actividad y rendimiento',
     };
 
-    const load = async (p) => {
+    const load = useCallback(async (p) => {
         setLoading(true);
         setError(null);
         try {
@@ -758,9 +776,9 @@ const Dashboard = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [roleName, user.id]);
 
-    useEffect(() => { load(period); }, [period]);
+    useEffect(() => { load(period); }, [load, period]);
 
     return (
         <div className="page-shell fade-in">

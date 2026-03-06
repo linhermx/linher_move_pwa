@@ -27,6 +27,35 @@ const normalizePadding = (padding, fallback) => {
     return fallback;
 };
 
+const getTileLayerConfig = (theme) => (
+    theme === 'light'
+        ? {
+            url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+            options: {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }
+        }
+        : {
+            url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+            options: {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }
+        }
+);
+
+const createCustomIcon = (colorClass) => {
+    return L.divIcon({
+        className: 'custom-marker',
+        html: `<div class="pulse-ring ${colorClass}"></div><div class="pulse-dot ${colorClass}"></div>`,
+        iconSize: [35, 35],
+        iconAnchor: [17, 17]
+    });
+};
+
 const MapComponent = ({
     points = [],
     routeData = null,
@@ -41,38 +70,9 @@ const MapComponent = ({
     const routeLayer = useRef(null);
     const tileLayer = useRef(null);
 
-    const getTileLayerConfig = () => (
-        theme === 'light'
-            ? {
-                url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-                options: {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                    subdomains: 'abcd',
-                    maxZoom: 20
-                }
-            }
-            : {
-                url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                options: {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                    subdomains: 'abcd',
-                    maxZoom: 20
-                }
-            }
-    );
-
-    const createCustomIcon = (colorClass) => {
-        return L.divIcon({
-            className: 'custom-marker',
-            html: `<div class="pulse-ring ${colorClass}"></div><div class="pulse-dot ${colorClass}"></div>`,
-            iconSize: [35, 35],
-            iconAnchor: [17, 17]
-        });
-    };
-
     useEffect(() => {
         if (!mapInstance.current) {
-            const tileConfig = getTileLayerConfig();
+            const tileConfig = getTileLayerConfig(theme);
             mapInstance.current = L.map(mapRef.current).setView([19.0414, -98.2063], 13); // Default to Puebla, MX
             tileLayer.current = L.tileLayer(tileConfig.url, tileConfig.options).addTo(mapInstance.current);
         }
@@ -96,7 +96,7 @@ const MapComponent = ({
                 // mapInstance.current.remove();
             }
         };
-    }, []);
+    }, [theme]);
 
     useEffect(() => {
         if (!mapInstance.current) {
@@ -107,7 +107,7 @@ const MapComponent = ({
             mapInstance.current.removeLayer(tileLayer.current);
         }
 
-        const tileConfig = getTileLayerConfig();
+        const tileConfig = getTileLayerConfig(theme);
         tileLayer.current = L.tileLayer(tileConfig.url, tileConfig.options).addTo(mapInstance.current);
     }, [theme]);
 
@@ -146,7 +146,7 @@ const MapComponent = ({
                 padding: normalizePadding(pointsFitPadding, [40, 40])
             });
         }
-    }, [points, pointsFitPadding]);
+    }, [onMarkerDrag, points, pointsFitPadding, readOnly]);
 
     useEffect(() => {
         if (!mapInstance.current) return;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import {
     Calendar,
     Cloud,
@@ -104,19 +104,7 @@ const Backups = () => {
         return 'Conecta Dropbox para duplicar cada respaldo local en la nube después de su generación.';
     };
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('sync') === 'success') {
-            showNotification('Dropbox se vinculó correctamente', 'success');
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchData();
-    }, [offset, limit]);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const [backupData, summaryData, settingsData, cloudData] = await Promise.all([
@@ -137,7 +125,19 @@ const Backups = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [limit, offset]);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('sync') === 'success') {
+            showNotification('Dropbox se vinculó correctamente', 'success');
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, [showNotification]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     const handleGenerate = async () => {
         setGenerating(true);
@@ -512,3 +512,9 @@ const Backups = () => {
 };
 
 export default Backups;
+
+
+
+
+
+

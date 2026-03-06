@@ -24,6 +24,36 @@ import { resolveAssetUrl } from '../utils/url';
 
 const STATUS_OPTIONS = ['pendiente', 'en_proceso', 'completada', 'cancelada'];
 
+const buildQuoteBreakdown = ({ quote, baseBreakdown, adjustments, selectedIds, availableServices }) => {
+    if (!quote) {
+        return null;
+    }
+
+    const selectedServicesData = availableServices.filter((service) => selectedIds.includes(service.id));
+    const serviceCosts = selectedServicesData.reduce((acc, service) => acc + parseFloat(service.cost || 0), 0);
+    const serviceTime = selectedServicesData.reduce((acc, service) => acc + parseInt(service.time_minutes || 0), 0);
+
+    const subtotal = parseFloat(quote.logistics_cost_rounded || 0)
+        + parseFloat(serviceCosts || 0)
+        + parseFloat(adjustments.lodging_cost || 0)
+        + parseFloat(adjustments.meal_cost || 0);
+    const iva = subtotal * 0.16;
+    const total = Math.ceil(subtotal + iva);
+    const timeTraffic = baseBreakdown?.time_traffic_min || quote.time_traffic_min || (quote.time_total * 1.15);
+
+    return {
+        ...baseBreakdown,
+        service_costs: serviceCosts,
+        service_time: serviceTime,
+        time_services_min: timeTraffic + serviceTime,
+        lodging_cost: adjustments.lodging_cost,
+        meal_cost: adjustments.meal_cost,
+        subtotal,
+        iva,
+        total
+    };
+};
+
 const QuoteDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -74,10 +104,20 @@ const QuoteDetail = () => {
                     setServices(sData.filter(s => s.status !== 'inactive' || initialIds.includes(s.id)));
 
                     // Sync initial breakdown with full service info once loaded
-                    recalculateBreakdown({
-                        lodging_cost: quoteData.lodging_cost || 0,
-                        meal_cost: quoteData.meal_cost || 0
-                    }, initialIds, sData);
+                    const syncedBreakdown = buildQuoteBreakdown({
+                        quote: quoteData,
+                        baseBreakdown: quoteData,
+                        adjustments: {
+                            lodging_cost: quoteData.lodging_cost || 0,
+                            meal_cost: quoteData.meal_cost || 0
+                        },
+                        selectedIds: initialIds,
+                        availableServices: sData
+                    });
+
+                    if (syncedBreakdown) {
+                        setCurrentBreakdown(syncedBreakdown);
+                    }
                 }).catch(err => console.warn('Background data fetch failed:', err));
 
                 // BACKGROUND TASK: Fetch route line if coordinates exist
@@ -107,34 +147,23 @@ const QuoteDetail = () => {
             }
         };
         fetchData();
-    }, [id]);
+    }, [id, navigate, showNotification]);
 
     const recalculateBreakdown = (adjustments, selectedIds, availableServices = services) => {
-        if (!quote) return;
+        if (!quote) {
+            return;
+        }
 
-        const selectedServicesData = availableServices.filter(s => selectedIds.includes(s.id));
-        const serviceCosts = selectedServicesData.reduce((acc, s) => acc + parseFloat(s.cost || 0), 0);
-        const serviceTime = selectedServicesData.reduce((acc, s) => acc + parseInt(s.time_minutes || 0), 0);
+        setCurrentBreakdown((previousBreakdown) => {
+            const nextBreakdown = buildQuoteBreakdown({
+                quote,
+                baseBreakdown: previousBreakdown || quote,
+                adjustments,
+                selectedIds,
+                availableServices
+            });
 
-        const subtotal = parseFloat(quote.logistics_cost_rounded || 0) +
-            parseFloat(serviceCosts || 0) +
-            parseFloat(adjustments.lodging_cost || 0) +
-            parseFloat(adjustments.meal_cost || 0);
-        const iva = subtotal * 0.16;
-        const total = Math.ceil(subtotal + iva);
-
-        const timeTraffic = currentBreakdown?.time_traffic_min || quote.time_traffic_min || (quote.time_total * 1.15);
-
-        setCurrentBreakdown({
-            ...currentBreakdown,
-            service_costs: serviceCosts,
-            service_time: serviceTime,
-            time_services_min: timeTraffic + serviceTime,
-            lodging_cost: adjustments.lodging_cost,
-            meal_cost: adjustments.meal_cost,
-            subtotal,
-            iva,
-            total
+            return nextBreakdown || previousBreakdown;
         });
     };
 

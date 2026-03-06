@@ -17,7 +17,6 @@ const CustomSelect = ({
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [openUpward, setOpenUpward] = useState(false);
-    const [dropdownStyle, setDropdownStyle] = useState({});
     const containerRef = useRef(null);
     const dropdownRef = useRef(null);
     const generatedId = useId();
@@ -71,10 +70,8 @@ const CustomSelect = ({
             }
 
             setOpenUpward(shouldOpenUpward);
-            setDropdownStyle({
-                left: `${left}px`,
-                maxWidth: 'calc(100vw - 32px)'
-            });
+            dropdown.style.setProperty('--custom-select-left', `${left}px`);
+            dropdown.style.setProperty('--custom-select-max-width', `${Math.round(maxWidth)}px`);
         };
 
         const handleKeyDown = (event) => {
@@ -131,7 +128,6 @@ const CustomSelect = ({
                     id={listboxId}
                     role="listbox"
                     className={`dropdown-menu custom-scrollbar ${openUpward ? 'dropdown-menu--upward' : ''}`.trim()}
-                    style={dropdownStyle}
                 >
                     {options.map((opt) => (
                         <button

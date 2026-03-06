@@ -5,7 +5,7 @@ const VIEWPORT_PADDING = 16;
 
 const CustomMenu = ({ options, icon }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [menuStyle, setMenuStyle] = useState({});
+    const [openUpward, setOpenUpward] = useState(false);
     const containerRef = useRef(null);
     const menuRef = useRef(null);
     const MenuIcon = icon || MoreVertical;
@@ -57,14 +57,9 @@ const CustomMenu = ({ options, icon }) => {
                 left -= viewportRight - (window.innerWidth - VIEWPORT_PADDING);
             }
 
-            setMenuStyle({
-                left: `${left}px`,
-                top: shouldOpenUpward ? 'auto' : 'calc(100% + 8px)',
-                bottom: shouldOpenUpward ? 'calc(100% + 8px)' : 'auto',
-                minWidth: '180px',
-                maxWidth: 'calc(100vw - 32px)',
-                maxHeight: `min(320px, calc(100vh - ${VIEWPORT_PADDING * 2}px))`
-            });
+            setOpenUpward(shouldOpenUpward);
+            menu.style.setProperty('--custom-menu-left', `${left}px`);
+            menu.style.setProperty('--custom-menu-max-height', `min(20rem, calc(100vh - ${VIEWPORT_PADDING * 2}px))`);
         };
 
         const handleKeyDown = (event) => {
@@ -103,9 +98,8 @@ const CustomMenu = ({ options, icon }) => {
             {isOpen ? (
                 <div
                     ref={menuRef}
-                    className="custom-menu__panel custom-scrollbar"
+                    className={`custom-menu__panel custom-scrollbar ${openUpward ? 'custom-menu__panel--upward' : ''}`.trim()}
                     role="menu"
-                    style={menuStyle}
                 >
                     {options.map((option, index) => (
                         <button
