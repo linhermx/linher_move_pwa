@@ -896,6 +896,7 @@ input:-webkit-autofill:active {
 }
 
 .modal-shell {
+  position: relative;
   width: min(100%, 500px);
   max-height: calc(100vh - 40px);
   overflow: auto;
