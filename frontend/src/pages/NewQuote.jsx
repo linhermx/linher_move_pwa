@@ -125,14 +125,13 @@ const NewQuote = () => {
         const fetchMetadata = async () => {
             try {
                 const [vData, sData, settsData] = await Promise.all([
-                    vehicleService.list(),
-                    serviceService.list(),
-                    settingsService.get()
+                    vehicleService.listCatalog(),
+                    serviceService.listCatalog(),
+                    settingsService.getPublic()
                 ]);
 
-                // Exclude maintenance/inactive vehicles and inactive services
-                setVehicles(vData.filter(v => v.status !== 'maintenance' && v.status !== 'inactive'));
-                setServices(sData.filter(s => s.status === 'active'));
+                setVehicles(vData);
+                setServices(sData);
 
                 setGlobalSettings(settsData);
 

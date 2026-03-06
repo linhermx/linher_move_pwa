@@ -466,7 +466,11 @@ const Backups = () => {
                                                 <button
                                                     type="button"
                                                     className="icon-button"
-                                                    onClick={() => backupService.download(backup.id)}
+                                                    onClick={() => {
+                                                        backupService.download(backup.id).catch(() => {
+                                                            setError('No se pudo descargar el respaldo.');
+                                                        });
+                                                    }}
                                                     aria-label={`Descargar ${backup.filename}`}
                                                 >
                                                     <Download size={18} />

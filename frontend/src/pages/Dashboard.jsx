@@ -825,7 +825,7 @@ const Dashboard = () => {
         setError(null);
         try {
             const { from, to } = calcDates(p);
-            const result = await dashboardService.stats(user.id, roleName, from, to);
+            const result = await dashboardService.stats(from, to);
             setData(result);
         } catch (err) {
             console.error('Dashboard error:', err);
@@ -833,7 +833,7 @@ const Dashboard = () => {
         } finally {
             setLoading(false);
         }
-    }, [roleName, user.id]);
+    }, []);
 
     useEffect(() => { load(period); }, [load, period]);
 

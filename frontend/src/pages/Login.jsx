@@ -7,6 +7,7 @@ import { useNotification } from '../context/NotificationContext';
 import ModalShell from '../components/ModalShell';
 import ThemeToggle from '../components/ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
+import { clearSession, persistSession } from '../utils/session';
 
 const ForgotPasswordModal = ({ isOpen, onClose }) => (
     <ModalShell
@@ -52,9 +53,14 @@ const Login = () => {
         event.preventDefault();
 
         try {
-            const data = await authService.login(email, password);
-            const storage = rememberMe ? localStorage : sessionStorage;
-            storage.setItem('user', JSON.stringify(data.user));
+            const data = await authService.login(email, password, rememberMe);
+            clearSession();
+            persistSession({
+                user: data.user,
+                token: data.token,
+                expiresAt: data.expires_at,
+                rememberMe
+            });
             window.location.href = '/';
         } catch (error) {
             showNotification(error.response?.data?.message || 'Error al iniciar sesión', 'error');

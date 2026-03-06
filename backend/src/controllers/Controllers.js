@@ -14,9 +14,31 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { buildRequestContext, getOperatorIdFromRequest, logHandledError, sanitizeForLog } from '../utils/RequestContext.js';
+import { signAuthToken } from '../utils/AuthToken.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const NON_DELEGABLE_PERMISSIONS = new Set(['manage_users', 'manage_backups']);
+const PUBLIC_SETTINGS_KEYS = [
+    'gasoline_price',
+    'maneuver_factor',
+    'traffic_factor',
+    'base_efficiency',
+    'lodging_tier1_cost',
+    'lodging_tier2_cost',
+    'lodging_tier3_cost',
+    'meal_tier1_cost',
+    'meal_tier2_cost',
+    'meal_tier3_cost',
+    'lodging_tier1_hours',
+    'lodging_tier2_hours',
+    'lodging_tier3_hours',
+    'meal_tier1_hours',
+    'meal_tier2_hours',
+    'default_origin_address',
+    'default_origin_lat',
+    'default_origin_lng'
+];
 
 const handleApiError = async (logger, req, res, error, action, response) => {
     await logHandledError({
@@ -44,6 +66,13 @@ export const VehicleController = (db) => {
         list: async (req, res) => {
             const vehicles = await model.getAll('id DESC');
             res.json(vehicles);
+        },
+        catalog: async (req, res) => {
+            const vehicles = await model.getAll('name ASC');
+            const filteredVehicles = vehicles.filter((vehicle) => (
+                vehicle.status !== 'maintenance' && vehicle.status !== 'inactive'
+            ));
+            res.json(filteredVehicles);
         },
         show: async (req, res) => {
             const vehicle = await model.getById(req.params.id);
@@ -102,6 +131,20 @@ export const SettingsController = (db) => {
                 res.json(flatSettings);
             } catch (error) {
                 await handleApiError(logger, req, res, error, 'SETTINGS_FETCH_ERROR');
+            }
+        },
+        publicSettings: async (req, res) => {
+            try {
+                const settings = await model.getAll('setting_key ASC');
+                const flatSettings = settings.reduce((acc, curr) => {
+                    if (PUBLIC_SETTINGS_KEYS.includes(curr.setting_key)) {
+                        acc[curr.setting_key] = curr.setting_value;
+                    }
+                    return acc;
+                }, {});
+                res.json(flatSettings);
+            } catch (error) {
+                await handleApiError(logger, req, res, error, 'SETTINGS_PUBLIC_FETCH_ERROR');
             }
         },
         update: async (req, res) => {
@@ -344,6 +387,15 @@ export const ServiceController = (pool) => {
                 res.status(500).json({ message: error.message });
             }
         },
+        catalog: async (req, res) => {
+            try {
+                const services = await model.getAll('name ASC');
+                const filteredServices = services.filter((service) => service.status === 'active');
+                res.json(filteredServices);
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
+        },
         show: async (req, res) => {
             const service = await model.getById(req.params.id);
             if (!service) return res.status(404).json({ message: "Service not found" });
@@ -395,7 +447,7 @@ export const AuthController = (db) => {
     const logger = new SystemLogger(db);
     return {
         login: async (req, res) => {
-            const { email, password } = req.body;
+            const { email, password, remember_me } = req.body;
             try {
                 const user = await model.findByEmail(email);
                 if (!user) {
@@ -417,9 +469,15 @@ export const AuthController = (db) => {
                 // For now, let's fetch individual perms
                 const userModel = new UserModel(db);
                 const fullUser = await userModel.getByIdWithPermissions(user.id);
+                const sessionToken = signAuthToken(
+                    { userId: fullUser.id, roleName: fullUser.role_name },
+                    remember_me
+                );
 
                 res.json({
                     user: fullUser,
+                    token: sessionToken.token,
+                    expires_at: sessionToken.expires_at,
                     message: "Login exitoso"
                 });
 
@@ -554,12 +612,33 @@ export const UserController = (db) => {
         updatePermissions: async (req, res) => {
             try {
                 const { permissions } = req.body; // array of slugs
-                await model.setPermissions(req.params.id, permissions);
+                const targetUser = await model.getByIdWithPermissions(req.params.id);
+                if (!targetUser) {
+                    return res.status(404).json({ message: "Usuario no encontrado" });
+                }
+
+                const isTargetAdmin = String(targetUser.role_name || '').toLowerCase() === 'admin' || Number(targetUser.role_id) === 1;
+                const requestedPermissions = Array.isArray(permissions) ? permissions : [];
+                const ignoredPermissions = isTargetAdmin
+                    ? []
+                    : requestedPermissions.filter((permissionSlug) => NON_DELEGABLE_PERMISSIONS.has(permissionSlug));
+                const allowedPermissions = isTargetAdmin
+                    ? requestedPermissions
+                    : requestedPermissions.filter((permissionSlug) => !NON_DELEGABLE_PERMISSIONS.has(permissionSlug));
+
+                await model.setPermissions(req.params.id, allowedPermissions);
 
                 // Log
-                await logger.system(req.body.operator_id, 'UPDATE_USER_PERMISSIONS', { user_id: req.params.id, permissions });
+                await logger.system(req.body.operator_id, 'UPDATE_USER_PERMISSIONS', {
+                    user_id: req.params.id,
+                    permissions: allowedPermissions,
+                    ignored_permissions: ignoredPermissions
+                });
 
-                res.json({ message: "Permisos actualizados" });
+                res.json({
+                    message: "Permisos actualizados",
+                    ignored_permissions: ignoredPermissions
+                });
             } catch (error) {
                 res.status(500).json({ message: error.message });
             }
@@ -622,8 +701,13 @@ export const DashboardController = (db) => {
     return {
         stats: async (req, res) => {
             try {
-                const { user_id } = req.query;
-                const role = (req.query.role || 'OPERADOR').toUpperCase();
+                const authUser = req.authUser;
+                if (!authUser) {
+                    return res.status(401).json({ message: 'Autenticación requerida' });
+                }
+
+                const user_id = authUser.id;
+                const role = (authUser.role_name || 'OPERADOR').toUpperCase();
                 const date_from = req.query.date_from || null;  // e.g. '2026-01-01'
                 const date_to = req.query.date_to || null;  // e.g. '2026-01-31'
 

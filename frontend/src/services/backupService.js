@@ -1,5 +1,4 @@
 import api from './api';
-import { buildApiUrl } from '../utils/url';
 
 export const backupService = {
     list: async (params = {}) => {
@@ -17,8 +16,22 @@ export const backupService = {
         return response.data;
     },
 
-    download: (id) => {
-        window.open(buildApiUrl(`/backups/download/${id}`), '_blank');
+    download: async (id) => {
+        const response = await api.get(`/backups/download/${id}`, {
+            responseType: 'blob'
+        });
+        const blobUrl = window.URL.createObjectURL(response.data);
+        const link = document.createElement('a');
+        const disposition = response.headers['content-disposition'] || '';
+        const matched = disposition.match(/filename="?([^"]+)"?/i);
+        const filename = matched?.[1] || `backup-${id}.zip`;
+
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(blobUrl);
     },
 
     delete: async (id) => {

@@ -91,17 +91,26 @@ const QuoteDetail = () => {
 
                 // PHASE 2: Background tasks (don't block the UI)
                 Promise.all([
-                    vehicleService.list(),
-                    settingsService.get(),
-                    serviceService.list()
+                    vehicleService.listCatalog(),
+                    settingsService.getPublic(),
+                    serviceService.listCatalog()
                 ]).then(([vData, settsData, sData]) => {
                     setVehicles(vData);
                     setGlobalSettings(settsData);
 
                     const initialIds = (quoteData.services || []).map(s => s.service_id);
+                    const missingServices = (quoteData.services || [])
+                        .filter((quoteService) => !sData.some((catalogService) => catalogService.id === quoteService.service_id))
+                        .map((quoteService) => ({
+                            id: quoteService.service_id,
+                            name: quoteService.service_name,
+                            cost: quoteService.cost,
+                            time_minutes: quoteService.time_minutes || 0,
+                            status: 'inactive'
+                        }));
+                    const mergedServices = [...sData, ...missingServices];
 
-                    // Filter out inactive services (unless they are already part of this quote)
-                    setServices(sData.filter(s => s.status !== 'inactive' || initialIds.includes(s.id)));
+                    setServices(mergedServices);
 
                     // Sync initial breakdown with full service info once loaded
                     const syncedBreakdown = buildQuoteBreakdown({
@@ -112,7 +121,7 @@ const QuoteDetail = () => {
                             meal_cost: quoteData.meal_cost || 0
                         },
                         selectedIds: initialIds,
-                        availableServices: sData
+                        availableServices: mergedServices
                     });
 
                     if (syncedBreakdown) {

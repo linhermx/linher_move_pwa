@@ -6,13 +6,44 @@ const apiClient = axios.create({
     baseURL: API_BASE_URL
 });
 
+const SESSION_USER_KEY = 'user';
+const SESSION_TOKEN_KEY = 'auth_token';
+const SESSION_EXPIRES_AT_KEY = 'auth_expires_at';
+
+const getPreferredStorage = () => (
+    localStorage.getItem(SESSION_USER_KEY) ? localStorage : sessionStorage
+);
+
 const getCurrentUser = () => {
-    const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
+    const raw = localStorage.getItem(SESSION_USER_KEY) || sessionStorage.getItem(SESSION_USER_KEY);
     return raw ? JSON.parse(raw) : null;
+};
+
+const getCurrentToken = () => {
+    const storage = getPreferredStorage();
+    return storage.getItem(SESSION_TOKEN_KEY)
+        || localStorage.getItem(SESSION_TOKEN_KEY)
+        || sessionStorage.getItem(SESSION_TOKEN_KEY)
+        || null;
+};
+
+const clearSession = () => {
+    localStorage.removeItem(SESSION_USER_KEY);
+    sessionStorage.removeItem(SESSION_USER_KEY);
+    localStorage.removeItem(SESSION_TOKEN_KEY);
+    sessionStorage.removeItem(SESSION_TOKEN_KEY);
+    localStorage.removeItem(SESSION_EXPIRES_AT_KEY);
+    sessionStorage.removeItem(SESSION_EXPIRES_AT_KEY);
 };
 
 apiClient.interceptors.request.use((config) => {
     const user = getCurrentUser();
+    const token = getCurrentToken();
+
+    if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+    }
 
     if (user && user.id && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
         if (config.data instanceof FormData) {
@@ -33,6 +64,14 @@ apiClient.interceptors.response.use(
     (response) => response,
     (error) => {
         const requestUrl = error.config?.url || '';
+
+        if (error.response?.status === 401 && !requestUrl.includes('/auth/login')) {
+            clearSession();
+            if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
+        }
+
         if (!requestUrl.includes('/logs/error')) {
             reportClientError({
                 action: 'API_RESPONSE_ERROR',
@@ -93,6 +132,10 @@ export const vehicleService = {
         const response = await apiClient.get('/vehicles');
         return response.data;
     },
+    listCatalog: async () => {
+        const response = await apiClient.get('/vehicles/catalog');
+        return response.data;
+    },
     create: async (data) => {
         const response = await apiClient.post('/vehicles', data);
         return response.data;
@@ -110,6 +153,10 @@ export const vehicleService = {
 export const serviceService = {
     list: async () => {
         const response = await apiClient.get('/services');
+        return response.data;
+    },
+    listCatalog: async () => {
+        const response = await apiClient.get('/services/catalog');
         return response.data;
     },
     create: async (data) => {
@@ -131,6 +178,10 @@ export const settingsService = {
         const response = await apiClient.get('/settings');
         return response.data;
     },
+    getPublic: async () => {
+        const response = await apiClient.get('/settings/public');
+        return response.data;
+    },
     update: async (data) => {
         const response = await apiClient.post('/settings', data);
         return response.data;
@@ -138,8 +189,8 @@ export const settingsService = {
 };
 
 export const authService = {
-    login: async (email, password) => {
-        const { data } = await apiClient.post('/auth/login', { email, password });
+    login: async (email, password, rememberMe = false) => {
+        const { data } = await apiClient.post('/auth/login', { email, password, remember_me: rememberMe });
         return data;
     },
     forgotPassword: async (email) => {
@@ -191,8 +242,8 @@ export const logService = {
 };
 
 export const dashboardService = {
-    stats: async (userId, role, dateFrom = null, dateTo = null) => {
-        const params = { user_id: userId, role };
+    stats: async (dateFrom = null, dateTo = null) => {
+        const params = {};
         if (dateFrom) params.date_from = dateFrom;
         if (dateTo) params.date_to = dateTo;
         const response = await apiClient.get('/dashboard', { params });
@@ -215,6 +266,28 @@ export const dropboxService = {
     disconnect: async () => {
         const response = await apiClient.post('/backups/dropbox/disconnect');
         return response.data;
+    }
+};
+
+export const reportService = {
+    operational: async (params = {}) => {
+        const response = await apiClient.get('/reports/operational', { params });
+        return response.data;
+    },
+    operators: async (params = {}) => {
+        const response = await apiClient.get('/reports/operators', { params });
+        return response.data;
+    },
+    financial: async (params = {}) => {
+        const response = await apiClient.get('/reports/financial', { params });
+        return response.data;
+    },
+    exportCsv: async (reportType, params = {}) => {
+        const response = await apiClient.get('/reports/export', {
+            params: { report: reportType, format: 'csv', ...params },
+            responseType: 'blob'
+        });
+        return response;
     }
 };
 

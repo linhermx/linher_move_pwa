@@ -13,10 +13,13 @@ import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import AuditLogs from './pages/AuditLogs';
 import Backups from './pages/Backups';
+import Reports from './pages/Reports';
 import { NotificationProvider } from './context/NotificationContext';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import { ConnectivityOfflineView } from './components/ConnectivityFallback';
 import useConnectivityStatus from './hooks/useConnectivityStatus';
+import ProtectedRoute from './components/ProtectedRoute';
+import { clearSession, getSessionToken, getSessionUser } from './utils/session';
 
 import Login from './pages/Login';
 
@@ -34,13 +37,16 @@ const App = () => {
 
   const getUser = () => {
     try {
-      // Check localStorage first (remember me = on), then sessionStorage (remember me = off)
-      const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
-      return userStr ? JSON.parse(userStr) : null;
+      const user = getSessionUser();
+      const token = getSessionToken();
+      if (!user || !token) {
+        return null;
+      }
+
+      return user;
     } catch (error) {
       console.error('Error parsing user from localStorage:', error);
-      localStorage.removeItem('user');
-      sessionStorage.removeItem('user');
+      clearSession();
       return null;
     }
   };
@@ -100,15 +106,86 @@ const App = () => {
                     ) : (
                       <Routes>
                         <Route path="/" element={<Dashboard />} />
-                        <Route path="/new-quote" element={<NewQuote />} />
-                        <Route path="/history" element={<History />} />
-                        <Route path="/history/:id" element={<QuoteDetail />} />
-                        <Route path="/fleet" element={<Fleet />} />
-                        <Route path="/services" element={<Services />} />
-                        <Route path="/users" element={<Users />} />
-                        <Route path="/audit" element={<AuditLogs />} />
-                        <Route path="/settings" element={<Settings />} />
-                        <Route path="/backups" element={<Backups />} />
+                        <Route
+                          path="/new-quote"
+                          element={(
+                            <ProtectedRoute user={user} requiredPermission="create_quotation">
+                              <NewQuote />
+                            </ProtectedRoute>
+                          )}
+                        />
+                        <Route
+                          path="/history"
+                          element={(
+                            <ProtectedRoute user={user} requiredPermission="view_history">
+                              <History />
+                            </ProtectedRoute>
+                          )}
+                        />
+                        <Route
+                          path="/history/:id"
+                          element={(
+                            <ProtectedRoute user={user} requiredPermission="view_history">
+                              <QuoteDetail />
+                            </ProtectedRoute>
+                          )}
+                        />
+                        <Route
+                          path="/fleet"
+                          element={(
+                            <ProtectedRoute user={user} requiredPermission="manage_fleet">
+                              <Fleet />
+                            </ProtectedRoute>
+                          )}
+                        />
+                        <Route
+                          path="/services"
+                          element={(
+                            <ProtectedRoute user={user} requiredPermission="manage_services">
+                              <Services />
+                            </ProtectedRoute>
+                          )}
+                        />
+                        <Route
+                          path="/users"
+                          element={(
+                            <ProtectedRoute user={user} requiredRole="admin">
+                              <Users />
+                            </ProtectedRoute>
+                          )}
+                        />
+                        <Route
+                          path="/audit"
+                          element={(
+                            <ProtectedRoute user={user} requiredRole="admin">
+                              <AuditLogs />
+                            </ProtectedRoute>
+                          )}
+                        />
+                        <Route
+                          path="/settings"
+                          element={(
+                            <ProtectedRoute user={user} requiredPermission="edit_settings">
+                              <Settings />
+                            </ProtectedRoute>
+                          )}
+                        />
+                        <Route
+                          path="/backups"
+                          element={(
+                            <ProtectedRoute user={user} requiredRole="admin">
+                              <Backups />
+                            </ProtectedRoute>
+                          )}
+                        />
+                        <Route
+                          path="/reports"
+                          element={(
+                            <ProtectedRoute user={user} requiredPermission="view_reports">
+                              <Reports />
+                            </ProtectedRoute>
+                          )}
+                        />
                       </Routes>
                     )}
                   </main>

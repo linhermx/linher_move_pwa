@@ -225,7 +225,9 @@ INSERT IGNORE INTO `permissions` (`slug`, `name`) VALUES
 ('edit_settings', 'Editar Parámetros'),
 ('manage_users', 'Gestionar Usuarios'),
 ('manage_services', 'Gestionar Servicios'),
-('manage_backups', 'Gestionar Respaldos');
+('manage_backups', 'Gestionar Respaldos'),
+('view_reports', 'Ver Reportes'),
+('export_reports', 'Exportar Reportes');
 
 CREATE TABLE IF NOT EXISTS `role_permissions` (
   `role_id` INT,
@@ -242,7 +244,7 @@ SELECT 1, id FROM `permissions`;
 
 -- Supervisor (Quotes, History, Fleet, Services)
 INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`) 
-SELECT 2, id FROM `permissions` WHERE slug IN ('create_quotation', 'view_history', 'manage_fleet', 'manage_services');
+SELECT 2, id FROM `permissions` WHERE slug IN ('create_quotation', 'view_history', 'manage_fleet', 'manage_services', 'view_reports');
 
 -- Operador (Quotes, History)
 INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`) 

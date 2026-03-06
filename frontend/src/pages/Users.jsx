@@ -13,6 +13,8 @@ import { resolveAssetUrl } from '../utils/url';
 import ModalShell from '../components/ModalShell';
 import { formatDate } from '../utils/formatters';
 
+const NON_DELEGABLE_PERMISSIONS = new Set(['manage_users', 'manage_backups']);
+
 const Users = () => {
     const [users, setUsers] = useState([]);
     const [pagination, setPagination] = useState({ current_page: 1, pages: 1, total: 0, limit: 10 });
@@ -93,8 +95,14 @@ const Users = () => {
 
     const savePermissions = async () => {
         try {
-            await userService.updatePermissions(selectedUserForPerms.id, userIndividualPerms);
-            showNotification('Permisos actualizados correctamente', 'success');
+            const result = await userService.updatePermissions(selectedUserForPerms.id, userIndividualPerms);
+            const ignoredPermissions = result?.ignored_permissions || [];
+
+            if (ignoredPermissions.length > 0) {
+                showNotification('Se guardaron permisos, pero algunos están bloqueados para este rol.', 'warning');
+            } else {
+                showNotification('Permisos actualizados correctamente', 'success');
+            }
             setSelectedUserForPerms(null);
             await fetchData();
         } catch {
@@ -264,23 +272,31 @@ const Users = () => {
                         const isFromRole = selectedUserForPerms?.role_permissions?.includes(permission.slug);
                         const isIndividual = userIndividualPerms.includes(permission.slug);
                         const isActive = isFromRole || isIndividual;
+                        const isTargetAdmin = String(selectedUserForPerms?.role_name || '').toLowerCase() === 'admin';
+                        const isBlockedByPolicy = !isTargetAdmin && NON_DELEGABLE_PERMISSIONS.has(permission.slug);
+                        const isDisabled = isFromRole || isBlockedByPolicy;
 
                         return (
                             <button
                                 key={permission.id}
                                 type="button"
                                 className="card card--tight"
-                                onClick={() => !isFromRole && togglePermission(permission.slug)}
-                                disabled={isFromRole}
+                                onClick={() => !isDisabled && togglePermission(permission.slug)}
+                                disabled={isDisabled}
                             >
                                 <div className="cluster-md justify-between">
                                     <div className="stack-xs">
                                         <div className="cluster-sm">
                                             <strong>{permission.name}</strong>
                                             {isFromRole ? <StatusBadge variant="info">Rol</StatusBadge> : null}
+                                            {isBlockedByPolicy ? <StatusBadge variant="warning">Bloqueado</StatusBadge> : null}
                                         </div>
                                         <span className="text-muted">
-                                            {isFromRole ? 'Heredado del rol del sistema' : 'Permiso asignable individualmente'}
+                                            {isFromRole
+                                                ? 'Heredado del rol del sistema'
+                                                : isBlockedByPolicy
+                                                    ? 'Solo disponible para cuentas administrativas'
+                                                    : 'Permiso asignable individualmente'}
                                         </span>
                                     </div>
                                     <StatusBadge variant={isActive ? 'success' : 'neutral'}>

@@ -129,4 +129,34 @@ export const ensureOperationalSchema = async (db) => {
             ('backups_enabled', 'false', 'Enable automated backups from the server scheduler'),
             ('backup_frequency', 'daily', 'Automatic backup frequency: daily or weekly')
     `);
+
+    await db.query(`
+        INSERT IGNORE INTO permissions (slug, name)
+        VALUES
+            ('view_reports', 'Ver Reportes'),
+            ('export_reports', 'Exportar Reportes')
+    `);
+
+    await db.query(`
+        INSERT IGNORE INTO role_permissions (role_id, permission_id)
+        SELECT 1, id
+        FROM permissions
+        WHERE slug IN ('view_reports', 'export_reports')
+    `);
+
+    await db.query(`
+        INSERT IGNORE INTO role_permissions (role_id, permission_id)
+        SELECT 2, id
+        FROM permissions
+        WHERE slug IN ('view_reports')
+    `);
+
+    await db.query(`
+        DELETE up
+        FROM user_permissions up
+        JOIN users u ON u.id = up.user_id
+        JOIN permissions p ON p.id = up.permission_id
+        WHERE u.role_id <> 1
+          AND p.slug IN ('manage_users', 'manage_backups')
+    `);
 };

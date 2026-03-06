@@ -21,13 +21,17 @@ DB_HOST=localhost
 DB_NAME=linher_move
 DB_USER=root
 DB_PASS=
+JWT_SECRET="change-this-secret"
 MYSQLDUMP_PATH="C:\xampp\mysql\bin\mysqldump.exe"
 MYSQL_PATH="C:\xampp\mysql\bin\mysql.exe"
 DROPBOX_CLIENT_ID="..."
 DROPBOX_CLIENT_SECRET="..."
 DROPBOX_REDIRECT_URI="http://localhost:3000/api/v1/backups/dropbox/callback"
 FRONTEND_URL="http://localhost:5173"
+REPORT_EXPORT_MAX_ROWS=200000
 ```
+
+`REPORT_EXPORT_MAX_ROWS` define el tope de seguridad para exportaciones CSV de reportes.
 
 ## Respaldos automáticos
 

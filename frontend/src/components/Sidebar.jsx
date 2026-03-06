@@ -5,6 +5,7 @@ import {
     ChevronLeft,
     ChevronRight,
     ChevronUp,
+    BarChart3,
     Database,
     History,
     LayoutDashboard,
@@ -25,6 +26,7 @@ import ProfileModal from './ProfileModal';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import { resolveAssetUrl } from '../utils/url';
+import { clearSession } from '../utils/session';
 
 const Sidebar = ({
     isMobileOpen = false,
@@ -120,7 +122,8 @@ const Sidebar = ({
             items: [
                 { name: 'Dashboard', path: '/', icon: <LayoutDashboard size={20} /> },
                 { name: 'Nueva Cotización', path: '/new-quote', icon: <Route size={20} />, permission: 'create_quotation' },
-                { name: 'Historial', path: '/history', icon: <History size={20} />, permission: 'view_history' }
+                { name: 'Historial', path: '/history', icon: <History size={20} />, permission: 'view_history' },
+                { name: 'Reportes', path: '/reports', icon: <BarChart3 size={20} />, permission: 'view_reports' }
             ]
         },
         {
@@ -155,8 +158,7 @@ const Sidebar = ({
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('user');
-        sessionStorage.removeItem('user');
+        clearSession();
         window.location.href = '/login';
     };
 
@@ -195,8 +197,14 @@ const Sidebar = ({
             <nav className="sidebar__nav custom-scrollbar">
                 {currentMenuGroups.map((group) => {
                     const filteredItems = group.items.filter((item) => {
-                        const hasPermission = !item.permission || userPermissions.includes(item.permission);
                         const isAdmin = user.role_name?.toLowerCase() === 'admin' || Number(user.role_id) === 1;
+                        const adminOnlyPaths = new Set(['/users', '/audit', '/backups']);
+
+                        if (adminOnlyPaths.has(item.path)) {
+                            return isAdmin;
+                        }
+
+                        const hasPermission = !item.permission || userPermissions.includes(item.permission);
 
                         if (isAdmin && ['manage_backups', 'manage_users', 'edit_settings'].includes(item.permission)) {
                             return true;

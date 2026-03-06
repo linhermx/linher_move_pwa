@@ -14,6 +14,7 @@ import {
     DashboardController,
     BackupController
 } from './controllers/Controllers.js';
+import { ReportsController } from './controllers/ReportsController.js';
 import { BackupService } from './services/BackupService.js';
 import { BackupSchedulerService } from './services/BackupSchedulerService.js';
 import nodeCron from 'node-cron';
@@ -25,6 +26,7 @@ import { fileURLToPath } from 'url';
 import { SystemLogger } from './utils/Logger.js';
 import { ensureOperationalSchema } from './utils/SchemaManager.js';
 import { requestContextMiddleware, logRuntimeError } from './utils/RequestContext.js';
+import { AuthMiddleware } from './middleware/AuthMiddleware.js';
 
 dotenv.config();
 
@@ -89,69 +91,86 @@ const userCtrl = UserController(pool);
 const logCtrl = LogController(pool);
 const dashCtrl = DashboardController(pool);
 const backupCtrl = BackupController(pool);
+const reportCtrl = ReportsController(pool);
+const authz = AuthMiddleware(pool);
+const {
+    requireAuth,
+    requireRole,
+    requirePermission,
+    requireAnyPermission
+} = authz;
 
 // Auth
 v1.post('/auth/login', authCtrl.login);
 
 
 // Vehicles
-v1.get('/vehicles', vehicleCtrl.list);
-v1.get('/vehicles/:id', vehicleCtrl.show);
-v1.post('/vehicles', upload.single('photo'), vehicleCtrl.create);
-v1.put('/vehicles/:id', upload.single('photo'), vehicleCtrl.update);
-v1.delete('/vehicles/:id', vehicleCtrl.delete);
+v1.get('/vehicles/catalog', requireAuth, requireAnyPermission(['manage_fleet', 'create_quotation', 'view_history']), vehicleCtrl.catalog);
+v1.get('/vehicles', requireAuth, requirePermission('manage_fleet'), vehicleCtrl.list);
+v1.get('/vehicles/:id', requireAuth, requirePermission('manage_fleet'), vehicleCtrl.show);
+v1.post('/vehicles', requireAuth, requirePermission('manage_fleet'), upload.single('photo'), vehicleCtrl.create);
+v1.put('/vehicles/:id', requireAuth, requirePermission('manage_fleet'), upload.single('photo'), vehicleCtrl.update);
+v1.delete('/vehicles/:id', requireAuth, requirePermission('manage_fleet'), vehicleCtrl.delete);
 
 // Services
-v1.get('/services', serviceCtrl.list);
-v1.get('/services/:id', serviceCtrl.show);
-v1.post('/services', serviceCtrl.create);
-v1.put('/services/:id', serviceCtrl.update);
-v1.delete('/services/:id', serviceCtrl.delete);
+v1.get('/services/catalog', requireAuth, requireAnyPermission(['manage_services', 'create_quotation', 'view_history']), serviceCtrl.catalog);
+v1.get('/services', requireAuth, requirePermission('manage_services'), serviceCtrl.list);
+v1.get('/services/:id', requireAuth, requirePermission('manage_services'), serviceCtrl.show);
+v1.post('/services', requireAuth, requirePermission('manage_services'), serviceCtrl.create);
+v1.put('/services/:id', requireAuth, requirePermission('manage_services'), serviceCtrl.update);
+v1.delete('/services/:id', requireAuth, requirePermission('manage_services'), serviceCtrl.delete);
 
 // Settings
-v1.get('/settings', settingsCtrl.index);
-v1.post('/settings', settingsCtrl.update);
+v1.get('/settings/public', requireAuth, settingsCtrl.publicSettings);
+v1.get('/settings', requireAuth, requirePermission('edit_settings'), settingsCtrl.index);
+v1.post('/settings', requireAuth, requirePermission('edit_settings'), settingsCtrl.update);
 
 // Maps
-v1.get('/maps/autocomplete', mapsCtrl.autocomplete);
-v1.get('/maps/reverse', mapsCtrl.reverse);
-v1.post('/maps/route', mapsCtrl.route);
+v1.get('/maps/autocomplete', requireAuth, requireAnyPermission(['create_quotation', 'view_history', 'edit_settings']), mapsCtrl.autocomplete);
+v1.get('/maps/reverse', requireAuth, requireAnyPermission(['create_quotation', 'view_history', 'edit_settings']), mapsCtrl.reverse);
+v1.post('/maps/route', requireAuth, requireAnyPermission(['create_quotation', 'view_history', 'edit_settings']), mapsCtrl.route);
 
 // Quotations
-v1.get('/quotations', quotationCtrl.list);
-v1.get('/quotations/:id', quotationCtrl.show);
-v1.post('/quotations', quotationCtrl.create);
-v1.put('/quotations/:id', quotationCtrl.update);
+v1.get('/quotations', requireAuth, requirePermission('view_history'), quotationCtrl.list);
+v1.get('/quotations/:id', requireAuth, requirePermission('view_history'), quotationCtrl.show);
+v1.post('/quotations', requireAuth, requirePermission('create_quotation'), quotationCtrl.create);
+v1.put('/quotations/:id', requireAuth, requirePermission('view_history'), quotationCtrl.update);
 
 // Users & Permissions
-v1.get('/users', userCtrl.list);
-v1.get('/users/roles', userCtrl.listRoles);
-v1.get('/users/permissions', userCtrl.listPermissions);
-v1.get('/users/:id', userCtrl.show);
-v1.post('/users', upload.single('photo'), userCtrl.create);
-v1.put('/users/:id', upload.single('photo'), userCtrl.update);
-v1.delete('/users/:id', userCtrl.delete);
-v1.post('/users/:id/permissions', userCtrl.updatePermissions);
+v1.get('/users', requireAuth, requireRole('admin'), userCtrl.list);
+v1.get('/users/roles', requireAuth, requireRole('admin'), userCtrl.listRoles);
+v1.get('/users/permissions', requireAuth, requireRole('admin'), userCtrl.listPermissions);
+v1.get('/users/:id', requireAuth, requireRole('admin'), userCtrl.show);
+v1.post('/users', requireAuth, requireRole('admin'), upload.single('photo'), userCtrl.create);
+v1.put('/users/:id', requireAuth, requireRole('admin'), upload.single('photo'), userCtrl.update);
+v1.delete('/users/:id', requireAuth, requireRole('admin'), userCtrl.delete);
+v1.post('/users/:id/permissions', requireAuth, requireRole('admin'), userCtrl.updatePermissions);
 
 // Logs
-v1.get('/logs', logCtrl.list);
+v1.get('/logs', requireAuth, requireRole('admin'), logCtrl.list);
 v1.post('/logs/error', logCtrl.clientError);
 
 // Dashboard analytics
-v1.get('/dashboard', dashCtrl.stats);
+v1.get('/dashboard', requireAuth, dashCtrl.stats);
 
 // Backups
-v1.get('/backups', backupCtrl.list);
-v1.get('/backups/summary', backupCtrl.summary);
-v1.post('/backups/generate', backupCtrl.generate);
-v1.get('/backups/download/:id', backupCtrl.download);
-v1.delete('/backups/:id', backupCtrl.delete);
+v1.get('/backups', requireAuth, requireRole('admin'), backupCtrl.list);
+v1.get('/backups/summary', requireAuth, requireRole('admin'), backupCtrl.summary);
+v1.post('/backups/generate', requireAuth, requireRole('admin'), backupCtrl.generate);
+v1.get('/backups/download/:id', requireAuth, requireRole('admin'), backupCtrl.download);
+v1.delete('/backups/:id', requireAuth, requireRole('admin'), backupCtrl.delete);
 
 // Dropbox Sync
-v1.get('/backups/dropbox/url', backupCtrl.authUrl);
+v1.get('/backups/dropbox/url', requireAuth, requireRole('admin'), backupCtrl.authUrl);
 v1.get('/backups/dropbox/callback', backupCtrl.callback);
-v1.get('/backups/dropbox/status', backupCtrl.status);
-v1.post('/backups/dropbox/disconnect', backupCtrl.disconnect);
+v1.get('/backups/dropbox/status', requireAuth, requireRole('admin'), backupCtrl.status);
+v1.post('/backups/dropbox/disconnect', requireAuth, requireRole('admin'), backupCtrl.disconnect);
+
+// Reports
+v1.get('/reports/operational', requireAuth, requirePermission('view_reports'), reportCtrl.operational);
+v1.get('/reports/operators', requireAuth, requirePermission('view_reports'), reportCtrl.operators);
+v1.get('/reports/financial', requireAuth, requirePermission('view_reports'), reportCtrl.financial);
+v1.get('/reports/export', requireAuth, requirePermission('export_reports'), reportCtrl.exportCsv);
 
 // Mount
 app.use('/api/v1', v1);
