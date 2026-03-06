@@ -243,6 +243,15 @@ const QuoteDetail = () => {
         }
     };
 
+    const handleGeneratePdf = async () => {
+        try {
+            await PDFService.generateQuotationPDF(id);
+        } catch (error) {
+            console.error('Error generating quotation PDF:', error);
+            showNotification('No se pudo generar el PDF de la cotización', 'error');
+        }
+    };
+
     const statusInfo = getStatusInfo(quote.status);
     const isLocked = ['completada', 'cancelada'].includes(quote.status);
     const assignedVehicle = vehicles.find((vehicle) => vehicle.id === quote.vehicle_id);
@@ -332,7 +341,7 @@ const QuoteDetail = () => {
 
             <button
                 type="button"
-                onClick={() => PDFService.generateQuotationPDF(quote)}
+                onClick={() => { void handleGeneratePdf(); }}
                 className="btn btn-secondary quote-detail-actions__button"
             >
                 <Download size={18} />

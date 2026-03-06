@@ -10,11 +10,13 @@ import Pagination from '../components/Pagination';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 import TableScrollFade from '../components/TableScrollFade';
+import { useNotification } from '../context/NotificationContext';
 
 const MOBILE_FILTER_QUERY = '(max-width: 768px)';
 
 const History = () => {
     const navigate = useNavigate();
+    const { showNotification } = useNotification();
     const [quotes, setQuotes] = useState([]);
     const [pagination, setPagination] = useState({ current_page: 1, pages: 1, total: 0, limit: 10 });
     const [loading, setLoading] = useState(true);
@@ -130,6 +132,15 @@ const History = () => {
                 return { variant: 'neutral', text: status };
         }
     };
+
+    const handleGeneratePdf = useCallback(async (quotationId) => {
+        try {
+            await PDFService.generateQuotationPDF(quotationId);
+        } catch (error) {
+            console.error('Error generating quotation PDF:', error);
+            showNotification('No se pudo generar el PDF de la cotización', 'error');
+        }
+    }, [showNotification]);
 
     const clearFilters = () => {
         setSearch('');
@@ -382,7 +393,9 @@ const History = () => {
                                                         {
                                                             label: 'Generar PDF',
                                                             icon: <FileText />,
-                                                            onClick: () => PDFService.generateQuotationPDF(quote)
+                                                            onClick: () => {
+                                                                void handleGeneratePdf(quote.id);
+                                                            }
                                                         }
                                                     ]}
                                                 />
