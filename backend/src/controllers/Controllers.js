@@ -245,15 +245,21 @@ export const QuotationController = (db) => {
     return {
         list: async (req, res) => {
             try {
-                const total = await model.countQuotes(req.query);
+                const allowedQuoteTypes = new Set(['logistics', 'services']);
+                const normalizedQuoteType = allowedQuoteTypes.has(req.query.quote_type)
+                    ? req.query.quote_type
+                    : undefined;
                 const limit = parseInt(req.query.limit) || 20;
                 const offset = parseInt(req.query.offset) || 0;
-
-                const quotations = await model.filterQuotes({
+                const filters = {
                     ...req.query,
+                    quote_type: normalizedQuoteType,
                     limit,
                     offset
-                });
+                };
+                const total = await model.countQuotes(filters);
+
+                const quotations = await model.filterQuotes(filters);
 
                 res.json({
                     data: quotations,
@@ -709,7 +715,8 @@ export const DashboardController = (db) => {
                         [avgTimeRows],
                         [revenueRows],
                         [topOperatorsRows],
-                        [byDayRows]
+                        [byDayRows],
+                        [quoteTypeRows]
                     ] = await Promise.all([
                         db.query(`SELECT status, COUNT(*) as count FROM vehicles GROUP BY status`),
                         db.query(`SELECT COALESCE(AVG(rendimiento_real/rendimiento_teorico*100), 0) as fleet_eff FROM vehicles WHERE rendimiento_teorico > 0`),
@@ -717,13 +724,32 @@ export const DashboardController = (db) => {
                         db.query(`SELECT COALESCE(AVG(qr.time_total), 0) as avg_time FROM quotations q JOIN quotation_routes qr ON q.id = qr.quotation_id WHERE q.status='completada'${dqc}`, dqp),
                         db.query(`SELECT COALESCE(SUM(qc.total), 0) as revenue FROM quotations q JOIN quotation_costs qc ON q.id = qc.quotation_id WHERE q.status='completada'${dqc}`, dqp),
                         db.query(`SELECT u.name, COUNT(q.id) as total FROM quotations q JOIN users u ON q.user_id=u.id WHERE q.status='completada'${dqc} GROUP BY u.id, u.name ORDER BY total DESC LIMIT 5`, dqp),
-                        db.query(`SELECT DATE(created_at) as day, COUNT(*) as count FROM quotations WHERE 1=1${dc} GROUP BY DATE(created_at) ORDER BY day ASC`, dp)
+                        db.query(`SELECT DATE(created_at) as day, COUNT(*) as count FROM quotations WHERE 1=1${dc} GROUP BY DATE(created_at) ORDER BY day ASC`, dp),
+                        db.query(`
+                            SELECT
+                                CASE WHEN qst.quotation_id IS NULL THEN 'logistics' ELSE 'services' END AS quote_type,
+                                COUNT(*) as count
+                            FROM quotations q
+                            LEFT JOIN (
+                                SELECT DISTINCT quotation_id
+                                FROM quotation_services
+                            ) qst ON qst.quotation_id = q.id
+                            WHERE 1=1${dqc}
+                            GROUP BY quote_type
+                        `, dqp)
                     ]);
 
                     const activeCount = quotations_by_status
                         .filter(r => r.status === 'pendiente' || r.status === 'en_proceso')
                         .reduce((s, r) => s + r.count, 0);
                     const inRoute = fleetStatusRows.find(r => r.status === 'in_route');
+                    const quoteTypeCountMap = { logistics: 0, services: 0 };
+
+                    for (const row of quoteTypeRows) {
+                        if (row.quote_type === 'logistics' || row.quote_type === 'services') {
+                            quoteTypeCountMap[row.quote_type] = parseInt(row.count, 10) || 0;
+                        }
+                    }
 
                     return res.json({
                         role: 'SUPERVISOR',
@@ -732,9 +758,15 @@ export const DashboardController = (db) => {
                             active_quotes: activeCount,
                             vehicles_in_route: inRoute?.count || 0,
                             avg_route_time: Math.round(parseFloat(avgTimeRows[0].avg_time || 0)),
-                            fleet_efficiency: parseFloat(fleetEffRows[0].fleet_eff || 0).toFixed(1)
+                            fleet_efficiency: parseFloat(fleetEffRows[0].fleet_eff || 0).toFixed(1),
+                            logistics_quotes: quoteTypeCountMap.logistics,
+                            service_quotes: quoteTypeCountMap.services
                         },
                         quotations_by_status,
+                        quotations_by_type: [
+                            { quote_type: 'logistics', count: quoteTypeCountMap.logistics },
+                            { quote_type: 'services', count: quoteTypeCountMap.services }
+                        ],
                         top_operators: topOperatorsRows,
                         by_day: byDayRows,
                         fleet_status: fleetStatusRows,

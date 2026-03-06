@@ -1359,7 +1359,12 @@ input:-webkit-autofill:active {
 }
 
 .table--history {
-  min-width: 760px;
+  min-width: 860px;
+}
+
+.table__head--type,
+.table__cell--type {
+  min-width: 7.5rem;
 }
 
 .table--users {
@@ -3000,6 +3005,12 @@ input:-webkit-autofill:active {
 .dashboard-three-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.dashboard-single-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--spacing-lg);
 }
 
@@ -5859,6 +5870,7 @@ input:-webkit-autofill:active {
   .dashboard-stack--admin .dashboard-two-grid,
   .dashboard-stack--admin .dashboard-wide-grid,
   .dashboard-stack--supervisor .dashboard-two-grid--supervisor,
+  .dashboard-stack--supervisor .dashboard-single-grid--supervisor-types,
   .dashboard-stack--supervisor .dashboard-three-grid,
   .dashboard-stack--operador .dashboard-feature-grid {
     display: contents;
@@ -5904,8 +5916,12 @@ input:-webkit-autofill:active {
     order: 5;
   }
 
-  .dashboard-stack--supervisor .dashboard-section--efficiency {
+  .dashboard-stack--supervisor .dashboard-section--quote-types {
     order: 6;
+  }
+
+  .dashboard-stack--supervisor .dashboard-section--efficiency {
+    order: 7;
   }
 
   .dashboard-stack--operador .dashboard-section--recent {

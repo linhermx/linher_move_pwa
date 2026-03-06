@@ -20,6 +20,7 @@ const History = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const [quoteTypeFilter, setQuoteTypeFilter] = useState('');
     const [period, setPeriod] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
@@ -40,6 +41,10 @@ const History = () => {
 
             if (statusFilter) {
                 params.status = statusFilter;
+            }
+
+            if (quoteTypeFilter) {
+                params.quote_type = quoteTypeFilter;
             }
 
             let finalFrom = dateFrom;
@@ -84,7 +89,7 @@ const History = () => {
         } finally {
             setLoading(false);
         }
-    }, [dateFrom, dateTo, limit, offset, period, search, statusFilter]);
+    }, [dateFrom, dateTo, limit, offset, period, quoteTypeFilter, search, statusFilter]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -129,6 +134,7 @@ const History = () => {
     const clearFilters = () => {
         setSearch('');
         setStatusFilter('');
+        setQuoteTypeFilter('');
         setPeriod('');
         setDateFrom('');
         setDateTo('');
@@ -136,7 +142,7 @@ const History = () => {
         setOffset(0);
     };
 
-    const activeFilterCount = [search, statusFilter, period, dateFrom, dateTo].filter(Boolean).length;
+    const activeFilterCount = [search, statusFilter, quoteTypeFilter, period, dateFrom, dateTo].filter(Boolean).length;
     const shouldShowAdvancedFilters = !isMobileFilters || areFiltersExpanded;
 
     return (
@@ -258,7 +264,25 @@ const History = () => {
                             </div>
                         </div>
 
-                        {(search || statusFilter || period || dateFrom || dateTo) ? (
+                        <div className="filter-toolbar__item">
+                            <div className="form-field-group">
+                                <FileText size={18} className="text-muted" />
+                                <CustomSelect
+                                    id="history-quote-type"
+                                    name="quote_type"
+                                    ariaLabel="Filtrar historial por tipo de cotización"
+                                    value={quoteTypeFilter}
+                                    onChange={(event) => setQuoteTypeFilter(event.target.value)}
+                                    options={[
+                                        { value: '', label: 'Todos los tipos' },
+                                        { value: 'logistics', label: 'Logística' },
+                                        { value: 'services', label: 'Servicios' }
+                                    ]}
+                                />
+                            </div>
+                        </div>
+
+                        {(search || statusFilter || quoteTypeFilter || period || dateFrom || dateTo) ? (
                             <div className="filter-toolbar__actions">
                                 <button type="button" className="btn btn-secondary" onClick={clearFilters}>
                                     <RotateCcw size={16} />
@@ -296,6 +320,7 @@ const History = () => {
                                 <th scope="col" className="table__head--date">FECHA</th>
                                 <th scope="col">RUTA</th>
                                 <th scope="col">TOTAL</th>
+                                <th scope="col" className="table__head--type">TIPO</th>
                                 <th scope="col">ESTATUS</th>
                                 <th scope="col" align="right">ACCIONES</th>
                             </tr>
@@ -303,15 +328,22 @@ const History = () => {
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan="6" className="table__empty">Cargando cotizaciones...</td>
+                                    <td colSpan="7" className="table__empty">Cargando cotizaciones...</td>
                                 </tr>
                             ) : quotes.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="table__empty">No se encontraron cotizaciones.</td>
+                                    <td colSpan="7" className="table__empty">No se encontraron cotizaciones.</td>
                                 </tr>
                             ) : (
                                 quotes.map((quote) => {
                                     const status = getStatusBadge(quote.status);
+                                    const hasExtraServices = Number(quote.extra_services_count || 0) > 0;
+                                    const normalizedQuoteType = quote.quote_type === 'services' || hasExtraServices
+                                        ? 'services'
+                                        : 'logistics';
+                                    const quoteTypeBadge = normalizedQuoteType === 'services'
+                                        ? { variant: 'info', text: 'Servicios' }
+                                        : { variant: 'neutral', text: 'Logística' };
 
                                     return (
                                         <tr key={quote.id}>
@@ -332,6 +364,9 @@ const History = () => {
                                             </td>
                                             <td>
                                                 <strong>${Number(quote.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                                            </td>
+                                            <td className="table__cell--type">
+                                                <StatusBadge variant={quoteTypeBadge.variant}>{quoteTypeBadge.text}</StatusBadge>
                                             </td>
                                             <td>
                                                 <StatusBadge variant={status.variant}>{status.text}</StatusBadge>

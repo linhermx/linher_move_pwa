@@ -10,11 +10,23 @@ export class QuotationModel extends BaseModel {
      */
     async filterQuotes(filters) {
         let query = `
-            SELECT q.*, qr.*, qc.*, qp.*
+            SELECT
+                q.*,
+                qr.*,
+                qc.*,
+                qp.*,
+                CASE
+                    WHEN qst.quotation_id IS NULL THEN 'logistics'
+                    ELSE 'services'
+                END AS quote_type
             FROM ${this.tableName} q
             LEFT JOIN quotation_routes qr ON q.id = qr.quotation_id
             LEFT JOIN quotation_costs qc ON q.id = qc.quotation_id
             LEFT JOIN quotation_parameters qp ON q.id = qp.quotation_id
+            LEFT JOIN (
+                SELECT DISTINCT quotation_id
+                FROM quotation_services
+            ) qst ON qst.quotation_id = q.id
             WHERE 1=1
         `;
         const params = [];
@@ -27,6 +39,12 @@ export class QuotationModel extends BaseModel {
         if (filters.status) {
             query += " AND q.status = ?";
             params.push(filters.status);
+        }
+
+        if (filters.quote_type === 'services') {
+            query += " AND qst.quotation_id IS NOT NULL";
+        } else if (filters.quote_type === 'logistics') {
+            query += " AND qst.quotation_id IS NULL";
         }
 
         if (filters.date_from) {
@@ -52,7 +70,15 @@ export class QuotationModel extends BaseModel {
     }
 
     async countQuotes(filters) {
-        let query = `SELECT COUNT(*) as total FROM ${this.tableName} q WHERE 1=1`;
+        let query = `
+            SELECT COUNT(*) as total
+            FROM ${this.tableName} q
+            LEFT JOIN (
+                SELECT DISTINCT quotation_id
+                FROM quotation_services
+            ) qst ON qst.quotation_id = q.id
+            WHERE 1=1
+        `;
         const params = [];
 
         if (filters.folio) {
@@ -63,6 +89,12 @@ export class QuotationModel extends BaseModel {
         if (filters.status) {
             query += " AND q.status = ?";
             params.push(filters.status);
+        }
+
+        if (filters.quote_type === 'services') {
+            query += " AND qst.quotation_id IS NOT NULL";
+        } else if (filters.quote_type === 'logistics') {
+            query += " AND qst.quotation_id IS NULL";
         }
 
         if (filters.date_from) {

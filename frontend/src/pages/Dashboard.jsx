@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useCallback } from 'react';
 import {
     DollarSign, FileText, CheckCircle, Truck, Clock,
-    Users, AlertTriangle, BarChart2, Activity
+    Users, AlertTriangle, BarChart2, Activity, Package
 } from 'lucide-react';
 import {
     PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
@@ -65,6 +65,16 @@ const FLEET_LABEL = {
     available: 'Disponible',
     in_route: 'En Ruta',
     maintenance: 'Mantenimiento',
+};
+
+const QUOTE_TYPE_LABEL = {
+    logistics: 'Logística',
+    services: 'Servicios'
+};
+
+const QUOTE_TYPE_COLORS = {
+    logistics: C.info,
+    services: C.purple
 };
 
 const STATUS_VARIANT = {
@@ -386,7 +396,7 @@ const AdminDashboard = ({ data }) => {
 // SUPERVISOR VIEW
 // ═══════════════════════════════════════════════════════════════════════════
 const SupervisorDashboard = ({ data }) => {
-    const { kpis, quotations_by_status, fleet_status, fleet_efficiency, pending_quotes, top_operators, by_day } = data;
+    const { kpis, quotations_by_status, quotations_by_type, fleet_status, fleet_efficiency, pending_quotes, top_operators, by_day } = data;
 
     const quotePie = (quotations_by_status || [])
         .filter(r => r.count > 0)
@@ -419,6 +429,25 @@ const SupervisorDashboard = ({ data }) => {
         };
     });
 
+    const quoteTypeCountMap = {
+        logistics: parseInt(kpis?.logistics_quotes || 0, 10) || 0,
+        services: parseInt(kpis?.service_quotes || 0, 10) || 0
+    };
+
+    (quotations_by_type || []).forEach((row) => {
+        if (row.quote_type === 'logistics' || row.quote_type === 'services') {
+            quoteTypeCountMap[row.quote_type] = parseInt(row.count || 0, 10) || 0;
+        }
+    });
+
+    const quoteTypePie = Object.entries(quoteTypeCountMap)
+        .filter(([, count]) => count > 0)
+        .map(([type, count]) => ({
+            name: QUOTE_TYPE_LABEL[type] || type,
+            value: count,
+            color: QUOTE_TYPE_COLORS[type] || C.muted
+        }));
+
     const eff = parseFloat(fleet_efficiency || 0);
     const effTone = eff >= 90 ? 'success' : eff >= 70 ? 'warning' : 'primary';
     const effColor = C[effTone];
@@ -432,6 +461,8 @@ const SupervisorDashboard = ({ data }) => {
                 <KpiCard icon={<Activity size={20} />} label="Cotizaciones activas" value={kpis.active_quotes} color={C.info} />
                 <KpiCard icon={<Truck size={20} />} label="Vehículos en ruta" value={kpis.vehicles_in_route} color={C.primary} />
                 <KpiCard icon={<Clock size={20} />} label="Tiempo prom./ruta" value={fmtMin(kpis.avg_route_time)} color={C.warning} sub="cotizaciones completadas" />
+                <KpiCard icon={<Truck size={20} />} label="Cotizaciones logística" value={quoteTypeCountMap.logistics} color={C.info} />
+                <KpiCard icon={<Package size={20} />} label="Cotizaciones servicios" value={quoteTypeCountMap.services} color={C.purple} />
             </div>
 
             <div className="dashboard-two-grid dashboard-two-grid--supervisor">
@@ -553,6 +584,32 @@ const SupervisorDashboard = ({ data }) => {
                     </ResponsiveContainer>
                 </Section>
 
+            </div>
+
+            <div className="dashboard-single-grid dashboard-single-grid--supervisor-types">
+                <Section title="Cotizaciones por tipo" className="dashboard-section--quote-types">
+                    {quoteTypePie.length === 0
+                        ? <p className="dashboard-empty">Sin datos en el período</p>
+                        : <ResponsiveContainer width="100%" height={240}>
+                            <PieChart>
+                                <Pie
+                                    data={quoteTypePie}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={56}
+                                    outerRadius={86}
+                                    paddingAngle={4}
+                                    dataKey="value"
+                                    strokeWidth={0}
+                                >
+                                    {quoteTypePie.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                                </Pie>
+                                <Tooltip content={<CustomTooltip />} />
+                                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px' }} formatter={legendFmt} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    }
+                </Section>
             </div>
 
             <Section title="Eficiencia de flota" className="dashboard-section--efficiency">
