@@ -1359,12 +1359,17 @@ input:-webkit-autofill:active {
 }
 
 .table--history {
-  min-width: 860px;
+  min-width: 980px;
 }
 
 .table__head--type,
 .table__cell--type {
   min-width: 7.5rem;
+}
+
+.table__head--route,
+.table__cell--route {
+  min-width: 16rem;
 }
 
 .table__head--folio,
@@ -2910,6 +2915,17 @@ input:-webkit-autofill:active {
 }
 
 .settings-save-row>.btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.backups-mobile-actions-shell,
+.reports-mobile-actions-shell {
+  display: none;
+}
+
+.backups-mobile-actions-shell>.btn,
+.reports-mobile-actions-shell>.btn {
   width: 100%;
   justify-content: center;
 }
@@ -4816,12 +4832,29 @@ input:-webkit-autofill:active {
     display: none;
   }
 
+  .backups-page .page-header__actions,
+  .reports-page .page-header__actions {
+    display: none;
+  }
+
   .settings-save-row {
     grid-column: 1 / -1;
     display: flex;
     position: sticky;
     bottom: 0;
     z-index: 1100;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2px);
+    background: linear-gradient(180deg, transparent 0%, var(--color-bg) 28%);
+  }
+
+  .backups-mobile-actions-shell,
+  .reports-mobile-actions-shell {
+    display: flex;
+    position: sticky;
+    bottom: 0;
+    z-index: 1100;
+    margin-top: 0;
+    padding-top: 0;
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 2px);
     background: linear-gradient(180deg, transparent 0%, var(--color-bg) 28%);
   }
@@ -5884,8 +5917,8 @@ input:-webkit-autofill:active {
   }
 
   .pagination {
-    align-items: stretch;
-    gap: 12px;
+    align-items: center;
+    gap: 10px;
   }
 
   .pagination__summary,
@@ -5899,31 +5932,38 @@ input:-webkit-autofill:active {
   }
 
   .pagination__status {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
   }
 
   .pagination__status-main {
-    width: 100%;
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 0;
     justify-content: space-between;
-    padding: 0.75rem;
+    padding: 0.65rem 0.75rem;
     border-radius: var(--radius-md);
   }
 
   .pagination__meta,
   .pagination__nav,
   .pagination__total {
-    width: 100%;
+    width: auto;
   }
 
   .pagination__nav {
     justify-content: flex-end;
+    flex-shrink: 0;
   }
 
   .pagination__total {
     justify-content: center;
     border-radius: var(--radius-md);
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding-inline: 0.75rem;
   }
 
   .dashboard-period-bar {

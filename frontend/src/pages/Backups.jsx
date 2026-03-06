@@ -240,17 +240,24 @@ const Backups = () => {
         return 'neutral';
     };
 
+    const renderGenerateBackupButton = (className = '') => (
+        <button
+            type="button"
+            className={`btn btn-primary ${className}`.trim()}
+            onClick={handleGenerate}
+            disabled={generating || loading}
+        >
+            {generating ? <RefreshCcw size={18} className="spin" /> : <Database size={18} />}
+            {generating ? 'Generando...' : 'Generar respaldo'}
+        </button>
+    );
+
     return (
-        <div className="page-shell fade-in stack-lg">
+        <div className="page-shell fade-in stack-lg backups-page">
             <PageHeader
                 title="Gestión de respaldos"
                 subtitle="Protege tu información mediante copias locales y sincronización opcional en Dropbox."
-                actions={(
-                    <button type="button" className="btn btn-primary" onClick={handleGenerate} disabled={generating || loading}>
-                        {generating ? <RefreshCcw size={18} className="spin" /> : <Database size={18} />}
-                        {generating ? 'Generando...' : 'Generar respaldo'}
-                    </button>
-                )}
+                actions={renderGenerateBackupButton()}
             />
 
             {error ? <Alert type="error">{error}</Alert> : null}
@@ -511,6 +518,10 @@ const Backups = () => {
                 confirmText="Eliminar"
                 type="danger"
             />
+
+            <div className="backups-mobile-actions-shell">
+                {renderGenerateBackupButton()}
+            </div>
         </div>
     );
 };

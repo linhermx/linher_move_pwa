@@ -327,10 +327,10 @@ const History = () => {
                         <caption className="sr-only">Tabla de historial de cotizaciones</caption>
                         <thead>
                             <tr>
-                                <th scope="col">FOLIO</th>
+                                <th scope="col" className="table__head--folio">FOLIO</th>
                                 <th scope="col" className="table__head--date">FECHA</th>
-                                <th scope="col">RUTA</th>
-                                <th scope="col">TOTAL</th>
+                                <th scope="col" className="table__head--route">RUTA</th>
+                                <th scope="col" className="table__head--currency">TOTAL</th>
                                 <th scope="col" className="table__head--type">TIPO</th>
                                 <th scope="col">ESTATUS</th>
                                 <th scope="col" align="right">ACCIONES</th>
@@ -358,7 +358,7 @@ const History = () => {
 
                                     return (
                                         <tr key={quote.id}>
-                                            <td>
+                                            <td className="table__cell--folio">
                                                 <strong className="text-primary">{quote.folio}</strong>
                                             </td>
                                             <td className="table__cell--date">
@@ -367,13 +367,13 @@ const History = () => {
                                                     <span>{formatDate(quote.created_at)}</span>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td className="table__cell--route">
                                                 <div className="stack-xs">
                                                     <span className="table__entity-title">{quote.origin_address.split(',')[0]} {'→'}</span>
                                                     <span className="table__entity-subtitle">{quote.destination_address.split(',')[0]}</span>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td className="table__cell--currency">
                                                 <strong>${Number(quote.total).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
                                             </td>
                                             <td className="table__cell--type">

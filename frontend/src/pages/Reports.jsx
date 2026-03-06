@@ -166,6 +166,17 @@ const Reports = () => {
         }
     };
 
+    const renderExportButton = (className = '') => (
+        <button
+            type="button"
+            className={`btn btn-primary ${className}`.trim()}
+            onClick={handleExport}
+        >
+            <Download size={16} />
+            Exportar CSV
+        </button>
+    );
+
     const renderKpis = () => {
         if (!reportData) {
             return null;
@@ -291,16 +302,11 @@ const Reports = () => {
             : 'table--reports-operational';
 
     return (
-        <div className="page-shell fade-in stack-lg">
+        <div className="page-shell fade-in stack-lg reports-page">
             <PageHeader
                 title="Reportes"
                 subtitle="Consulta indicadores operativos y financieros con filtros dinámicos."
-                actions={canExport ? (
-                    <button type="button" className="btn btn-primary" onClick={handleExport}>
-                        <Download size={16} />
-                        Exportar CSV
-                    </button>
-                ) : null}
+                actions={canExport ? renderExportButton() : null}
             />
 
             <section className="card stack-md" aria-label="Tipo de reporte">
@@ -499,6 +505,12 @@ const Reports = () => {
                         />
                     </section>
                 </>
+            ) : null}
+
+            {canExport ? (
+                <div className="reports-mobile-actions-shell">
+                    {renderExportButton()}
+                </div>
             ) : null}
         </div>
     );
