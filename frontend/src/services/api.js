@@ -228,6 +228,10 @@ export const userService = {
         const response = await apiClient.delete(`/users/${id}`);
         return response.data;
     },
+    offboard: async (id, data) => {
+        const response = await apiClient.post(`/users/${id}/offboard`, data);
+        return response.data;
+    },
     updatePermissions: async (id, permissions) => {
         const response = await apiClient.post(`/users/${id}/permissions`, { permissions });
         return response.data;

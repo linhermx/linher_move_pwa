@@ -9,6 +9,10 @@ const toInt = (value, fallback = 0) => {
     return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const operatorAttributionExpression = (alias = 'q') => (
+    `CASE WHEN ${alias}.status = 'completada' THEN COALESCE(${alias}.completed_by_user_id, ${alias}.user_id) ELSE COALESCE(${alias}.assigned_user_id, ${alias}.user_id) END`
+);
+
 export class ReportModel extends BaseModel {
     constructor(db) {
         super('quotations', db);
@@ -57,7 +61,7 @@ export class ReportModel extends BaseModel {
         }
 
         if (filters.operator_id) {
-            clauses.push(`${alias}.user_id = ?`);
+            clauses.push(`${operatorAttributionExpression(alias)} = ?`);
             params.push(filters.operator_id);
         }
 
@@ -93,7 +97,7 @@ export class ReportModel extends BaseModel {
                 COALESCE(qc.total, 0) AS total,
                 CASE WHEN qst.quotation_id IS NULL THEN 'logistics' ELSE 'services' END AS quote_type
             FROM quotations q
-            LEFT JOIN users u ON u.id = q.user_id
+            LEFT JOIN users u ON u.id = ${operatorAttributionExpression('q')}
             LEFT JOIN quotation_routes qr ON qr.quotation_id = q.id
             LEFT JOIN quotation_costs qc ON qc.quotation_id = q.id
             LEFT JOIN (
@@ -195,14 +199,14 @@ export class ReportModel extends BaseModel {
         const countQuery = `
             SELECT COUNT(*) AS total
             FROM (
-                SELECT q.user_id
+                SELECT ${operatorAttributionExpression('q')} AS operator_id
                 FROM quotations q
                 LEFT JOIN (
                     SELECT DISTINCT quotation_id
                     FROM quotation_services
                 ) qst ON qst.quotation_id = q.id
                 ${where}
-                GROUP BY q.user_id
+                GROUP BY ${operatorAttributionExpression('q')}
             ) grouped
         `;
 
@@ -218,7 +222,7 @@ export class ReportModel extends BaseModel {
                 ) AS success_rate,
                 COALESCE(SUM(CASE WHEN q.status = 'completada' THEN qc.total ELSE 0 END), 0) AS revenue
             FROM quotations q
-            JOIN users u ON u.id = q.user_id
+            JOIN users u ON u.id = ${operatorAttributionExpression('q')}
             LEFT JOIN quotation_costs qc ON qc.quotation_id = q.id
             LEFT JOIN (
                 SELECT DISTINCT quotation_id
@@ -232,7 +236,7 @@ export class ReportModel extends BaseModel {
 
         const totalsQuery = `
             SELECT
-                COUNT(DISTINCT q.user_id) AS total_operators,
+                COUNT(DISTINCT ${operatorAttributionExpression('q')}) AS total_operators,
                 COUNT(*) AS total_quotes,
                 SUM(CASE WHEN q.status = 'completada' THEN 1 ELSE 0 END) AS total_completed,
                 COALESCE(SUM(CASE WHEN q.status = 'completada' THEN qc.total ELSE 0 END), 0) AS total_revenue
@@ -302,7 +306,7 @@ export class ReportModel extends BaseModel {
                 COALESCE(service_totals.services_cost, 0) AS services_cost,
                 CASE WHEN qst.quotation_id IS NULL THEN 'logistics' ELSE 'services' END AS quote_type
             FROM quotations q
-            LEFT JOIN users u ON u.id = q.user_id
+            LEFT JOIN users u ON u.id = ${operatorAttributionExpression('q')}
             LEFT JOIN quotation_costs qc ON qc.quotation_id = q.id
             LEFT JOIN (
                 SELECT quotation_id, SUM(cost) AS services_cost
@@ -363,7 +367,7 @@ export class ReportModel extends BaseModel {
                 u.name AS operator_name,
                 COALESCE(qc.total, 0) AS total
             FROM quotations q
-            LEFT JOIN users u ON u.id = q.user_id
+            LEFT JOIN users u ON u.id = ${operatorAttributionExpression('q')}
             LEFT JOIN quotation_costs qc ON qc.quotation_id = q.id
             LEFT JOIN (
                 SELECT DISTINCT quotation_id
@@ -443,14 +447,14 @@ export class ReportModel extends BaseModel {
             const countQuery = `
                 SELECT COUNT(*) AS total
                 FROM (
-                    SELECT q.user_id
+                    SELECT ${operatorAttributionExpression('q')} AS operator_id
                     FROM quotations q
                     LEFT JOIN (
                         SELECT DISTINCT quotation_id
                         FROM quotation_services
                     ) qst ON qst.quotation_id = q.id
                     ${where}
-                    GROUP BY q.user_id
+                    GROUP BY ${operatorAttributionExpression('q')}
                 ) grouped
             `;
 
@@ -490,7 +494,7 @@ export class ReportModel extends BaseModel {
                     ) AS success_rate,
                     COALESCE(SUM(CASE WHEN q.status = 'completada' THEN qc.total ELSE 0 END), 0) AS revenue
                 FROM quotations q
-                JOIN users u ON u.id = q.user_id
+                JOIN users u ON u.id = ${operatorAttributionExpression('q')}
                 LEFT JOIN quotation_costs qc ON qc.quotation_id = q.id
                 LEFT JOIN (
                     SELECT DISTINCT quotation_id
@@ -524,7 +528,7 @@ export class ReportModel extends BaseModel {
                     COALESCE(service_totals.services_cost, 0) AS services_cost,
                     CASE WHEN qst.quotation_id IS NULL THEN 'logistics' ELSE 'services' END AS quote_type
                 FROM quotations q
-                LEFT JOIN users u ON u.id = q.user_id
+                LEFT JOIN users u ON u.id = ${operatorAttributionExpression('q')}
                 LEFT JOIN quotation_costs qc ON qc.quotation_id = q.id
                 LEFT JOIN (
                     SELECT quotation_id, SUM(cost) AS services_cost
@@ -558,7 +562,7 @@ export class ReportModel extends BaseModel {
                 COALESCE(qc.total, 0) AS total,
                 CASE WHEN qst.quotation_id IS NULL THEN 'logistics' ELSE 'services' END AS quote_type
             FROM quotations q
-            LEFT JOIN users u ON u.id = q.user_id
+            LEFT JOIN users u ON u.id = ${operatorAttributionExpression('q')}
             LEFT JOIN quotation_routes qr ON qr.quotation_id = q.id
             LEFT JOIN quotation_costs qc ON qc.quotation_id = q.id
             LEFT JOIN (

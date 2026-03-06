@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Check, Edit2, Search, Shield, Trash2, UserPlus, X } from 'lucide-react';
+import { Check, Edit2, Filter, Search, Shield, Trash2, UserMinus, UserPlus, X } from 'lucide-react';
 import { userService } from '../services/api';
 import { useNotification } from '../context/NotificationContext';
 import ConfirmModal from '../components/ConfirmModal';
 import UserModal from '../components/UserModal';
 import CustomMenu from '../components/CustomMenu';
+import CustomSelect from '../components/CustomSelect';
 import Pagination from '../components/Pagination';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
@@ -14,6 +15,11 @@ import ModalShell from '../components/ModalShell';
 import { formatDate } from '../utils/formatters';
 
 const NON_DELEGABLE_PERMISSIONS = new Set(['manage_users', 'manage_backups']);
+const USER_STATUS_FILTERS = [
+    { value: 'active', label: 'Activos' },
+    { value: 'inactive', label: 'Inactivos' },
+    { value: 'all', label: 'Todos' }
+];
 
 const Users = () => {
     const [users, setUsers] = useState([]);
@@ -22,6 +28,7 @@ const Users = () => {
     const [permissions, setPermissions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('active');
     const [limit, setLimit] = useState(10);
     const [offset, setOffset] = useState(0);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,6 +37,12 @@ const Users = () => {
     const [userToDelete, setUserToDelete] = useState(null);
     const [selectedUserForPerms, setSelectedUserForPerms] = useState(null);
     const [userIndividualPerms, setUserIndividualPerms] = useState([]);
+    const [isOffboardOpen, setIsOffboardOpen] = useState(false);
+    const [offboardTargetUser, setOffboardTargetUser] = useState(null);
+    const [offboardReplacementId, setOffboardReplacementId] = useState('');
+    const [offboardReason, setOffboardReason] = useState('');
+    const [offboardCandidates, setOffboardCandidates] = useState([]);
+    const [offboardLoading, setOffboardLoading] = useState(false);
     const { showNotification } = useNotification();
 
     const fetchData = useCallback(async () => {
@@ -38,6 +51,9 @@ const Users = () => {
             const params = { limit, offset };
             if (search) {
                 params.search = search;
+            }
+            if (statusFilter !== 'all') {
+                params.status = statusFilter;
             }
 
             const [usersResponse, rolesData, permissionsData] = await Promise.all([
@@ -50,12 +66,12 @@ const Users = () => {
             setPagination(usersResponse.pagination || { current_page: 1, pages: 1, total: 0, limit });
             setRoles(rolesData);
             setPermissions(permissionsData);
-        } catch {
-            showNotification('Error al cargar datos de usuarios', 'error');
+        } catch (error) {
+            showNotification(error.response?.data?.message || 'Error al cargar datos de usuarios', 'error');
         } finally {
             setLoading(false);
         }
-    }, [limit, offset, search, showNotification]);
+    }, [limit, offset, search, showNotification, statusFilter]);
 
     useEffect(() => {
         const timer = setTimeout(fetchData, 250);
@@ -67,8 +83,8 @@ const Users = () => {
             await userService.delete(userToDelete.id);
             showNotification('Usuario eliminado exitosamente', 'success');
             await fetchData();
-        } catch {
-            showNotification('Error al eliminar usuario', 'error');
+        } catch (error) {
+            showNotification(error.response?.data?.message || 'Error al eliminar usuario', 'error');
         } finally {
             setIsConfirmOpen(false);
             setUserToDelete(null);
@@ -110,6 +126,65 @@ const Users = () => {
         }
     };
 
+    const openOffboardModal = async (user) => {
+        setOffboardTargetUser(user);
+        setOffboardReplacementId('');
+        setOffboardReason('');
+        setOffboardCandidates([]);
+        setOffboardLoading(true);
+        setIsOffboardOpen(true);
+
+        try {
+            const response = await userService.list({
+                limit: 500,
+                offset: 0,
+                status: 'active'
+            });
+            const candidates = (response.data || []).filter((candidate) => candidate.id !== user.id);
+            setOffboardCandidates(candidates);
+        } catch (error) {
+            showNotification(error.response?.data?.message || 'No se pudo cargar la lista de reemplazo.', 'error');
+        } finally {
+            setOffboardLoading(false);
+        }
+    };
+
+    const closeOffboardModal = () => {
+        setIsOffboardOpen(false);
+        setOffboardTargetUser(null);
+        setOffboardReplacementId('');
+        setOffboardReason('');
+        setOffboardCandidates([]);
+        setOffboardLoading(false);
+    };
+
+    const submitOffboard = async () => {
+        if (!offboardTargetUser) {
+            return;
+        }
+
+        if (!offboardReplacementId) {
+            showNotification('Selecciona un usuario de reemplazo.', 'warning');
+            return;
+        }
+
+        setOffboardLoading(true);
+        try {
+            const response = await userService.offboard(offboardTargetUser.id, {
+                replacement_user_id: Number(offboardReplacementId),
+                reason: offboardReason.trim()
+            });
+            const reassignedQuotes = Number(response.reassigned_quotes || 0);
+            showNotification(`Baja aplicada. ${reassignedQuotes} cotizaciones activas reasignadas.`, 'success');
+            closeOffboardModal();
+            await fetchData();
+        } catch (error) {
+            showNotification(error.response?.data?.message || 'No se pudo completar la baja.', 'error');
+        } finally {
+            setOffboardLoading(false);
+        }
+    };
+
     return (
         <div className="page-shell stack-lg">
             <PageHeader
@@ -130,18 +205,44 @@ const Users = () => {
                 )}
             />
 
-            <section className="form-field-group" aria-label="Búsqueda de usuarios">
-                <label className="sr-only" htmlFor="users-search">Buscar usuarios</label>
-                <Search size={18} className="text-muted" />
-                <input
-                    id="users-search"
-                    name="users_search"
-                    type="text"
-                    value={search}
-                    placeholder="Buscar por nombre o email..."
-                    onChange={(event) => setSearch(event.target.value)}
-                    autoComplete="off"
-                />
+
+            <section className="card stack-md" aria-label="Filtros de usuarios">
+                <div className="filter-toolbar filter-toolbar--users">
+                    <div className="filter-toolbar__item filter-toolbar__item--search">
+                        <div className="form-field-group">
+                            <label className="sr-only" htmlFor="users-search">Buscar usuarios</label>
+                            <Search size={18} className="text-muted" />
+                            <input
+                                id="users-search"
+                                name="users_search"
+                                type="text"
+                                value={search}
+                                placeholder="Buscar por nombre o email..."
+                                onChange={(event) => {
+                                    setSearch(event.target.value);
+                                    setOffset(0);
+                                }}
+                                autoComplete="off"
+                            />
+                        </div>
+                    </div>
+                    <div className="filter-toolbar__item filter-toolbar__item--status">
+                        <div className="form-field-group">
+                            <Filter size={18} className="text-muted" />
+                            <CustomSelect
+                                id="users-status-filter"
+                                name="users_status_filter"
+                                value={statusFilter}
+                                options={USER_STATUS_FILTERS}
+                                onChange={(event) => {
+                                    setStatusFilter(event.target.value);
+                                    setOffset(0);
+                                }}
+                                ariaLabel="Filtrar usuarios por estatus"
+                            />
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <section className="card card--flush table-shell" aria-labelledby="users-table-title">
@@ -151,7 +252,10 @@ const Users = () => {
                             <Shield size={18} className="text-primary" />
                             <span>Usuarios registrados</span>
                         </div>
-                        <p className="card-header__subtitle">{pagination.total} registros encontrados.</p>
+                        <p className="card-header__subtitle">
+                            {pagination.total} registros encontrados
+                            {statusFilter === 'active' ? ' (activos).' : statusFilter === 'inactive' ? ' (inactivos).' : '.'}
+                        </p>
                     </div>
                 </div>
 
@@ -219,6 +323,13 @@ const Users = () => {
                                                             setIsModalOpen(true);
                                                         }
                                                     },
+                                                    ...(user.status === 'active'
+                                                        ? [{
+                                                            label: 'Dar de baja y reasignar',
+                                                            icon: <UserMinus />,
+                                                            onClick: () => openOffboardModal(user)
+                                                        }]
+                                                        : []),
                                                     {
                                                         label: 'Eliminar',
                                                         icon: <Trash2 />,
@@ -306,6 +417,77 @@ const Users = () => {
                             </button>
                         );
                     })}
+                </div>
+            </ModalShell>
+
+            <ModalShell
+                isOpen={isOffboardOpen}
+                onClose={closeOffboardModal}
+                title="Dar de baja y reasignar"
+                subtitle={offboardTargetUser ? `Usuario: ${offboardTargetUser.name}` : ''}
+                size="sm"
+                labelledBy="offboard-user-title"
+                describedBy="offboard-user-description"
+                footer={(
+                    <>
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={closeOffboardModal}
+                            disabled={offboardLoading}
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={submitOffboard}
+                            disabled={offboardLoading || offboardCandidates.length === 0}
+                        >
+                            {offboardLoading ? 'Aplicando...' : 'Dar de baja'}
+                        </button>
+                    </>
+                )}
+            >
+                <div className="stack-sm">
+                    <p className="text-muted">
+                        Las cotizaciones activas se transferirán al reemplazo y el usuario quedará inactivo sin perder historial.
+                    </p>
+
+                    <div>
+                        <label className="form-label" htmlFor="offboard-replacement">REASIGNAR A</label>
+                        <div className="form-select-container">
+                            <CustomSelect
+                                id="offboard-replacement"
+                                name="offboard_replacement"
+                                value={offboardReplacementId}
+                                options={offboardCandidates.map((candidate) => ({
+                                    value: String(candidate.id),
+                                    label: `${candidate.name} (${candidate.role_name})`
+                                }))}
+                                onChange={(event) => setOffboardReplacementId(event.target.value)}
+                                ariaLabel="Seleccionar usuario de reemplazo"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="form-label" htmlFor="offboard-reason">MOTIVO (OPCIONAL)</label>
+                        <textarea
+                            id="offboard-reason"
+                            name="offboard_reason"
+                            className="form-field"
+                            value={offboardReason}
+                            onChange={(event) => setOffboardReason(event.target.value)}
+                            rows={3}
+                            maxLength={255}
+                            placeholder="Ej. Baja voluntaria"
+                        />
+                    </div>
+
+                    {!offboardLoading && offboardCandidates.length === 0 ? (
+                        <p className="text-muted">No hay usuarios activos disponibles para reasignar.</p>
+                    ) : null}
                 </div>
             </ModalShell>
 

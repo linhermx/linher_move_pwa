@@ -181,9 +181,15 @@ export class QuotationModel extends BaseModel {
         try {
             // 1. Insert into quotations
             const [qResult] = await connection.query(`
-                INSERT INTO ${this.tableName} (folio, user_id, vehicle_id, status)
-                VALUES (?, ?, ?, 'pendiente')
-            `, [data.folio, data.user_id, data.vehicle_id]);
+                INSERT INTO ${this.tableName} (folio, user_id, assigned_user_id, completed_by_user_id, vehicle_id, status)
+                VALUES (?, ?, ?, ?, ?, 'pendiente')
+            `, [
+                data.folio,
+                data.user_id,
+                data.assigned_user_id ?? data.user_id,
+                data.completed_by_user_id ?? null,
+                data.vehicle_id
+            ]);
 
             const quoteId = qResult.insertId;
 
@@ -269,6 +275,7 @@ export class QuotationModel extends BaseModel {
     async getById(id) {
         const query = `
             SELECT q.*, qr.*, qc.*, qp.*, v.name as vehicle_name, v.plate as vehicle_plate, u.name as user_name,
+                   au.name as assigned_user_name, cu.name as completed_by_user_name,
                    qc.logistics_cost_rounded as costo_logistico_redondeado,
                    qp.num_legs as num_trayectos, qp.num_tolls as num_casetas, qp.toll_unit_cost as costo_casetas_unit,
                    qp.maneuver_factor_applied as factor_maniobra_applied, qp.traffic_factor_applied as factor_trafico_applied
@@ -278,6 +285,8 @@ export class QuotationModel extends BaseModel {
             LEFT JOIN quotation_parameters qp ON q.id = qp.quotation_id
             LEFT JOIN vehicles v ON q.vehicle_id = v.id
             LEFT JOIN users u ON q.user_id = u.id
+            LEFT JOIN users au ON q.assigned_user_id = au.id
+            LEFT JOIN users cu ON q.completed_by_user_id = cu.id
             WHERE q.id = ?
         `;
         const [rows] = await this.db.query(query, [id]);
@@ -322,7 +331,7 @@ export class QuotationModel extends BaseModel {
 
         try {
             // Update quotations table
-            const qFields = ['status', 'vehicle_id'];
+            const qFields = ['status', 'vehicle_id', 'assigned_user_id', 'completed_by_user_id'];
             let qUpdates = [];
             let qParams = [];
             for (let f of qFields) {

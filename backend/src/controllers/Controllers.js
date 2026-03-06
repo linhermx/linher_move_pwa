@@ -319,10 +319,17 @@ export const QuotationController = (db) => {
         },
         create: async (req, res) => {
             try {
-                const folio = await model.generateFolio(req.body.user_id);
+                const creatorUserId = req.authUser?.id || Number(req.body.user_id);
+                if (!creatorUserId) {
+                    return res.status(401).json({ message: 'Autenticacion requerida' });
+                }
+                const folio = await model.generateFolio(creatorUserId);
 
                 const quoteData = {
                     ...req.body,
+                    user_id: creatorUserId,
+                    assigned_user_id: req.body.assigned_user_id || creatorUserId,
+                    completed_by_user_id: null,
                     folio
                 };
 
@@ -338,7 +345,12 @@ export const QuotationController = (db) => {
                 });
 
                 // Log action
-                await logger.business(req.body.operator_id, 'CREATE_QUOTATION', { quote_id: quoteId, folio, total: req.body.total });
+                await logger.business(req.authUser?.id || req.body.operator_id, 'CREATE_QUOTATION', {
+                    quote_id: quoteId,
+                    folio,
+                    total: req.body.total,
+                    assigned_user_id: quoteData.assigned_user_id
+                });
             } catch (error) {
                 console.error(error);
                 await handleApiError(logger, req, res, error, 'QUOTATION_CREATE_ERROR');
@@ -356,12 +368,20 @@ export const QuotationController = (db) => {
         },
         update: async (req, res) => {
             try {
-                const success = await model.updateQuote(req.params.id, req.body);
+                const updatePayload = { ...req.body };
+
+                if (Object.prototype.hasOwnProperty.call(req.body, 'status')) {
+                    updatePayload.completed_by_user_id = req.body.status === 'completada'
+                        ? (req.authUser?.id || req.body.operator_id || null)
+                        : null;
+                }
+
+                const success = await model.updateQuote(req.params.id, updatePayload);
                 if (!success) return res.status(404).json({ message: "Quotation not found or no changes made" });
                 res.json({ message: "Quotation updated successfully" });
 
                 // Log action
-                await logger.business(req.body.operator_id, 'UPDATE_QUOTATION', {
+                await logger.business(req.authUser?.id || req.body.operator_id, 'UPDATE_QUOTATION', {
                     quote_id: req.params.id,
                     status: req.body.status,
                     total: req.body.total
@@ -598,15 +618,96 @@ export const UserController = (db) => {
         },
         delete: async (req, res) => {
             try {
-                const success = await model.delete(req.params.id);
-                if (!success) return res.status(404).json({ message: "Usuario eliminado" });
+                const userId = Number(req.params.id);
+                if (!Number.isInteger(userId) || userId <= 0) {
+                    return res.status(400).json({ message: 'Usuario invalido' });
+                }
+
+                if (Number(req.authUser?.id) === userId) {
+                    return res.status(400).json({ message: 'No puedes eliminar tu propia cuenta.' });
+                }
+
+                const existing = await model.getById(userId);
+                if (!existing) {
+                    return res.status(404).json({ message: 'Usuario no encontrado' });
+                }
+
+                const relationState = await model.hasRelatedRecords(userId);
+                if (relationState.hasRelations) {
+                    return res.status(409).json({
+                        message: 'No se puede eliminar un usuario con historial. Usa la baja y reasignacion.'
+                    });
+                }
+
+                const success = await model.delete(userId);
+                if (!success) return res.status(404).json({ message: "Usuario no encontrado" });
 
                 // Log
-                await logger.system(req.body.operator_id || req.query.operator_id, 'DELETE_USER', { user_id: req.params.id });
+                await logger.system(req.authUser?.id || req.body.operator_id || req.query.operator_id, 'DELETE_USER', { user_id: userId });
 
                 res.json({ message: "Usuario eliminado" });
             } catch (error) {
+                if (error?.code === 'ER_ROW_IS_REFERENCED_2') {
+                    return res.status(409).json({
+                        message: 'No se puede eliminar un usuario con historial. Usa la baja y reasignacion.'
+                    });
+                }
                 res.status(500).json({ message: error.message });
+            }
+        },
+        offboard: async (req, res) => {
+            try {
+                const targetUserId = Number(req.params.id);
+                const replacementUserId = Number(req.body.replacement_user_id);
+                const actorUserId = req.authUser?.id || req.body.operator_id || null;
+                const reason = req.body.reason || null;
+
+                if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
+                    return res.status(400).json({ message: 'Usuario objetivo invalido' });
+                }
+
+                if (!Number.isInteger(replacementUserId) || replacementUserId <= 0) {
+                    return res.status(400).json({ message: 'Selecciona un usuario de reemplazo valido' });
+                }
+
+                if (Number(actorUserId) === targetUserId) {
+                    return res.status(400).json({ message: 'No puedes darte de baja a ti mismo.' });
+                }
+
+                const result = await model.offboardUserWithReassignment({
+                    targetUserId,
+                    replacementUserId,
+                    actorUserId,
+                    reason
+                });
+
+                await logger.system(actorUserId, 'OFFBOARD_USER', {
+                    target_user_id: targetUserId,
+                    target_user_name: result.targetUser.name,
+                    replacement_user_id: replacementUserId,
+                    replacement_user_name: result.replacementUser.name,
+                    reassigned_quotes: result.reassignedCount,
+                    reason: reason || null
+                });
+
+                return res.json({
+                    message: 'Usuario dado de baja y reasignacion completada',
+                    target_user: result.targetUser.name,
+                    replacement_user: result.replacementUser.name,
+                    reassigned_quotes: result.reassignedCount
+                });
+            } catch (error) {
+                const statusByCode = {
+                    OFFBOARD_INVALID_REPLACEMENT: 400,
+                    OFFBOARD_TARGET_NOT_FOUND: 404,
+                    OFFBOARD_REPLACEMENT_NOT_FOUND: 404,
+                    OFFBOARD_TARGET_INACTIVE: 409,
+                    OFFBOARD_REPLACEMENT_INACTIVE: 409,
+                    OFFBOARD_LAST_ADMIN: 409
+                };
+
+                const status = statusByCode[error.code] || 500;
+                return res.status(status).json({ message: error.message || 'No se pudo completar la baja de usuario' });
             }
         },
         updatePermissions: async (req, res) => {
@@ -720,6 +821,9 @@ export const DashboardController = (db) => {
                     if (date_to) { clause += ` AND ${col} <= ?`; params.push(`${date_to} 23:59:59`); }
                     return { clause, params };
                 };
+                const completedOperatorExpression = 'COALESCE(q.completed_by_user_id, q.user_id)';
+                const activeOperatorExpression = 'COALESCE(q.assigned_user_id, q.user_id)';
+                const dashboardOperatorExpression = `CASE WHEN q.status = 'completada' THEN ${completedOperatorExpression} ELSE ${activeOperatorExpression} END`;
 
                 // ── Shared: quotations by status (with optional filter) ───────────────
                 const { clause: sc, params: sp } = dateClause();
@@ -755,7 +859,7 @@ export const DashboardController = (db) => {
                     ] = await Promise.all([
                         db.query(revenueQuery, revenueParams),
                         db.query(`SELECT COUNT(*) as total FROM quotations WHERE 1=1${dc}`, dp),
-                        db.query(`SELECT u.name, COUNT(q.id) as total FROM quotations q JOIN users u ON q.user_id=u.id WHERE q.status='completada'${dqc} GROUP BY u.id, u.name ORDER BY total DESC LIMIT 5`, dqp),
+                        db.query(`SELECT u.name, COUNT(q.id) as total FROM quotations q JOIN users u ON u.id=${completedOperatorExpression} WHERE q.status='completada'${dqc} GROUP BY u.id, u.name ORDER BY total DESC LIMIT 5`, dqp),
                         db.query(`SELECT DATE(created_at) as day, COUNT(*) as count FROM quotations WHERE 1=1${dc} GROUP BY DATE(created_at) ORDER BY day ASC`, dp),
                         // Fleet & users are real-time — not date-filtered
                         db.query(`SELECT status, COUNT(*) as count FROM vehicles GROUP BY status`),
@@ -804,10 +908,10 @@ export const DashboardController = (db) => {
                     ] = await Promise.all([
                         db.query(`SELECT status, COUNT(*) as count FROM vehicles GROUP BY status`),
                         db.query(`SELECT COALESCE(AVG(rendimiento_real/rendimiento_teorico*100), 0) as fleet_eff FROM vehicles WHERE rendimiento_teorico > 0`),
-                        db.query(`SELECT q.folio, qc.total, q.created_at, u.name as operator FROM quotations q JOIN users u ON q.user_id=u.id JOIN quotation_costs qc ON q.id = qc.quotation_id WHERE q.status='pendiente'${dqc} ORDER BY q.created_at DESC LIMIT 5`, dqp),
+                        db.query(`SELECT q.folio, qc.total, q.created_at, u.name as operator FROM quotations q JOIN users u ON u.id=${activeOperatorExpression} JOIN quotation_costs qc ON q.id = qc.quotation_id WHERE q.status='pendiente'${dqc} ORDER BY q.created_at DESC LIMIT 5`, dqp),
                         db.query(`SELECT COALESCE(AVG(qr.time_total), 0) as avg_time FROM quotations q JOIN quotation_routes qr ON q.id = qr.quotation_id WHERE q.status='completada'${dqc}`, dqp),
                         db.query(`SELECT COALESCE(SUM(qc.total), 0) as revenue FROM quotations q JOIN quotation_costs qc ON q.id = qc.quotation_id WHERE q.status='completada'${dqc}`, dqp),
-                        db.query(`SELECT u.name, COUNT(q.id) as total FROM quotations q JOIN users u ON q.user_id=u.id WHERE q.status='completada'${dqc} GROUP BY u.id, u.name ORDER BY total DESC LIMIT 5`, dqp),
+                        db.query(`SELECT u.name, COUNT(q.id) as total FROM quotations q JOIN users u ON u.id=${completedOperatorExpression} WHERE q.status='completada'${dqc} GROUP BY u.id, u.name ORDER BY total DESC LIMIT 5`, dqp),
                         db.query(`SELECT DATE(created_at) as day, COUNT(*) as count FROM quotations WHERE 1=1${dc} GROUP BY DATE(created_at) ORDER BY day ASC`, dp),
                         db.query(`
                             SELECT
@@ -869,10 +973,10 @@ export const DashboardController = (db) => {
                     [myWeeklyRows],
                     [myRecentRows]
                 ] = await Promise.all([
-                    db.query(`SELECT status, COUNT(*) as count FROM quotations q WHERE q.user_id=?${dqc} GROUP BY status`, [user_id, ...dqp]),
-                    db.query(`SELECT COALESCE(SUM(qc.total),0) as amount FROM quotations q JOIN quotation_costs qc ON q.id=qc.quotation_id WHERE q.user_id=? AND q.status='completada'${dqc}`, [user_id, ...dqp]),
-                    db.query(`SELECT YEARWEEK(q.created_at,1) as week, COUNT(*) as count FROM quotations q WHERE q.user_id=?${dqc} GROUP BY YEARWEEK(q.created_at,1) ORDER BY week ASC`, [user_id, ...dqp]),
-                    db.query(`SELECT q.folio, qr.destination_address, qc.total, q.status, q.created_at FROM quotations q JOIN quotation_routes qr ON q.id = qr.quotation_id JOIN quotation_costs qc ON q.id = qc.quotation_id WHERE q.user_id=?${dqc} ORDER BY q.created_at DESC LIMIT 5`, [user_id, ...dqp])
+                    db.query(`SELECT status, COUNT(*) as count FROM quotations q WHERE ${dashboardOperatorExpression}=?${dqc} GROUP BY status`, [user_id, ...dqp]),
+                    db.query(`SELECT COALESCE(SUM(qc.total),0) as amount FROM quotations q JOIN quotation_costs qc ON q.id=qc.quotation_id WHERE ${completedOperatorExpression}=? AND q.status='completada'${dqc}`, [user_id, ...dqp]),
+                    db.query(`SELECT YEARWEEK(q.created_at,1) as week, COUNT(*) as count FROM quotations q WHERE ${dashboardOperatorExpression}=?${dqc} GROUP BY YEARWEEK(q.created_at,1) ORDER BY week ASC`, [user_id, ...dqp]),
+                    db.query(`SELECT q.folio, qr.destination_address, qc.total, q.status, q.created_at FROM quotations q JOIN quotation_routes qr ON q.id = qr.quotation_id JOIN quotation_costs qc ON q.id = qc.quotation_id WHERE ${dashboardOperatorExpression}=?${dqc} ORDER BY q.created_at DESC LIMIT 5`, [user_id, ...dqp])
                 ]);
 
                 const myTotal = myStatusRows.reduce((s, r) => s + r.count, 0);

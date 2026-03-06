@@ -29,6 +29,23 @@ const tableExists = async (db, tableName) => {
     return rows.length > 0;
 };
 
+const foreignKeyExistsForColumn = async (db, tableName, columnName) => {
+    const [rows] = await db.query(
+        `
+            SELECT 1
+            FROM information_schema.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = ?
+              AND COLUMN_NAME = ?
+              AND REFERENCED_TABLE_NAME IS NOT NULL
+            LIMIT 1
+        `,
+        [tableName, columnName]
+    );
+
+    return rows.length > 0;
+};
+
 export const ensureOperationalSchema = async (db) => {
     await db.query(`
         CREATE TABLE IF NOT EXISTS logs (
@@ -88,6 +105,70 @@ export const ensureOperationalSchema = async (db) => {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (operator_id) REFERENCES users(id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    await db.query(`
+        CREATE TABLE IF NOT EXISTS quotation_reassignments (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            quotation_id INT NOT NULL,
+            from_user_id INT NOT NULL,
+            to_user_id INT NOT NULL,
+            reassigned_by_user_id INT NOT NULL,
+            reason VARCHAR(255) NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT fk_quotation_reassignments_quote
+                FOREIGN KEY (quotation_id) REFERENCES quotations(id) ON DELETE CASCADE,
+            CONSTRAINT fk_quotation_reassignments_from_user
+                FOREIGN KEY (from_user_id) REFERENCES users(id),
+            CONSTRAINT fk_quotation_reassignments_to_user
+                FOREIGN KEY (to_user_id) REFERENCES users(id),
+            CONSTRAINT fk_quotation_reassignments_actor
+                FOREIGN KEY (reassigned_by_user_id) REFERENCES users(id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    if (!(await columnExists(db, 'quotations', 'assigned_user_id'))) {
+        await db.query(`
+            ALTER TABLE quotations
+            ADD COLUMN assigned_user_id INT NULL AFTER user_id
+        `);
+    }
+
+    if (!(await columnExists(db, 'quotations', 'completed_by_user_id'))) {
+        await db.query(`
+            ALTER TABLE quotations
+            ADD COLUMN completed_by_user_id INT NULL AFTER assigned_user_id
+        `);
+    }
+
+    if (!(await foreignKeyExistsForColumn(db, 'quotations', 'assigned_user_id'))) {
+        await db.query(`
+            ALTER TABLE quotations
+            ADD CONSTRAINT fk_quotations_assigned_user_id
+            FOREIGN KEY (assigned_user_id) REFERENCES users(id)
+        `);
+    }
+
+    if (!(await foreignKeyExistsForColumn(db, 'quotations', 'completed_by_user_id'))) {
+        await db.query(`
+            ALTER TABLE quotations
+            ADD CONSTRAINT fk_quotations_completed_by_user_id
+            FOREIGN KEY (completed_by_user_id) REFERENCES users(id)
+        `);
+    }
+
+    await db.query(`
+        UPDATE quotations
+        SET assigned_user_id = user_id
+        WHERE assigned_user_id IS NULL
+          AND status IN ('pendiente', 'en_proceso')
+    `);
+
+    await db.query(`
+        UPDATE quotations
+        SET completed_by_user_id = user_id
+        WHERE completed_by_user_id IS NULL
+          AND status = 'completada'
     `);
 
     if (await tableExists(db, 'logs')) {

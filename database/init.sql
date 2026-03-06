@@ -81,11 +81,15 @@ CREATE TABLE IF NOT EXISTS `quotations` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `folio` VARCHAR(20) NOT NULL UNIQUE,
   `user_id` INT,
+  `assigned_user_id` INT,
+  `completed_by_user_id` INT,
   `vehicle_id` INT,
   `status` ENUM('pendiente', 'en_proceso', 'completada', 'cancelada') DEFAULT 'pendiente',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`),
+  FOREIGN KEY (`assigned_user_id`) REFERENCES `users`(`id`),
+  FOREIGN KEY (`completed_by_user_id`) REFERENCES `users`(`id`),
   FOREIGN KEY (`vehicle_id`) REFERENCES `vehicles`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -147,6 +151,20 @@ CREATE TABLE IF NOT EXISTS `quotation_services` (
   `time_minutes` INT DEFAULT 0,
   FOREIGN KEY (`quotation_id`) REFERENCES `quotations`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`service_id`) REFERENCES `services`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `quotation_reassignments` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `quotation_id` INT NOT NULL,
+  `from_user_id` INT NOT NULL,
+  `to_user_id` INT NOT NULL,
+  `reassigned_by_user_id` INT NOT NULL,
+  `reason` VARCHAR(255),
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`quotation_id`) REFERENCES `quotations`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`from_user_id`) REFERENCES `users`(`id`),
+  FOREIGN KEY (`to_user_id`) REFERENCES `users`(`id`),
+  FOREIGN KEY (`reassigned_by_user_id`) REFERENCES `users`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 7. Logs & Auditing

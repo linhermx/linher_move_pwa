@@ -144,6 +144,7 @@ v1.get('/users/:id', requireAuth, requireRole('admin'), userCtrl.show);
 v1.post('/users', requireAuth, requireRole('admin'), upload.single('photo'), userCtrl.create);
 v1.put('/users/:id', requireAuth, requireRole('admin'), upload.single('photo'), userCtrl.update);
 v1.delete('/users/:id', requireAuth, requireRole('admin'), userCtrl.delete);
+v1.post('/users/:id/offboard', requireAuth, requireRole('admin'), userCtrl.offboard);
 v1.post('/users/:id/permissions', requireAuth, requireRole('admin'), userCtrl.updatePermissions);
 
 // Logs

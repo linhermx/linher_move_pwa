@@ -2766,6 +2766,20 @@ input:-webkit-autofill:active {
   width: auto;
 }
 
+.filter-toolbar--users .filter-toolbar__item--search {
+  flex: 1.8 1 360px;
+  min-width: 260px;
+}
+
+.filter-toolbar--users .filter-toolbar__item--status {
+  flex: 0.9 1 220px;
+  min-width: 200px;
+}
+
+.filter-toolbar--users .filter-toolbar__item--status .form-field-group {
+  width: 100%;
+}
+
 .reports-kpi-grid {
   display: grid;
   gap: var(--spacing-md);

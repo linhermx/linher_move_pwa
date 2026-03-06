@@ -1,5 +1,13 @@
 import { BaseModel } from './BaseModel.js';
 
+const ALLOWED_STATUS_FILTERS = new Set(['active', 'inactive']);
+
+const buildModelError = (code, message) => {
+    const error = new Error(message);
+    error.code = code;
+    return error;
+};
+
 export class UserModel extends BaseModel {
     constructor(db) {
         super('users', db);
@@ -17,6 +25,11 @@ export class UserModel extends BaseModel {
         if (filters.search) {
             query += " AND (u.name LIKE ? OR u.email LIKE ?)";
             params.push(`%${filters.search}%`, `%${filters.search}%`);
+        }
+
+        if (ALLOWED_STATUS_FILTERS.has(filters.status)) {
+            query += " AND u.status = ?";
+            params.push(filters.status);
         }
 
         query += " ORDER BY u.created_at DESC";
@@ -41,6 +54,11 @@ export class UserModel extends BaseModel {
         if (filters.search) {
             query += " AND (u.name LIKE ? OR u.email LIKE ?)";
             params.push(`%${filters.search}%`, `%${filters.search}%`);
+        }
+
+        if (ALLOWED_STATUS_FILTERS.has(filters.status)) {
+            query += " AND u.status = ?";
+            params.push(filters.status);
         }
 
         const [rows] = await this.db.query(query, params);
@@ -163,6 +181,179 @@ export class UserModel extends BaseModel {
             }
         }
         return true;
+    }
+
+    async hasRelatedRecords(userId) {
+        const [rows] = await this.db.query(
+            `
+                SELECT
+                    (
+                        SELECT COUNT(*)
+                        FROM quotations q
+                        WHERE q.user_id = ?
+                           OR q.assigned_user_id = ?
+                           OR q.completed_by_user_id = ?
+                    ) AS quotations_count,
+                    (
+                        SELECT COUNT(*)
+                        FROM logs l
+                        WHERE l.user_id = ?
+                    ) AS logs_count,
+                    (
+                        SELECT COUNT(*)
+                        FROM backups b
+                        WHERE b.operator_id = ?
+                    ) AS backups_count,
+                    (
+                        SELECT COUNT(*)
+                        FROM integration_connections ic
+                        WHERE ic.connected_by_user_id = ?
+                    ) AS integration_connections_count,
+                    (
+                        SELECT COUNT(*)
+                        FROM integration_oauth_states ios
+                        WHERE ios.operator_id = ?
+                    ) AS oauth_states_count
+            `,
+            [userId, userId, userId, userId, userId, userId, userId]
+        );
+
+        const counts = rows[0] || {};
+        const totalRelations = Object.values(counts).reduce((sum, value) => sum + Number(value || 0), 0);
+
+        return {
+            hasRelations: totalRelations > 0,
+            counts
+        };
+    }
+
+    async offboardUserWithReassignment({ targetUserId, replacementUserId, actorUserId, reason }) {
+        const connection = await this.db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            if (Number(targetUserId) === Number(replacementUserId)) {
+                throw buildModelError('OFFBOARD_INVALID_REPLACEMENT', 'El usuario de reemplazo debe ser distinto.');
+            }
+
+            const [targetRows] = await connection.query(
+                `
+                    SELECT id, name, role_id, status
+                    FROM users
+                    WHERE id = ?
+                    FOR UPDATE
+                `,
+                [targetUserId]
+            );
+
+            if (targetRows.length === 0) {
+                throw buildModelError('OFFBOARD_TARGET_NOT_FOUND', 'Usuario objetivo no encontrado.');
+            }
+
+            const targetUser = targetRows[0];
+            if (targetUser.status !== 'active') {
+                throw buildModelError('OFFBOARD_TARGET_INACTIVE', 'El usuario ya se encuentra inactivo.');
+            }
+
+            if (Number(targetUser.role_id) === 1) {
+                const [adminRows] = await connection.query(
+                    `
+                        SELECT COUNT(*) AS active_admins
+                        FROM users
+                        WHERE role_id = 1
+                          AND status = 'active'
+                          AND id <> ?
+                    `,
+                    [targetUserId]
+                );
+
+                if (Number(adminRows[0]?.active_admins || 0) < 1) {
+                    throw buildModelError('OFFBOARD_LAST_ADMIN', 'No puedes dar de baja al ultimo administrador activo.');
+                }
+            }
+
+            const [replacementRows] = await connection.query(
+                `
+                    SELECT id, name, status
+                    FROM users
+                    WHERE id = ?
+                    FOR UPDATE
+                `,
+                [replacementUserId]
+            );
+
+            if (replacementRows.length === 0) {
+                throw buildModelError('OFFBOARD_REPLACEMENT_NOT_FOUND', 'Usuario de reemplazo no encontrado.');
+            }
+
+            const replacementUser = replacementRows[0];
+            if (replacementUser.status !== 'active') {
+                throw buildModelError('OFFBOARD_REPLACEMENT_INACTIVE', 'El usuario de reemplazo debe estar activo.');
+            }
+
+            const [quoteRows] = await connection.query(
+                `
+                    SELECT id
+                    FROM quotations
+                    WHERE status IN ('pendiente', 'en_proceso')
+                      AND (
+                        assigned_user_id = ?
+                        OR (assigned_user_id IS NULL AND user_id = ?)
+                      )
+                    FOR UPDATE
+                `,
+                [targetUserId, targetUserId]
+            );
+
+            const quoteIds = quoteRows.map((row) => row.id);
+
+            if (quoteIds.length > 0) {
+                await connection.query(
+                    `
+                        UPDATE quotations
+                        SET assigned_user_id = ?
+                        WHERE id IN (?)
+                    `,
+                    [replacementUserId, quoteIds]
+                );
+
+                const reassignmentReason = reason && String(reason).trim() !== '' ? String(reason).trim() : null;
+                const values = quoteIds.map((quoteId) => (
+                    [quoteId, targetUserId, replacementUserId, actorUserId, reassignmentReason]
+                ));
+
+                await connection.query(
+                    `
+                        INSERT INTO quotation_reassignments
+                        (quotation_id, from_user_id, to_user_id, reassigned_by_user_id, reason)
+                        VALUES ?
+                    `,
+                    [values]
+                );
+            }
+
+            await connection.query(
+                `
+                    UPDATE users
+                    SET status = 'inactive'
+                    WHERE id = ?
+                `,
+                [targetUserId]
+            );
+
+            await connection.commit();
+
+            return {
+                targetUser,
+                replacementUser,
+                reassignedCount: quoteIds.length
+            };
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     }
 
     async getAllRoles() {
