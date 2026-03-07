@@ -1,16 +1,54 @@
-# React + Vite
+# Frontend - LINHER Move PWA
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicacion React + Vite para operacion diaria de cotizaciones, flota, respaldos y reportes.
 
-Currently, two official plugins are available:
+## Requisitos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Node.js 20+
+- npm 10+
+- Backend de `linher_move_pwa` ejecutandose en local
 
-## React Compiler
+## Instalacion
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Desde la carpeta `frontend/`:
 
-## Expanding the ESLint configuration
+```bash
+npm install
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Variables de entorno
+
+Crear `frontend/.env` (o `.env.local`) con:
+
+```env
+VITE_API_URL=http://localhost:3000/api/v1
+VITE_BACKEND_URL=http://localhost:3000
+```
+
+Si `VITE_BACKEND_URL` no se define, se infiere desde `VITE_API_URL`.
+
+## Scripts disponibles
+
+```bash
+npm run dev      # desarrollo local (Vite)
+npm run lint     # analisis estatico con ESLint
+npm run build    # build de produccion
+npm run preview  # levantar build local
+```
+
+## Estructura base
+
+- `src/pages/`: pantallas por modulo
+- `src/components/`: componentes reutilizables del sistema UI
+- `src/services/`: cliente HTTP, logger, PWA y servicios de integracion
+- `src/context/`: estado global (tema, sesion, etc.)
+- `src/design-tokens.css`: tokens de diseno (fuente visual)
+- `src/index.css`: estilos globales y clases del sistema
+
+## Convenciones del proyecto
+
+- Texto visible al usuario final en espanol.
+- Modo dark/light controlado por `data-theme`.
+- Evitar estilos inline para layout/colores/tipografia; reutilizar clases existentes.
+- Preferir componentes del sistema (`PageHeader`, `ModalShell`, `Alert`, `NotificationToast`, etc.).
+- Todo control de formulario debe incluir `id`, `name` y etiqueta asociada.
