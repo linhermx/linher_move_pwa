@@ -323,17 +323,17 @@ export const QuotationController = (db) => {
                 if (!creatorUserId) {
                     return res.status(401).json({ message: 'Autenticacion requerida' });
                 }
-                const folio = await model.generateFolio(creatorUserId);
 
                 const quoteData = {
                     ...req.body,
                     user_id: creatorUserId,
                     assigned_user_id: req.body.assigned_user_id || creatorUserId,
-                    completed_by_user_id: null,
-                    folio
+                    completed_by_user_id: null
                 };
 
-                const quoteId = await model.createQuote(quoteData);
+                const createdQuote = await model.createQuote(quoteData);
+                const quoteId = createdQuote?.id || createdQuote;
+                const folio = createdQuote?.folio || null;
                 if (req.body.stops) {
                     await model.addStops(quoteId, req.body.stops);
                 }

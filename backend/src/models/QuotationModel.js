@@ -5,6 +5,59 @@ export class QuotationModel extends BaseModel {
         super('quotations', db);
     }
 
+    async getUserInitials(connection, userId) {
+        let userInitials = "XX";
+
+        try {
+            const [users] = await connection.query(
+                "SELECT name FROM `users` WHERE id = ?",
+                [userId]
+            );
+
+            if (users.length > 0) {
+                const nameParts = users[0].name.trim().split(/\s+/);
+                if (nameParts.length >= 2) {
+                    userInitials = (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+                } else if (nameParts.length === 1) {
+                    userInitials = nameParts[0].slice(0, 2).toUpperCase();
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching user name for folio:", error);
+        }
+
+        return userInitials;
+    }
+
+    async generateFolioInTransaction(connection, userId) {
+        const userInitials = await this.getUserInitials(connection, userId);
+        const now = new Date();
+        const yearMonth = now.toISOString().slice(2, 7).replace('-', ''); // YYMM
+
+        const [rows] = await connection.query(
+            "SELECT last_count FROM `folio_counters` WHERE `year_month` = ? FOR UPDATE",
+            [yearMonth]
+        );
+
+        let newCount;
+        if (rows.length > 0) {
+            newCount = rows[0].last_count + 1;
+            await connection.query(
+                "UPDATE `folio_counters` SET last_count = ? WHERE `year_month` = ?",
+                [newCount, yearMonth]
+            );
+        } else {
+            newCount = 1;
+            await connection.query(
+                "INSERT INTO `folio_counters` (`year_month`, last_count) VALUES (?, ?)",
+                [yearMonth, newCount]
+            );
+        }
+
+        const counterPart = String(newCount).padStart(4, '0');
+        return `LM${userInitials}-${yearMonth}${counterPart}`;
+    }
+
     /**
      * Get all records from the table with filters
      */
@@ -112,60 +165,13 @@ export class QuotationModel extends BaseModel {
     }
 
     async generateFolio(userId) {
-        let userInitials = "XX"; // Fallback
-
-        try {
-            // 1. Get user name to extract initials
-            const [users] = await this.db.query(
-                "SELECT name FROM `users` WHERE id = ?",
-                [userId]
-            );
-
-            if (users.length > 0) {
-                const nameParts = users[0].name.trim().split(/\s+/);
-                if (nameParts.length >= 2) {
-                    // First letter of first name and first letter of last name
-                    userInitials = (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
-                } else if (nameParts.length === 1) {
-                    // First two letters of the name if only one part
-                    userInitials = nameParts[0].slice(0, 2).toUpperCase();
-                }
-            }
-        } catch (error) {
-            console.error("Error fetching user name for folio:", error);
-        }
-
-        const now = new Date();
-        const datePart = now.toISOString().slice(2, 10).replace(/-/g, ''); // YYMMDD
-        const yearMonth = now.toISOString().slice(2, 7).replace('-', ''); // YYMM
-
         const connection = await this.db.getConnection();
         await connection.beginTransaction();
 
         try {
-            const [rows] = await connection.query(
-                "SELECT last_count FROM `folio_counters` WHERE `year_month` = ? FOR UPDATE",
-                [yearMonth]
-            );
-
-            let newCount;
-            if (rows.length > 0) {
-                newCount = rows[0].last_count + 1;
-                await connection.query(
-                    "UPDATE `folio_counters` SET last_count = ? WHERE `year_month` = ?",
-                    [newCount, yearMonth]
-                );
-            } else {
-                newCount = 1;
-                await connection.query(
-                    "INSERT INTO `folio_counters` (`year_month`, last_count) VALUES (?, ?)",
-                    [yearMonth, newCount]
-                );
-            }
-
+            const folio = await this.generateFolioInTransaction(connection, userId);
             await connection.commit();
-            const counterPart = String(newCount).padStart(4, '0');
-            return `LM${userInitials}-${yearMonth}${counterPart}`;
+            return folio;
         } catch (error) {
             await connection.rollback();
             throw error;
@@ -179,12 +185,14 @@ export class QuotationModel extends BaseModel {
         await connection.beginTransaction();
 
         try {
+            const folio = data.folio || await this.generateFolioInTransaction(connection, data.user_id);
+
             // 1. Insert into quotations
             const [qResult] = await connection.query(`
                 INSERT INTO ${this.tableName} (folio, user_id, assigned_user_id, completed_by_user_id, vehicle_id, status)
                 VALUES (?, ?, ?, ?, ?, 'pendiente')
             `, [
-                data.folio,
+                folio,
                 data.user_id,
                 data.assigned_user_id ?? data.user_id,
                 data.completed_by_user_id ?? null,
@@ -248,7 +256,7 @@ export class QuotationModel extends BaseModel {
             // In case there is an addServices call elsewhere, it's safer to keep the old addServices function as well.
 
             await connection.commit();
-            return quoteId;
+            return { id: quoteId, folio };
         } catch (error) {
             await connection.rollback();
             throw error;
