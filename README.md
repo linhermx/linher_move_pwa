@@ -1,6 +1,6 @@
 # LINHER Move PWA
 
-Aplicación web para cotizaciones, operación logística, flota, auditoría y respaldos.
+Aplicación web para cotizaciones, operación logística, flota, auditoría, respaldos y reportes.
 
 ## Stack
 
@@ -9,11 +9,29 @@ Aplicación web para cotizaciones, operación logística, flota, auditoría y re
 - Base de datos: MySQL
 - Estilos: CSS vanilla con design tokens
 
-## Variables de entorno de backend
+## Requisitos
 
-Archivo: `backend/.env`
+- Node.js 20+
+- npm 10+
+- MySQL local (XAMPP o equivalente)
 
-Variables relevantes para respaldos y Dropbox:
+## Estructura del repositorio
+
+- `frontend/`: aplicación React
+- `backend/`: API y lógica de negocio
+- `database/`: esquema y seeds
+
+## Instalación inicial
+
+Desde la raíz del proyecto:
+
+```bash
+npm run install-all
+```
+
+## Variables de entorno
+
+### Backend (`backend/.env`)
 
 ```env
 PORT=3000
@@ -31,7 +49,62 @@ FRONTEND_URL="http://localhost:5173"
 REPORT_EXPORT_MAX_ROWS=200000
 ```
 
-`REPORT_EXPORT_MAX_ROWS` define el tope de seguridad para exportaciones CSV de reportes.
+### Frontend (`frontend/.env` o `frontend/.env.local`)
+
+```env
+VITE_API_URL=http://localhost:3000/api/v1
+VITE_BACKEND_URL=http://localhost:3000
+```
+
+## Inicialización de base de datos (importante)
+
+El script de bootstrap ahora separa esquema y seeds:
+
+- `database/init.sql`: solo esquema
+- `database/seed_core.sql`: seed obligatorio de producción limpia
+- `database/seed_demo.sql`: seed opcional para demo/pruebas
+
+Desde `backend/`:
+
+```bash
+node scripts/init-db.js
+```
+
+Eso ejecuta:
+
+1. `init.sql`
+2. `seed_core.sql`
+
+Si quieres cargar también datos demo:
+
+```bash
+node scripts/init-db.js --with-demo
+```
+
+## Desarrollo
+
+Desde la raíz (frontend + backend en paralelo):
+
+```bash
+npm run dev
+```
+
+También puedes levantar por separado:
+
+```bash
+npm run backend
+npm run frontend
+```
+
+## Scripts útiles de backend
+
+Desde `backend/`:
+
+```bash
+npm run dev
+npm run backup:test-auto
+npm run backup:restore
+```
 
 ## Respaldos automáticos
 
@@ -69,21 +142,6 @@ Después:
 - se conservan los 7 respaldos locales más recientes
 - si Dropbox está conectado, se intenta sincronizar el mismo `.zip`
 - Dropbox también conserva los 7 respaldos cloud más recientes
-
-## Estados operativos visibles en la UI
-
-La pantalla `Respaldos` muestra:
-
-- estado de automatización
-- ventana esperada de ejecución
-- último respaldo automático
-- último respaldo local
-- última sincronización cloud
-- advertencia si el respaldo automático está atrasado o nunca ha corrido
-
-Backend relacionado:
-
-- `GET /api/v1/backups/summary`
 
 ## Probar automatización sin esperar medianoche
 
@@ -144,7 +202,7 @@ Comportamiento por defecto:
 - toma el `.zip` más reciente de `backend/backups/`
 - restaura `database.sql`
 - restaura `uploads/`
-- reaplica el esquema operativo actual para no perder migraciones recientes
+- reaplica el esquema operativo actual para no perder ajustes recientes
 
 ### Restaurar un zip específico
 
@@ -187,13 +245,3 @@ En un escenario de desastre total, la recuperación correcta es:
 
 - descargar manualmente el respaldo desde Dropbox
 - restaurar con el script externo
-
-## Comandos útiles
-
-Desde `backend/`:
-
-```bash
-npm run dev
-npm run backup:test-auto
-npm run backup:restore
-```

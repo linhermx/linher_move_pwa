@@ -228,25 +228,7 @@ CREATE TABLE IF NOT EXISTS `integration_oauth_states` (
   FOREIGN KEY (`operator_id`) REFERENCES `users`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 9. Seed Data
--- Seed Basic Roles
-INSERT IGNORE INTO `roles` (`id`, `name`, `description`) VALUES 
-(1, 'admin', 'Control total del sistema'),
-(2, 'supervisor', 'Gestión de flota y parámetros globales'),
-(3, 'operador', 'Generación de cotizaciones');
-
--- Seed Basic Permissions
-INSERT IGNORE INTO `permissions` (`slug`, `name`) VALUES 
-('create_quotation', 'Crear Cotización'),
-('view_history', 'Ver Historial'),
-('manage_fleet', 'Gestionar Flota'),
-('edit_settings', 'Editar Parámetros'),
-('manage_users', 'Gestionar Usuarios'),
-('manage_services', 'Gestionar Servicios'),
-('manage_backups', 'Gestionar Respaldos'),
-('view_reports', 'Ver Reportes'),
-('export_reports', 'Exportar Reportes');
-
+-- 9. RBAC Role-Permission Mapping
 CREATE TABLE IF NOT EXISTS `role_permissions` (
   `role_id` INT,
   `permission_id` INT,
@@ -255,32 +237,6 @@ CREATE TABLE IF NOT EXISTS `role_permissions` (
   FOREIGN KEY (`permission_id`) REFERENCES `permissions`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Seed Role Permissions
--- Admin (Everything)
-INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`) 
-SELECT 1, id FROM `permissions`;
-
--- Supervisor (Quotes, History, Fleet, Services)
-INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`) 
-SELECT 2, id FROM `permissions` WHERE slug IN ('create_quotation', 'view_history', 'manage_fleet', 'manage_services', 'view_reports');
-
--- Operador (Quotes, History)
-INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`) 
-SELECT 3, id FROM `permissions` WHERE slug IN ('create_quotation', 'view_history');
-
--- Seed Default Services
-INSERT IGNORE INTO `services` (`id`, `name`, `cost`, `time_minutes`, `description`) VALUES 
-(1, 'Interconexión', 200.00, 30, 'Costo por maniobras de interconexión'),
-(2, 'Mantenimiento', 500.00, 60, 'Mantenimiento preventivo en sitio'),
-(3, 'Comida', 150.00, 45, 'Apoyo para alimentos del operador'),
-(4, 'Hospedaje', 800.00, 480, 'Costo por noche de hospedaje'),
-(5, 'Maniobra Carga/Descarga', 1200.00, 120, 'Servicio profesional de carga y descarga');
-
-INSERT IGNORE INTO `global_settings` (`setting_key`, `setting_value`, `description`) VALUES
-('backups_enabled', 'false', 'Enable automated backups from the server scheduler'),
-('backup_frequency', 'daily', 'Automatic backup frequency: daily or weekly');
-
--- Seed Default Admin User (Password: admin123)
--- Note: In a real app, use hashed passwords.
-INSERT IGNORE INTO `users` (`id`, `name`, `email`, `password`, `role_id`, `status`) VALUES 
-(1, 'Administrador Linher', 'admin@linher.com', 'admin123', 1, 'active');
+-- Seed data moved to dedicated files:
+-- - database/seed_core.sql (required for clean production bootstrap)
+-- - database/seed_demo.sql (optional demo/test catalog data)

@@ -6,6 +6,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '../.env') });
+const args = process.argv.slice(2);
+const includeDemoSeed = args.includes('--with-demo');
 
 async function initDB() {
     const connection = await mysql.createConnection({
@@ -22,11 +24,22 @@ async function initDB() {
     await connection.query(`USE ${dbName}`);
     console.log(`Database "${dbName}" ensured.`);
 
-    const sqlPath = path.join(__dirname, '../../database/init.sql');
-    const sql = fs.readFileSync(sqlPath, 'utf8');
+    const runSqlFile = async (relativeFilePath, label) => {
+        const sqlPath = path.join(__dirname, relativeFilePath);
+        const sql = fs.readFileSync(sqlPath, 'utf8');
+        console.log(`Executing ${label}...`);
+        await connection.query(sql);
+    };
 
-    console.log('Executing init.sql...');
-    await connection.query(sql);
+    await runSqlFile('../../database/init.sql', 'init.sql');
+    await runSqlFile('../../database/seed_core.sql', 'seed_core.sql');
+
+    if (includeDemoSeed) {
+        await runSqlFile('../../database/seed_demo.sql', 'seed_demo.sql');
+    } else {
+        console.log('Skipping seed_demo.sql (run with --with-demo to include demo catalog data).');
+    }
+
     console.log('Database initialized successfully.');
 
     await connection.end();
