@@ -40,9 +40,9 @@ WHERE slug IN ('create_quotation', 'view_history');
 
 -- Seed mandatory system settings
 INSERT IGNORE INTO `global_settings` (`setting_key`, `setting_value`, `description`) VALUES
-('gasoline_price', '24.50', 'Precio base gasolina por litro'),
+('gasoline_price', '26.00', 'Precio base gasolina por litro'),
 ('maneuver_factor', '1.2', 'Factor de maniobra'),
-('traffic_factor', '1.5', 'Factor de trafico'),
+('traffic_factor', '1.15', 'Factor de trafico'),
 ('base_efficiency', '1.0', 'Factor base de eficiencia'),
 ('lodging_tier1_cost', '1500', 'Costo hospedaje nivel 1'),
 ('lodging_tier2_cost', '2400', 'Costo hospedaje nivel 2'),
@@ -56,12 +56,12 @@ INSERT IGNORE INTO `global_settings` (`setting_key`, `setting_value`, `descripti
 ('meal_tier1_hours', '8', 'Umbral horas alimentos nivel 1'),
 ('meal_tier2_hours', '12', 'Umbral horas alimentos nivel 2'),
 ('default_origin_address', 'Puebla, Pue., Mexico', 'Origen por defecto'),
-('default_origin_lat', '19.0414', 'Latitud origen por defecto'),
-('default_origin_lng', '-98.2063', 'Longitud origen por defecto'),
+('default_origin_lat', '18.968434', 'Latitud origen por defecto'),
+('default_origin_lng', '-98.188468', 'Longitud origen por defecto'),
 ('backups_enabled', 'false', 'Enable automated backups from the server scheduler'),
 ('backup_frequency', 'daily', 'Automatic backup frequency: daily or weekly');
 
 -- Seed default admin user (Password: admin123)
 -- Keep this credential temporary and rotate in deployment hardening.
 INSERT IGNORE INTO `users` (`id`, `name`, `email`, `password`, `role_id`, `status`) VALUES
-(1, 'Administrador Linher', 'admin@linher.com', 'admin123', 1, 'active');
+(1, 'Administrador LINHER', 'programador@linher.com.mx', 'admin123', 1, 'active');
