@@ -6,6 +6,11 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "db:dev:sanitize:dry": "node scripts/sanitize-delivery-db.js",
+    "db:dev:sanitize:apply": "node scripts/sanitize-delivery-db.js --apply",
+    "db:dev:sanitize:verify": "node scripts/sanitize-delivery-db.js --verify-only",
+    "db:release:sanitize:apply": "node scripts/sanitize-delivery-db.js --apply --clear-catalogs --single-admin --normalize-core-ids",
+    "db:release:sanitize:verify": "node scripts/sanitize-delivery-db.js --verify-only --clear-catalogs --single-admin --normalize-core-ids",
     "backup:test-auto": "node scripts/run-automated-backup.js",
     "backup:restore": "node scripts/restore-backup.js",
     "test": "echo \"Error: no test specified\" && exit 1"

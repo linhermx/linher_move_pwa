@@ -106,6 +106,55 @@ npm run backup:test-auto
 npm run backup:restore
 ```
 
+## Saneamiento pre-entrega de base de datos
+
+Desde `backend/`:
+
+### Desarrollo
+
+```bash
+npm run db:dev:sanitize:dry
+npm run db:dev:sanitize:apply
+npm run db:dev:sanitize:verify
+```
+
+Uso:
+
+- `db:dev:sanitize:dry`: simulación, no modifica nada.
+- `db:dev:sanitize:apply`: limpia datos transaccionales.
+- `db:dev:sanitize:verify`: valida que la limpieza de desarrollo quedó correcta.
+
+### Entrega/producción (base final limpia)
+
+```bash
+npm run db:release:sanitize:apply
+npm run db:release:sanitize:verify
+```
+
+Incluye automáticamente:
+
+- Limpieza transaccional.
+- Limpieza de catálogos (`vehicles` y `services`).
+- Conserva solo una cuenta admin.
+- Normaliza IDs de tablas core (`roles`, `permissions`, `global_settings`, `users`).
+- Reaplica `seed_core.sql` para baseline mínimo.
+
+Si necesitas una variante avanzada, puedes ejecutar `node scripts/sanitize-delivery-db.js` directamente con flags.
+
+Flags disponibles:
+
+- `--apply`: ejecuta cambios reales.
+- `--verify-only`: valida estado sin modificar datos.
+- `--clear-catalogs`: tambien limpia `vehicles` y `services`.
+- `--clear-non-admin-users`: elimina usuarios que no sean admin.
+- `--single-admin`: deja exactamente una cuenta admin (elimina el resto de usuarios).
+- `--normalize-core-ids`: reconstruye tablas core y reinicia IDs en secuencia.
+- `--skip-core-reseed`: omite reaplicar `seed_core.sql` (no usar en modo release).
+
+Regla:
+
+- `--normalize-core-ids` requiere core reseed activo (no compatible con `--skip-core-reseed`).
+
 ## Respaldos automáticos
 
 La automatización se configura desde la pantalla de `Respaldos`.
