@@ -1,20 +1,30 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { MoreVertical } from 'lucide-react';
 
 const VIEWPORT_PADDING = 16;
+const MENU_GAP = 8;
 
 const CustomMenu = ({ options, icon }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [openUpward, setOpenUpward] = useState(false);
     const containerRef = useRef(null);
     const menuRef = useRef(null);
     const MenuIcon = icon || MoreVertical;
 
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (containerRef.current && !containerRef.current.contains(event.target)) {
-                setIsOpen(false);
+            const container = containerRef.current;
+            const menu = menuRef.current;
+
+            if (!container) {
+                return;
             }
+
+            if (container.contains(event.target) || menu?.contains(event.target)) {
+                return;
+            }
+
+            setIsOpen(false);
         };
 
         document.addEventListener('mousedown', handleClickOutside);
@@ -36,39 +46,45 @@ const CustomMenu = ({ options, icon }) => {
             }
 
             const triggerRect = container.getBoundingClientRect();
-            const tableScrollContainer = container.closest('.table-scroll');
-            const lowerBoundary = tableScrollContainer
-                ? Math.min(window.innerHeight - VIEWPORT_PADDING, tableScrollContainer.getBoundingClientRect().bottom - VIEWPORT_PADDING)
-                : window.innerHeight - VIEWPORT_PADDING;
-            const upperBoundary = tableScrollContainer
-                ? Math.max(VIEWPORT_PADDING, tableScrollContainer.getBoundingClientRect().top + VIEWPORT_PADDING)
-                : VIEWPORT_PADDING;
             const availableWidth = Math.max(180, window.innerWidth - (VIEWPORT_PADDING * 2));
             const menuWidth = Math.min(Math.max(menu.offsetWidth, 180), availableWidth);
             const menuHeight = menu.offsetHeight;
-            const spaceBelow = lowerBoundary - triggerRect.bottom;
-            const spaceAbove = triggerRect.top - upperBoundary;
+            const spaceBelow = (window.innerHeight - VIEWPORT_PADDING) - triggerRect.bottom;
+            const spaceAbove = triggerRect.top - VIEWPORT_PADDING;
             const shouldOpenUpward = spaceBelow < menuHeight && spaceAbove > spaceBelow;
             const availableVerticalSpace = shouldOpenUpward ? spaceAbove : spaceBelow;
             const maxHeight = Math.max(120, Math.floor(availableVerticalSpace));
 
-            let left = triggerRect.width - menuWidth;
-            let viewportLeft = triggerRect.left + left;
-            let viewportRight = viewportLeft + menuWidth;
+            let left = triggerRect.right - menuWidth;
+            const maxLeft = window.innerWidth - VIEWPORT_PADDING - menuWidth;
 
-            if (viewportLeft < VIEWPORT_PADDING) {
-                left += VIEWPORT_PADDING - viewportLeft;
-                viewportLeft = VIEWPORT_PADDING;
-                viewportRight = viewportLeft + menuWidth;
+            if (left < VIEWPORT_PADDING) {
+                left = VIEWPORT_PADDING;
             }
 
-            if (viewportRight > window.innerWidth - VIEWPORT_PADDING) {
-                left -= viewportRight - (window.innerWidth - VIEWPORT_PADDING);
+            if (left > maxLeft) {
+                left = maxLeft;
             }
 
-            setOpenUpward(shouldOpenUpward);
-            menu.style.setProperty('--custom-menu-left', `${left}px`);
-            menu.style.setProperty('--custom-menu-max-height', `${maxHeight}px`);
+            const renderedMenuHeight = Math.min(menuHeight, maxHeight);
+            let top = shouldOpenUpward
+                ? triggerRect.top - renderedMenuHeight - MENU_GAP
+                : triggerRect.bottom + MENU_GAP;
+            const minTop = VIEWPORT_PADDING;
+            const maxTop = window.innerHeight - VIEWPORT_PADDING - renderedMenuHeight;
+
+            if (top < minTop) {
+                top = minTop;
+            }
+
+            if (top > maxTop) {
+                top = Math.max(minTop, maxTop);
+            }
+
+            menu.style.left = `${Math.round(left)}px`;
+            menu.style.top = `${Math.round(top)}px`;
+            menu.style.maxHeight = `${maxHeight}px`;
+            menu.style.visibility = 'visible';
         };
 
         const handleKeyDown = (event) => {
@@ -89,6 +105,31 @@ const CustomMenu = ({ options, icon }) => {
         };
     }, [isOpen]);
 
+    const menuPanel = isOpen ? createPortal(
+        <div
+            ref={menuRef}
+            className="custom-menu__panel custom-scrollbar"
+            role="menu"
+        >
+            {options.map((option, index) => (
+                <button
+                    key={index}
+                    type="button"
+                    className={`custom-menu__item ${option.variant === 'danger' ? 'custom-menu__item--danger' : ''}`.trim()}
+                    role="menuitem"
+                    onClick={() => {
+                        option.onClick();
+                        setIsOpen(false);
+                    }}
+                >
+                    {option.icon ? React.cloneElement(option.icon, { size: 16 }) : null}
+                    <span>{option.label}</span>
+                </button>
+            ))}
+        </div>,
+        document.body
+    ) : null;
+
     return (
         <div ref={containerRef} className="custom-menu">
             <button
@@ -103,30 +144,7 @@ const CustomMenu = ({ options, icon }) => {
             >
                 <MenuIcon size={18} />
             </button>
-
-            {isOpen ? (
-                <div
-                    ref={menuRef}
-                    className={`custom-menu__panel custom-scrollbar ${openUpward ? 'custom-menu__panel--upward' : ''}`.trim()}
-                    role="menu"
-                >
-                    {options.map((option, index) => (
-                        <button
-                            key={index}
-                            type="button"
-                            className={`custom-menu__item ${option.variant === 'danger' ? 'custom-menu__item--danger' : ''}`.trim()}
-                            role="menuitem"
-                            onClick={() => {
-                                option.onClick();
-                                setIsOpen(false);
-                            }}
-                        >
-                            {option.icon ? React.cloneElement(option.icon, { size: 16 }) : null}
-                            <span>{option.label}</span>
-                        </button>
-                    ))}
-                </div>
-            ) : null}
+            {menuPanel}
         </div>
     );
 };
