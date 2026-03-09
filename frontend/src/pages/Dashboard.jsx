@@ -14,7 +14,7 @@ import { dashboardService } from '../services/api';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
 
-// â”€â”€ Chart color palette aligned with the design system â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Chart color palette aligned with the design system ───────────────────
 const C = {
     primary: '#FF4848',
     success: '#28A745',
@@ -68,7 +68,7 @@ const FLEET_LABEL = {
 };
 
 const QUOTE_TYPE_LABEL = {
-    logistics: 'LogÃ­stica',
+    logistics: 'Logística',
     services: 'Servicios'
 };
 
@@ -92,13 +92,13 @@ const LOG_TYPE_VARIANT = {
     error: 'error',
 };
 
-// â”€â”€ Formatters â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Formatters ─────────────────────────────────────────────────────────────
 
-// Full currency with 2 decimal places â€” for tables and detailed views
+// Full currency with 2 decimal places — for tables and detailed views
 const formatMXN = (v) =>
     new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v || 0);
 
-// Compact currency for KPI cards â€” avoids digit overflow (1.2K, 1.5M)
+// Compact currency for KPI cards — avoids digit overflow (1.2K, 1.5M)
 const formatKpi = (v) => {
     const n = parseFloat(v) || 0;
     if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
@@ -106,7 +106,7 @@ const formatKpi = (v) => {
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 };
 
-// Minutes â†’ "2h 15m" or "45m"
+// Minutes → "2h 15m" or "45m"
 const fmtMin = (m) => {
     const h = Math.floor(m / 60);
     const min = m % 60;
@@ -115,15 +115,15 @@ const fmtMin = (m) => {
 
 // Date formatter (es-MX): "27 feb 2026, 11:05"
 const formatDate = (raw) => {
-    if (!raw) return 'â€”';
+    if (!raw) return '—';
     const d = raw instanceof Date ? raw : new Date(raw);
-    if (isNaN(d.getTime())) return 'â€”';
+    if (isNaN(d.getTime())) return '—';
     return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
 
 
-// â”€â”€ Custom Recharts tooltip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Custom Recharts tooltip ────────────────────────────────────────────────
 const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
     return (
@@ -141,12 +141,12 @@ const CustomTooltip = ({ active, payload, label }) => {
     );
 };
 
-// â”€â”€ Shared legend formatter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Shared legend formatter ────────────────────────────────────────────────
 const legendFmt = (v) => (
     <span className="dashboard-legend-label">{v}</span>
 );
 
-// â”€â”€ KPI Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── KPI Card ────────────────────────────────────────────────────────────────
 const KpiCard = ({ icon, label, value, color = C.primary, sub, className = '' }) => {
     const accentTone = resolveAccentTone(color);
 
@@ -164,7 +164,7 @@ const KpiCard = ({ icon, label, value, color = C.primary, sub, className = '' })
     );
 };
 
-// â”€â”€ Section Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Section Card ───────────────────────────────────────────────────────────
 const Section = ({ title, children, className = '' }) => (
     <div className={`card dashboard-section ${className}`.trim()}>
         <div className="dashboard-section__header">
@@ -174,16 +174,16 @@ const Section = ({ title, children, className = '' }) => (
     </div>
 );
 
-// â”€â”€â”€ Reusable chart styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Reusable chart styles ─────────────────────────────────────────────────
 const axisProps = {
     tick: { fill: C.axis, fontSize: 11, fontFamily: 'inherit' },
     axisLine: false,
     tickLine: false,
 };
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════
 // ADMIN VIEW
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════
 const AdminDashboard = ({ data }) => {
     const { kpis, quotations_by_status, top_operators, by_day, fleet_status, fleet_efficiency, recent_logs } = data;
 
@@ -203,8 +203,8 @@ const AdminDashboard = ({ data }) => {
     const areaData = (by_day || []).map(r => {
         // mysql2 may return DATE as a JS Date object or as a 'YYYY-MM-DD' string
         const raw = r.day instanceof Date
-            ? r.day.toISOString().split('T')[0]   // already a Date â€” extract YYYY-MM-DD
-            : String(r.day).split('T')[0];         // string â€” trim any time portion
+            ? r.day.toISOString().split('T')[0]   // already a Date — extract YYYY-MM-DD
+            : String(r.day).split('T')[0];         // string — trim any time portion
         return {
             day: new Date(raw + 'T12:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }),
             cotizaciones: r.count,
@@ -228,18 +228,18 @@ const AdminDashboard = ({ data }) => {
         <div className="dashboard-stack dashboard-stack--admin">
             {/* KPIs */}
             <div className="dashboard-kpis-grid">
-                <KpiCard icon={<DollarSign size={20} />} label="Ingresos del perÃ­odo" value={formatKpi(kpis.revenue)} color={C.success} className="dashboard-kpi-card--hero" />
+                <KpiCard icon={<DollarSign size={20} />} label="Ingresos del período" value={formatKpi(kpis.revenue)} color={C.success} className="dashboard-kpi-card--hero" />
                 <KpiCard icon={<FileText size={20} />} label="Total cotizaciones" value={kpis.total_quotes} color={C.info} />
-                <KpiCard icon={<CheckCircle size={20} />} label="Tasa de Ã©xito" value={`${kpis.success_rate}%`} color={C.primary} sub="cotizaciones completadas" />
-                <KpiCard icon={<Truck size={20} />} label="VehÃ­culos disponibles" value={kpis.available_vehicles} color={C.warning} />
+                <KpiCard icon={<CheckCircle size={20} />} label="Tasa de éxito" value={`${kpis.success_rate}%`} color={C.primary} sub="cotizaciones completadas" />
+                <KpiCard icon={<Truck size={20} />} label="Vehículos disponibles" value={kpis.available_vehicles} color={C.warning} />
                 <KpiCard icon={<Users size={20} />} label="Usuarios activos" value={kpis.active_users} color={C.purple} />
             </div>
 
             {/* Row 1: Donut + Bar */}
             <div className="dashboard-two-grid">
-                <Section title="DistribuciÃ³n de cotizaciones" className="dashboard-section--distribution">
+                <Section title="Distribución de cotizaciones" className="dashboard-section--distribution">
                     {pieData.length === 0
-                        ? <p className="dashboard-empty">Sin datos en el perÃ­odo</p>
+                        ? <p className="dashboard-empty">Sin datos en el período</p>
                         : <ResponsiveContainer width="100%" height={220}>
                             <PieChart>
                                 <defs>
@@ -273,7 +273,7 @@ const AdminDashboard = ({ data }) => {
 
                 <Section title="Top operadores" className="dashboard-section--operators">
                     {barData.length === 0
-                        ? <p className="dashboard-empty">Sin datos en el perÃ­odo</p>
+                        ? <p className="dashboard-empty">Sin datos en el período</p>
                         : <ResponsiveContainer width="100%" height={220}>
                             <BarChart data={barData} layout="vertical" margin={{ left: 4, right: 16, top: 4, bottom: 4 }}>
                                 <CartesianGrid strokeDasharray="2 4" stroke={C.grid} horizontal={false} />
@@ -312,9 +312,9 @@ const AdminDashboard = ({ data }) => {
 
             {/* Row 2: Area + Fleet donut */}
             <div className="dashboard-wide-grid">
-                <Section title="Actividad en el perÃ­odo" className="dashboard-section--activity dashboard-section--primary">
+                <Section title="Actividad en el período" className="dashboard-section--activity dashboard-section--primary">
                     {areaData.length === 0
-                        ? <p className="dashboard-empty">Sin actividad en el perÃ­odo</p>
+                        ? <p className="dashboard-empty">Sin actividad en el período</p>
                         : <ResponsiveContainer width="100%" height={200}>
                             <AreaChart data={areaData} margin={{ top: 4, right: 12, bottom: 0, left: 0 }}>
                                 <defs>
@@ -392,9 +392,9 @@ const AdminDashboard = ({ data }) => {
     );
 };
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════
 // SUPERVISOR VIEW
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════
 const SupervisorDashboard = ({ data }) => {
     const { kpis, quotations_by_status, quotations_by_type, fleet_status, fleet_efficiency, pending_quotes, top_operators, by_day } = data;
 
@@ -457,11 +457,11 @@ const SupervisorDashboard = ({ data }) => {
     return (
         <div className="dashboard-stack dashboard-stack--supervisor">
             <div className="dashboard-kpis-grid dashboard-kpis-grid--supervisor">
-                <KpiCard icon={<DollarSign size={20} />} label="Ingresos del perÃ­odo" value={formatKpi(kpis.revenue)} color={C.success} />
+                <KpiCard icon={<DollarSign size={20} />} label="Ingresos del período" value={formatKpi(kpis.revenue)} color={C.success} />
                 <KpiCard icon={<Activity size={20} />} label="Cotizaciones activas" value={kpis.active_quotes} color={C.info} />
-                <KpiCard icon={<Truck size={20} />} label="VehÃ­culos en ruta" value={kpis.vehicles_in_route} color={C.primary} />
+                <KpiCard icon={<Truck size={20} />} label="Vehículos en ruta" value={kpis.vehicles_in_route} color={C.primary} />
                 <KpiCard icon={<Clock size={20} />} label="Tiempo prom./ruta" value={fmtMin(kpis.avg_route_time)} color={C.warning} sub="cotizaciones completadas" />
-                <KpiCard icon={<Truck size={20} />} label="Cotizaciones logÃ­stica" value={quoteTypeCountMap.logistics} color={C.info} />
+                <KpiCard icon={<Truck size={20} />} label="Cotizaciones logística" value={quoteTypeCountMap.logistics} color={C.info} />
                 <KpiCard icon={<Package size={20} />} label="Cotizaciones servicios" value={quoteTypeCountMap.services} color={C.purple} />
             </div>
 
@@ -481,9 +481,9 @@ const SupervisorDashboard = ({ data }) => {
                     }
                 </Section>
 
-                <Section title="Actividad en el perÃ­odo" className="dashboard-section--activity">
+                <Section title="Actividad en el período" className="dashboard-section--activity">
                     {areaData.length === 0
-                        ? <p className="dashboard-empty">Sin actividad en el perÃ­odo</p>
+                        ? <p className="dashboard-empty">Sin actividad en el período</p>
                         : <ResponsiveContainer width="100%" height={200}>
                             <AreaChart data={areaData} margin={{ top: 4, right: 12, bottom: 0, left: 0 }}>
                                 <defs>
@@ -515,7 +515,7 @@ const SupervisorDashboard = ({ data }) => {
             <div className="dashboard-three-grid">
                 <Section title="Top operadores" className="dashboard-section--operators">
                     {barData.length === 0
-                        ? <p className="dashboard-empty">Sin datos en el perÃ­odo</p>
+                        ? <p className="dashboard-empty">Sin datos en el período</p>
                         : <ResponsiveContainer width="100%" height={220}>
                             <BarChart data={barData} layout="vertical" margin={{ left: 4, right: 16, top: 4, bottom: 4 }}>
                                 <CartesianGrid strokeDasharray="2 4" stroke={C.grid} horizontal={false} />
@@ -589,7 +589,7 @@ const SupervisorDashboard = ({ data }) => {
             <div className="dashboard-single-grid dashboard-single-grid--supervisor-types">
                 <Section title="Cotizaciones por tipo" className="dashboard-section--quote-types">
                     {quoteTypePie.length === 0
-                        ? <p className="dashboard-empty">Sin datos en el perÃ­odo</p>
+                        ? <p className="dashboard-empty">Sin datos en el período</p>
                         : <ResponsiveContainer width="100%" height={240}>
                             <PieChart>
                                 <Pie
@@ -641,7 +641,7 @@ const SupervisorDashboard = ({ data }) => {
                             dominantBaseline="middle"
                             className="dashboard-radial-label"
                         >
-                            REAL / TEÃ“RICO
+                            REAL / TEÓRICO
                         </text>
                         <Tooltip content={<CustomTooltip />} />
                     </RadialBarChart>
@@ -651,9 +651,9 @@ const SupervisorDashboard = ({ data }) => {
     );
 };
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════
 // OPERADOR VIEW
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════
 const OperadorDashboard = ({ data }) => {
     const { kpis, my_status, my_weekly, my_recent } = data;
 
@@ -674,15 +674,15 @@ const OperadorDashboard = ({ data }) => {
         <div className="dashboard-stack dashboard-stack--operador">
             <div className="dashboard-kpis-grid">
                 <KpiCard icon={<FileText size={20} />} label="Mis cotizaciones" value={kpis.total_quotes} color={C.info} />
-                <KpiCard icon={<CheckCircle size={20} />} label="Completadas en perÃ­odo" value={kpis.completed_this_month} color={C.success} />
-                <KpiCard icon={<DollarSign size={20} />} label="Monto gestionado" value={formatKpi(kpis.revenue_this_month)} color={C.primary} sub="en el perÃ­odo" />
+                <KpiCard icon={<CheckCircle size={20} />} label="Completadas en período" value={kpis.completed_this_month} color={C.success} />
+                <KpiCard icon={<DollarSign size={20} />} label="Monto gestionado" value={formatKpi(kpis.revenue_this_month)} color={C.primary} sub="en el período" />
                 <KpiCard icon={<AlertTriangle size={20} />} label="Pendientes" value={kpis.pending} color={C.warning} />
             </div>
 
             <div className="dashboard-feature-grid">
                 <Section title="Mis cotizaciones por estado" className="dashboard-section--status">
                     {pieMine.length === 0
-                        ? <p className="dashboard-empty">Sin cotizaciones aÃºn</p>
+                        ? <p className="dashboard-empty">Sin cotizaciones aún</p>
                         : <ResponsiveContainer width="100%" height={220}>
                             <PieChart>
                                 <Pie data={pieMine} cx="50%" cy="50%" innerRadius={50} outerRadius={78} paddingAngle={4} dataKey="value" strokeWidth={0}>
@@ -695,7 +695,7 @@ const OperadorDashboard = ({ data }) => {
                     }
                 </Section>
 
-                <Section title="Mi actividad semanal (Ãºltimas 8 semanas)" className="dashboard-section--weekly">
+                <Section title="Mi actividad semanal (últimas 8 semanas)" className="dashboard-section--weekly">
                     <ResponsiveContainer width="100%" height={220}>
                         <LineChart data={lineData} margin={{ top: 4, right: 12, bottom: 0, left: 0 }}>
                             <defs>
@@ -722,9 +722,9 @@ const OperadorDashboard = ({ data }) => {
                 </Section>
             </div>
 
-            <Section title="Mis Ãºltimas cotizaciones" className="dashboard-section--recent dashboard-section--primary">
+            <Section title="Mis últimas cotizaciones" className="dashboard-section--recent dashboard-section--primary">
                 {(my_recent || []).length === 0
-                    ? <p className="dashboard-empty dashboard-empty--compact">Sin cotizaciones aÃºn</p>
+                    ? <p className="dashboard-empty dashboard-empty--compact">Sin cotizaciones aún</p>
                     : (
                         <table className="dashboard-table">
                             <thead>
@@ -756,9 +756,9 @@ const OperadorDashboard = ({ data }) => {
     );
 };
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════
 // PERIOD FILTER BAR
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════
 const PERIODS = [
     { key: 'today', label: 'Hoy' },
     { key: 'week', label: 'Esta semana' },
@@ -802,9 +802,9 @@ const PeriodBar = ({ value, onChange }) => (
     </div>
 );
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN DASHBOARD
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ═══════════════════════════════════════════════════════════════════════════
 const Dashboard = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -815,9 +815,9 @@ const Dashboard = () => {
     const roleName = (user.role_name || 'OPERADOR').toUpperCase();
 
     const ROLE_SUBTITLE = {
-        ADMIN: 'Vista ejecutiva â€” mÃ©tricas globales del negocio',
-        SUPERVISOR: 'Vista operativa â€” seguimiento de flota y operaciones',
-        OPERADOR: 'Vista personal â€” tu actividad y rendimiento',
+        ADMIN: 'Vista ejecutiva — métricas globales del negocio',
+        SUPERVISOR: 'Vista operativa — seguimiento de flota y operaciones',
+        OPERADOR: 'Vista personal — tu actividad y rendimiento',
     };
 
     const load = useCallback(async (p) => {
@@ -829,7 +829,7 @@ const Dashboard = () => {
             setData(result);
         } catch (err) {
             console.error('Dashboard error:', err);
-            setError('No se pudo cargar el panel. Verifica la conexiÃ³n con el servidor.');
+            setError('No se pudo cargar el panel. Verifica la conexión con el servidor.');
         } finally {
             setLoading(false);
         }
