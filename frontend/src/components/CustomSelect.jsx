@@ -13,7 +13,8 @@ const CustomSelect = ({
     name,
     ariaLabel,
     labelledBy,
-    describedBy
+    describedBy,
+    ...triggerProps
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [openUpward, setOpenUpward] = useState(false);
@@ -111,6 +112,7 @@ const CustomSelect = ({
                 aria-label={ariaLabel}
                 aria-labelledby={labelledBy}
                 aria-describedby={describedBy}
+                {...triggerProps}
             >
                 {Icon ? <Icon size={16} className="text-muted" /> : null}
                 <span className="custom-select__value">

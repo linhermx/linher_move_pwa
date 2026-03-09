@@ -13,6 +13,7 @@ import {
 import { dashboardService } from '../services/api';
 import PageHeader from '../components/PageHeader';
 import StatusBadge from '../components/StatusBadge';
+import { useOnboarding } from '../context/OnboardingContext';
 
 // ── Chart color palette aligned with the design system ───────────────────
 const C = {
@@ -165,8 +166,8 @@ const KpiCard = ({ icon, label, value, color = C.primary, sub, className = '' })
 };
 
 // ── Section Card ───────────────────────────────────────────────────────────
-const Section = ({ title, children, className = '' }) => (
-    <div className={`card dashboard-section ${className}`.trim()}>
+const Section = ({ title, children, className = '', ...rest }) => (
+    <div className={`card dashboard-section ${className}`.trim()} {...rest}>
         <div className="dashboard-section__header">
             <h3 className="dashboard-section__title">{title}</h3>
         </div>
@@ -227,7 +228,7 @@ const AdminDashboard = ({ data }) => {
     return (
         <div className="dashboard-stack dashboard-stack--admin">
             {/* KPIs */}
-            <div className="dashboard-kpis-grid">
+            <div className="dashboard-kpis-grid" data-onboarding="dashboard-kpis">
                 <KpiCard icon={<DollarSign size={20} />} label="Ingresos del período" value={formatKpi(kpis.revenue)} color={C.success} className="dashboard-kpi-card--hero" />
                 <KpiCard icon={<FileText size={20} />} label="Total cotizaciones" value={kpis.total_quotes} color={C.info} />
                 <KpiCard icon={<CheckCircle size={20} />} label="Tasa de éxito" value={`${kpis.success_rate}%`} color={C.primary} sub="cotizaciones completadas" />
@@ -369,7 +370,7 @@ const AdminDashboard = ({ data }) => {
             </div>
 
             {/* Recent logs */}
-            <Section title="Actividad reciente del sistema" className="dashboard-section--logs">
+            <Section title="Actividad reciente del sistema" className="dashboard-section--logs" data-onboarding="dashboard-focus-admin">
                 {(recent_logs || []).length === 0
                     ? <p className="dashboard-empty dashboard-empty--compact">Sin registros recientes</p>
                     : (recent_logs || []).map((log, i) => (
@@ -456,7 +457,7 @@ const SupervisorDashboard = ({ data }) => {
 
     return (
         <div className="dashboard-stack dashboard-stack--supervisor">
-            <div className="dashboard-kpis-grid dashboard-kpis-grid--supervisor">
+            <div className="dashboard-kpis-grid dashboard-kpis-grid--supervisor" data-onboarding="dashboard-kpis">
                 <KpiCard icon={<DollarSign size={20} />} label="Ingresos del período" value={formatKpi(kpis.revenue)} color={C.success} />
                 <KpiCard icon={<Activity size={20} />} label="Cotizaciones activas" value={kpis.active_quotes} color={C.info} />
                 <KpiCard icon={<Truck size={20} />} label="Vehículos en ruta" value={kpis.vehicles_in_route} color={C.primary} />
@@ -466,7 +467,11 @@ const SupervisorDashboard = ({ data }) => {
             </div>
 
             <div className="dashboard-two-grid dashboard-two-grid--supervisor">
-                <Section title="Cotizaciones pendientes recientes" className="dashboard-section--pending dashboard-section--primary">
+                <Section
+                    title="Cotizaciones pendientes recientes"
+                    className="dashboard-section--pending dashboard-section--primary"
+                    data-onboarding="dashboard-focus-supervisor"
+                >
                     {(pending_quotes || []).length === 0
                         ? <p className="dashboard-empty dashboard-empty--compact">Sin cotizaciones pendientes</p>
                         : (pending_quotes || []).map((q, i) => (
@@ -672,7 +677,7 @@ const OperadorDashboard = ({ data }) => {
 
     return (
         <div className="dashboard-stack dashboard-stack--operador">
-            <div className="dashboard-kpis-grid">
+            <div className="dashboard-kpis-grid" data-onboarding="dashboard-kpis">
                 <KpiCard icon={<FileText size={20} />} label="Mis cotizaciones" value={kpis.total_quotes} color={C.info} />
                 <KpiCard icon={<CheckCircle size={20} />} label="Completadas en período" value={kpis.completed_this_month} color={C.success} />
                 <KpiCard icon={<DollarSign size={20} />} label="Monto gestionado" value={formatKpi(kpis.revenue_this_month)} color={C.primary} sub="en el período" />
@@ -722,7 +727,11 @@ const OperadorDashboard = ({ data }) => {
                 </Section>
             </div>
 
-            <Section title="Mis últimas cotizaciones" className="dashboard-section--recent dashboard-section--primary">
+            <Section
+                title="Mis últimas cotizaciones"
+                className="dashboard-section--recent dashboard-section--primary"
+                data-onboarding="dashboard-focus-operador"
+            >
                 {(my_recent || []).length === 0
                     ? <p className="dashboard-empty dashboard-empty--compact">Sin cotizaciones aún</p>
                     : (
@@ -786,7 +795,7 @@ const calcDates = (period) => {
 };
 
 const PeriodBar = ({ value, onChange }) => (
-    <div className="dashboard-period-bar">
+    <div className="dashboard-period-bar" data-onboarding="dashboard-period">
         {PERIODS.map(p => {
             const active = value === p.key;
             return (
@@ -810,6 +819,7 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [period, setPeriod] = useState('today');
+    const { startTour, shouldShowGuideTrigger } = useOnboarding();
 
     const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
     const roleName = (user.role_name || 'OPERADOR').toUpperCase();
@@ -837,12 +847,26 @@ const Dashboard = () => {
 
     useEffect(() => { load(period); }, [load, period]);
 
+    const headerActions = shouldShowGuideTrigger ? (
+        <button
+            type="button"
+            className="btn btn-secondary"
+            data-onboarding-trigger="dashboard"
+            onClick={() => startTour({ origin: 'manual' })}
+        >
+            Ver guía
+        </button>
+    ) : null;
+
     return (
         <div className="page-shell fade-in">
-            <PageHeader
-                title="Panel de Control"
-                subtitle={ROLE_SUBTITLE[roleName] || 'Resumen de operaciones.'}
-            />
+            <div data-onboarding="dashboard-header">
+                <PageHeader
+                    title="Panel de Control"
+                    subtitle={ROLE_SUBTITLE[roleName] || 'Resumen de operaciones.'}
+                    actions={headerActions}
+                />
+            </div>
 
             <PeriodBar value={period} onChange={setPeriod} />
 

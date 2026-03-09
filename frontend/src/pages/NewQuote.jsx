@@ -782,6 +782,7 @@ const NewQuote = () => {
                                                                 <input
                                                                     id={`quote-point-${p.id}`}
                                                                     name={`quote_point_${p.id}`}
+                                                                    data-onboarding={p.id === 'origin' ? 'quote-origin' : (p.id === 'destination' ? 'quote-destination' : undefined)}
                                                                     type="text"
                                                                     value={p.address}
                                                                     onChange={(e) => handleSearch(idx, e.target.value)}
@@ -887,6 +888,7 @@ const NewQuote = () => {
                                             <CustomSelect
                                                 id="quote-vehicle"
                                                 name="vehicle_id"
+                                                data-onboarding="quote-vehicle"
                                                 placeholder="Seleccionar vehículo..."
                                                 value={selectedVehicle?.id || ''}
                                                 onChange={(e) => {
@@ -1009,6 +1011,7 @@ const NewQuote = () => {
                         <button
                             onClick={calculateRoute}
                             disabled={loading || searchLoading !== null}
+                            data-onboarding="quote-calculate"
                             className="btn btn-primary workspace-calc-button">
                             {loading ? <Loader2 className="animate-spin" size={20} /> : <Calculator size={20} />}
                             Calcular cotización
@@ -1087,6 +1090,7 @@ const NewQuote = () => {
                                             <button
                                                 type="button"
                                                 className="fab-action-button fab-action-button--primary"
+                                                data-onboarding="quote-save-pending"
                                                 onClick={() => handleSave('pendiente')}
                                                 title="Guardar como pendiente"
                                                 role="menuitem"
@@ -1100,6 +1104,7 @@ const NewQuote = () => {
                                 <button
                                     type="button"
                                     className={`fab-main ${isFabOpen ? '' : 'fab-pulse'}`.trim()}
+                                    data-onboarding="quote-fab-main"
                                     onClick={() => setIsFabOpen((currentState) => !currentState)}
                                     title={isFabOpen ? 'Cerrar acciones de cotización' : 'Abrir acciones de cotización'}
                                     aria-expanded={isFabOpen}

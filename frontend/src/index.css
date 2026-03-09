@@ -42,6 +42,14 @@ body.sidebar-drawer-open {
   overflow: hidden;
 }
 
+body.onboarding-active {
+  overflow: hidden;
+}
+
+body.onboarding-active .pwa-install-banner {
+  display: none;
+}
+
 #root {
   height: 100vh;
   overflow: hidden;
@@ -1005,6 +1013,250 @@ input:-webkit-autofill:active {
 
 .modal-shell--animated {
   animation: modal-appear 0.3s ease-out;
+}
+
+.modal-shell--onboarding {
+  width: min(100%, 33.5rem);
+  max-height: calc(100dvh - 32px);
+}
+
+.modal-shell--onboarding .modal-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.modal-shell--onboarding .modal-actions {
+  margin-top: var(--spacing-xs);
+  padding-top: var(--spacing-sm);
+}
+
+.modal-shell--onboarding .modal-actions>.btn {
+  flex: 0 0 auto;
+}
+
+.onboarding-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 13000;
+  pointer-events: none;
+}
+
+.onboarding-layer__scrim {
+  position: fixed;
+  inset: 0;
+  border: none;
+  background: color-mix(in srgb, var(--color-scrim) 76%, transparent);
+  pointer-events: auto;
+  cursor: default;
+}
+
+.onboarding-layer__scrim--interactive {
+  pointer-events: none;
+  background: color-mix(in srgb, var(--color-scrim) 34%, transparent);
+}
+
+.onboarding-layer__spotlight {
+  position: fixed;
+  border: 2px solid color-mix(in srgb, var(--color-primary) 92%, white 8%);
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--color-primary-outline) 62%, transparent),
+    0 12px 28px color-mix(in srgb, var(--color-bg) 52%, transparent);
+  pointer-events: none;
+  transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease;
+}
+
+.onboarding-card {
+  position: fixed;
+  z-index: 13010;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+}
+
+.onboarding-card--center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.onboarding-card__counter {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.onboarding-card__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+
+.onboarding-card__title {
+  font-size: 1.125rem;
+  line-height: 1.25;
+}
+
+.onboarding-card__description {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-text-main);
+}
+
+.onboarding-card__hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.onboarding-card__actions {
+  margin-top: var(--spacing-sm);
+}
+
+.onboarding-card__actions-main {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.onboarding-card__actions-main--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.onboarding-card__actions-main .btn {
+  width: 100%;
+  justify-content: center;
+  padding-inline: 0.75rem;
+}
+
+.onboarding-card__link-action {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.onboarding-card__link-action:hover {
+  color: var(--color-text-main);
+}
+
+.onboarding-welcome {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.onboarding-welcome__eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.onboarding-welcome__meter {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface-strong) 70%, transparent);
+  overflow: hidden;
+}
+
+.onboarding-welcome__meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 60%, white 40%) 100%);
+  transition: width 0.24s ease;
+}
+
+.onboarding-welcome__meter-fill--10 {
+  width: 10%;
+}
+
+.onboarding-welcome__meter-fill--25 {
+  width: 25%;
+}
+
+.onboarding-welcome__meter-fill--50 {
+  width: 50%;
+}
+
+.onboarding-welcome__meter-fill--75 {
+  width: 75%;
+}
+
+.onboarding-welcome__meter-fill--100 {
+  width: 100%;
+}
+
+.onboarding-welcome__progress {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.onboarding-welcome__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.onboarding-welcome__chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.875rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface-strong) 62%, transparent);
+  color: var(--color-text-main);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.onboarding-welcome__note {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+  .modal-shell--onboarding {
+    width: min(100%, 36rem);
+  }
+
+  .modal-shell--onboarding .modal-actions {
+    flex-direction: row;
+  }
+
+  .modal-shell--onboarding .modal-actions>.btn {
+    flex: 1 1 0;
+    width: auto;
+    min-height: 42px;
+  }
+
+  .modal-shell--onboarding .onboarding-welcome__eyebrow {
+    font-size: 0.75rem;
+  }
+
+  .modal-shell--onboarding .onboarding-welcome__chip {
+    font-size: 0.75rem;
+  }
+
+  .modal-shell--onboarding .onboarding-welcome__note {
+    font-size: 0.8125rem;
+  }
 }
 
 .legacy-modal__title,
@@ -5564,6 +5816,59 @@ input:-webkit-autofill:active {
     flex-direction: column;
   }
 
+  .onboarding-card {
+    width: min(100%, calc(100vw - 24px)) !important;
+  }
+
+  .onboarding-card:not(.onboarding-card--center) {
+    top: auto !important;
+    left: 12px !important;
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .onboarding-card__actions-main {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .onboarding-card__meta {
+    align-items: center;
+  }
+
+  .modal-shell--onboarding {
+    width: min(100%, calc(100vw - 20px));
+    max-height: calc(100dvh - 20px);
+  }
+
+  .modal-shell--onboarding .modal-header {
+    padding: 14px 14px 0;
+  }
+
+  .modal-shell--onboarding .modal-body {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .modal-shell--onboarding .modal-actions>.btn {
+    width: 100%;
+    min-height: 42px;
+  }
+
+  .modal-shell--onboarding .onboarding-welcome__eyebrow {
+    font-size: 0.6875rem;
+  }
+
+  .modal-shell--onboarding .onboarding-welcome__chip {
+    font-size: 0.6875rem;
+    min-height: 1.7rem;
+    padding: 0.2rem 0.58rem;
+  }
+
+  .modal-shell--onboarding .onboarding-welcome__note {
+    font-size: 0.75rem;
+  }
+
   .legacy-modal__actions {
     padding-top: var(--spacing-sm);
   }
@@ -6165,6 +6470,18 @@ input:-webkit-autofill:active {
 
   .auth-card {
     padding: 20px 16px 18px;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+  .modal-shell--onboarding .modal-actions {
+    flex-direction: row;
+  }
+
+  .modal-shell--onboarding .modal-actions>.btn {
+    flex: 1 1 0;
+    width: auto;
+    min-height: 42px;
   }
 }
 

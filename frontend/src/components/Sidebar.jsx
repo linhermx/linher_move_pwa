@@ -29,12 +29,13 @@ import { resolveAssetUrl } from '../utils/url';
 import { clearSession } from '../utils/session';
 
 const Sidebar = ({
+    user = {},
+    onUserUpdated = () => {},
     isMobileOpen = false,
     onRequestCloseMobile = () => {}
 }) => {
     const { theme } = useTheme();
     const location = useLocation();
-    const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user')) || {});
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(localStorage.getItem('sidebarCollapsed') === 'true');
@@ -43,16 +44,6 @@ const Sidebar = ({
     const profileTriggerRef = useRef(null);
     const previousPathnameRef = useRef(location.pathname);
     const closeMobileSidebarRef = useRef(onRequestCloseMobile);
-
-    useEffect(() => {
-        const handleStorageChange = () => {
-            const updatedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user')) || {};
-            setUser(updatedUser);
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
-    }, []);
 
     useEffect(() => {
         closeMobileSidebarRef.current = onRequestCloseMobile;
@@ -154,7 +145,7 @@ const Sidebar = ({
     };
 
     const handleUserUpdate = (updatedUser) => {
-        setUser(updatedUser);
+        onUserUpdated(updatedUser);
     };
 
     const handleLogout = () => {
@@ -164,6 +155,16 @@ const Sidebar = ({
 
     const showExpandedContent = !isCollapsed || isMobileOpen;
     const logoSource = showExpandedContent ? (theme === 'light' ? logoHorizontalLight : logoHorizontalDark) : logoMonogram;
+    const onboardingByPath = {
+        '/': 'sidebar-dashboard',
+        '/new-quote': 'sidebar-new-quote',
+        '/history': 'sidebar-history',
+        '/reports': 'sidebar-reports',
+        '/fleet': 'sidebar-fleet',
+        '/services': 'sidebar-services',
+        '/settings': 'sidebar-settings'
+    };
+
     const handleNavigation = () => {
         setIsProfileOpen(false);
         closeMobileSidebarRef.current();
@@ -228,6 +229,7 @@ const Sidebar = ({
                                         key={item.path}
                                         to={item.path}
                                         title={item.name}
+                                        data-onboarding={onboardingByPath[item.path]}
                                         className={({ isActive }) => `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`.trim()}
                                         onClick={handleNavigation}
                                     >

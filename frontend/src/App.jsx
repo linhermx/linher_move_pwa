@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import './index.css';
@@ -15,6 +15,7 @@ import AuditLogs from './pages/AuditLogs';
 import Backups from './pages/Backups';
 import Reports from './pages/Reports';
 import { NotificationProvider } from './context/NotificationContext';
+import { OnboardingProvider } from './context/OnboardingContext';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import { ConnectivityOfflineView } from './components/ConnectivityFallback';
 import useConnectivityStatus from './hooks/useConnectivityStatus';
@@ -23,8 +24,45 @@ import { clearSession, getSessionToken, getSessionUser } from './utils/session';
 
 import Login from './pages/Login';
 
+const buildUserSnapshotKey = (sessionUser) => {
+  if (!sessionUser) {
+    return 'anonymous';
+  }
+
+  const permissions = Array.isArray(sessionUser.permissions)
+    ? sessionUser.permissions.join('|')
+    : '';
+
+  return [
+    sessionUser.id ?? '',
+    sessionUser.name ?? '',
+    sessionUser.email ?? '',
+    sessionUser.role_name ?? '',
+    sessionUser.photo_path ?? '',
+    permissions
+  ].join('::');
+};
+
+const getAuthenticatedUser = () => {
+  try {
+    const sessionUser = getSessionUser();
+    const sessionToken = getSessionToken();
+
+    if (!sessionUser || !sessionToken) {
+      return null;
+    }
+
+    return sessionUser;
+  } catch (error) {
+    console.error('Error parsing user from storage:', error);
+    clearSession();
+    return null;
+  }
+};
+
 const App = () => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [user, setUser] = useState(() => getAuthenticatedUser());
 
   const {
     isOffline,
@@ -35,24 +73,20 @@ const App = () => {
   const shouldShowConnectivityScreen = isOffline || showRecoveryNotice;
   const connectivityPhase = isOffline ? 'offline' : 'reconnecting';
 
-  const getUser = () => {
-    try {
-      const user = getSessionUser();
-      const token = getSessionToken();
-      if (!user || !token) {
-        return null;
+  const syncSessionUser = useCallback(() => {
+    setUser((currentUser) => {
+      const nextUser = getAuthenticatedUser();
+      if (buildUserSnapshotKey(currentUser) === buildUserSnapshotKey(nextUser)) {
+        return currentUser;
       }
 
-      return user;
-    } catch (error) {
-      console.error('Error parsing user from localStorage:', error);
-      clearSession();
-      return null;
-    }
-  };
+      return nextUser;
+    });
+  }, []);
 
-
-  const user = getUser();
+  const handleUserUpdated = useCallback((updatedUser) => {
+    setUser(updatedUser || null);
+  }, []);
 
   useEffect(() => {
     document.body.classList.toggle('sidebar-drawer-open', isMobileSidebarOpen);
@@ -62,141 +96,175 @@ const App = () => {
     };
   }, [isMobileSidebarOpen]);
 
+  useEffect(() => {
+    const handleStorageChange = () => {
+      syncSessionUser();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        syncSessionUser();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', syncSessionUser);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    const intervalId = window.setInterval(syncSessionUser, 1500);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', syncSessionUser);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.clearInterval(intervalId);
+    };
+  }, [syncSessionUser]);
+
+  useEffect(() => {
+    if (!user && window.location.pathname !== '/login') {
+      window.location.replace('/login');
+    }
+  }, [user]);
+
   return (
     <NotificationProvider>
       <Router>
-        <a href="#app-main" className="skip-link">Saltar al contenido principal</a>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/*"
-            element={
-              user ? (
-                <div className="layout-container">
-                  <Sidebar
-                    isMobileOpen={isMobileSidebarOpen}
-                    onRequestCloseMobile={() => setIsMobileSidebarOpen(false)}
-                  />
-                  {!isMobileSidebarOpen ? (
+        <OnboardingProvider user={user}>
+          <a href="#app-main" className="skip-link">Saltar al contenido principal</a>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/*"
+              element={
+                user ? (
+                  <div className="layout-container">
+                    <Sidebar
+                      user={user}
+                      onUserUpdated={handleUserUpdated}
+                      isMobileOpen={isMobileSidebarOpen}
+                      onRequestCloseMobile={() => setIsMobileSidebarOpen(false)}
+                    />
+                    {!isMobileSidebarOpen ? (
+                      <button
+                        type="button"
+                        className="app-shell__mobile-trigger"
+                        aria-label="Abrir menu de navegacion"
+                        aria-controls="app-sidebar"
+                        aria-expanded={false}
+                        onClick={() => setIsMobileSidebarOpen(true)}
+                      >
+                        <Menu size={20} />
+                      </button>
+                    ) : null}
                     <button
                       type="button"
-                      className="app-shell__mobile-trigger"
-                      aria-label="Abrir menu de navegacion"
-                      aria-controls="app-sidebar"
-                      aria-expanded={false}
-                      onClick={() => setIsMobileSidebarOpen(true)}
-                    >
-                      <Menu size={20} />
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className={`sidebar-scrim ${isMobileSidebarOpen ? 'sidebar-scrim--visible' : ''}`.trim()}
-                    aria-label="Cerrar navegacion"
-                    tabIndex={isMobileSidebarOpen ? 0 : -1}
-                    onClick={() => setIsMobileSidebarOpen(false)}
-                  />
-                  <main id="app-main" className="main-content" tabIndex="-1">
-                    {shouldShowConnectivityScreen ? (
-                      <ConnectivityOfflineView
-                        phase={connectivityPhase}
-                        onRetry={retryConnection}
-                        isCheckingConnection={isCheckingConnection}
-                      />
-                    ) : (
-                      <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route
-                          path="/new-quote"
-                          element={(
-                            <ProtectedRoute user={user} requiredPermission="create_quotation">
-                              <NewQuote />
-                            </ProtectedRoute>
-                          )}
+                      className={`sidebar-scrim ${isMobileSidebarOpen ? 'sidebar-scrim--visible' : ''}`.trim()}
+                      aria-label="Cerrar navegacion"
+                      tabIndex={isMobileSidebarOpen ? 0 : -1}
+                      onClick={() => setIsMobileSidebarOpen(false)}
+                    />
+                    <main id="app-main" className="main-content" tabIndex="-1">
+                      {shouldShowConnectivityScreen ? (
+                        <ConnectivityOfflineView
+                          phase={connectivityPhase}
+                          onRetry={retryConnection}
+                          isCheckingConnection={isCheckingConnection}
                         />
-                        <Route
-                          path="/history"
-                          element={(
-                            <ProtectedRoute user={user} requiredPermission="view_history">
-                              <History />
-                            </ProtectedRoute>
-                          )}
-                        />
-                        <Route
-                          path="/history/:id"
-                          element={(
-                            <ProtectedRoute user={user} requiredPermission="view_history">
-                              <QuoteDetail />
-                            </ProtectedRoute>
-                          )}
-                        />
-                        <Route
-                          path="/fleet"
-                          element={(
-                            <ProtectedRoute user={user} requiredPermission="manage_fleet">
-                              <Fleet />
-                            </ProtectedRoute>
-                          )}
-                        />
-                        <Route
-                          path="/services"
-                          element={(
-                            <ProtectedRoute user={user} requiredPermission="manage_services">
-                              <Services />
-                            </ProtectedRoute>
-                          )}
-                        />
-                        <Route
-                          path="/users"
-                          element={(
-                            <ProtectedRoute user={user} requiredRole="admin">
-                              <Users />
-                            </ProtectedRoute>
-                          )}
-                        />
-                        <Route
-                          path="/audit"
-                          element={(
-                            <ProtectedRoute user={user} requiredRole="admin">
-                              <AuditLogs />
-                            </ProtectedRoute>
-                          )}
-                        />
-                        <Route
-                          path="/settings"
-                          element={(
-                            <ProtectedRoute user={user} requiredPermission="edit_settings">
-                              <Settings />
-                            </ProtectedRoute>
-                          )}
-                        />
-                        <Route
-                          path="/backups"
-                          element={(
-                            <ProtectedRoute user={user} requiredRole="admin">
-                              <Backups />
-                            </ProtectedRoute>
-                          )}
-                        />
-                        <Route
-                          path="/reports"
-                          element={(
-                            <ProtectedRoute user={user} requiredPermission="view_reports">
-                              <Reports />
-                            </ProtectedRoute>
-                          )}
-                        />
-                      </Routes>
-                    )}
-                  </main>
-                </div>
-              ) : (
-                <Login />
-              )
-            }
-          />
-        </Routes>
-        {!shouldShowConnectivityScreen && user ? <PwaInstallPrompt /> : null}
+                      ) : (
+                        <Routes>
+                          <Route path="/" element={<Dashboard />} />
+                          <Route
+                            path="/new-quote"
+                            element={(
+                              <ProtectedRoute user={user} requiredPermission="create_quotation">
+                                <NewQuote />
+                              </ProtectedRoute>
+                            )}
+                          />
+                          <Route
+                            path="/history"
+                            element={(
+                              <ProtectedRoute user={user} requiredPermission="view_history">
+                                <History />
+                              </ProtectedRoute>
+                            )}
+                          />
+                          <Route
+                            path="/history/:id"
+                            element={(
+                              <ProtectedRoute user={user} requiredPermission="view_history">
+                                <QuoteDetail />
+                              </ProtectedRoute>
+                            )}
+                          />
+                          <Route
+                            path="/fleet"
+                            element={(
+                              <ProtectedRoute user={user} requiredPermission="manage_fleet">
+                                <Fleet />
+                              </ProtectedRoute>
+                            )}
+                          />
+                          <Route
+                            path="/services"
+                            element={(
+                              <ProtectedRoute user={user} requiredPermission="manage_services">
+                                <Services />
+                              </ProtectedRoute>
+                            )}
+                          />
+                          <Route
+                            path="/users"
+                            element={(
+                              <ProtectedRoute user={user} requiredRole="admin">
+                                <Users />
+                              </ProtectedRoute>
+                            )}
+                          />
+                          <Route
+                            path="/audit"
+                            element={(
+                              <ProtectedRoute user={user} requiredRole="admin">
+                                <AuditLogs />
+                              </ProtectedRoute>
+                            )}
+                          />
+                          <Route
+                            path="/settings"
+                            element={(
+                              <ProtectedRoute user={user} requiredPermission="edit_settings">
+                                <Settings />
+                              </ProtectedRoute>
+                            )}
+                          />
+                          <Route
+                            path="/backups"
+                            element={(
+                              <ProtectedRoute user={user} requiredRole="admin">
+                                <Backups />
+                              </ProtectedRoute>
+                            )}
+                          />
+                          <Route
+                            path="/reports"
+                            element={(
+                              <ProtectedRoute user={user} requiredPermission="view_reports">
+                                <Reports />
+                              </ProtectedRoute>
+                            )}
+                          />
+                        </Routes>
+                      )}
+                    </main>
+                  </div>
+                ) : (
+                  <Login />
+                )
+              }
+            />
+          </Routes>
+          {!shouldShowConnectivityScreen && user ? <PwaInstallPrompt /> : null}
+        </OnboardingProvider>
       </Router>
     </NotificationProvider>
   );

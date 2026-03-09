@@ -10,6 +10,8 @@ const ModalShell = ({
     children,
     footer,
     size = 'md',
+    shellClassName = '',
+    bodyClassName = '',
     labelledBy,
     describedBy,
     initialFocusRef = null
@@ -30,7 +32,7 @@ const ModalShell = ({
     return (
         <div className="modal-overlay" onClick={onClose}>
             <section
-                className={`modal-shell modal-shell--${size}`}
+                className={`modal-shell modal-shell--${size} ${shellClassName}`.trim()}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={labelledBy}
@@ -48,7 +50,7 @@ const ModalShell = ({
                         <X size={18} />
                     </button>
                 </div>
-                <div className="modal-body stack-md">
+                <div className={`modal-body stack-md ${bodyClassName}`.trim()}>
                     {children}
                     {footer ? <div className="modal-actions">{footer}</div> : null}
                 </div>
