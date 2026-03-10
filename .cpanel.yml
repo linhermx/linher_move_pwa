@@ -1,8 +1,26 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/linhercom/public_html/move
-    - /bin/mkdir -p "$DEPLOYPATH"
-    - /usr/bin/env npm ci --prefix frontend
-    - /usr/bin/env npm run build --prefix frontend
-    - /bin/cp -R frontend/dist/. "$DEPLOYPATH"
+    - >-
+      /bin/bash -lc 'set -e;
+      DEPLOYPATH=/home/linhercom/public_html/move;
+      /bin/mkdir -p "$DEPLOYPATH";
+      NPM_BIN="";
+      for CANDIDATE in /opt/cpanel/ea-nodejs20/bin/npm /opt/cpanel/ea-nodejs18/bin/npm /usr/local/bin/npm /usr/bin/npm; do
+        if [ -x "$CANDIDATE" ]; then
+          NPM_BIN="$CANDIDATE";
+          break;
+        fi;
+      done;
+      if [ -z "$NPM_BIN" ]; then
+        NPM_BIN="$(command -v npm || true)";
+      fi;
+      if [ -z "$NPM_BIN" ]; then
+        echo "ERROR: npm binary was not found on this server.";
+        exit 1;
+      fi;
+      "$NPM_BIN" ci --prefix frontend;
+      "$NPM_BIN" run build --prefix frontend;
+      test -f frontend/dist/index.html;
+      /bin/cp -R frontend/dist/. "$DEPLOYPATH";
+      echo "Deploy completed at $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$DEPLOYPATH/.deploy-info.txt";'
