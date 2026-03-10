@@ -1,14 +1,15 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Loader2, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { buildBaseRelativePath } from '../utils/appPath';
 
 const DEFAULT_ASSET_MAP = Object.freeze({
     offline: [
-        '/media/connectivity/offline.gif',
-        '/icons/media/connectivity/offline.gif'
+        buildBaseRelativePath('media/connectivity/offline.gif'),
+        buildBaseRelativePath('icons/media/connectivity/offline.gif')
     ],
     online: [
-        '/media/connectivity/online.gif',
-        '/icons/media/connectivity/online.gif'
+        buildBaseRelativePath('media/connectivity/online.gif'),
+        buildBaseRelativePath('icons/media/connectivity/online.gif')
     ]
 });
 

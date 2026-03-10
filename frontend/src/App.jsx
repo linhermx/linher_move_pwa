@@ -21,6 +21,7 @@ import { ConnectivityOfflineView } from './components/ConnectivityFallback';
 import useConnectivityStatus from './hooks/useConnectivityStatus';
 import ProtectedRoute from './components/ProtectedRoute';
 import { clearSession, getSessionToken, getSessionUser } from './utils/session';
+import { APP_BASE_PATH, buildAppPath, isCurrentAppRoute } from './utils/appPath';
 
 import Login from './pages/Login';
 
@@ -121,14 +122,14 @@ const App = () => {
   }, [syncSessionUser]);
 
   useEffect(() => {
-    if (!user && window.location.pathname !== '/login') {
-      window.location.replace('/login');
+    if (!user && !isCurrentAppRoute(window.location.pathname, '/login')) {
+      window.location.replace(buildAppPath('/login'));
     }
   }, [user]);
 
   return (
     <NotificationProvider>
-      <Router>
+      <Router basename={APP_BASE_PATH || undefined}>
         <OnboardingProvider user={user}>
           <a href="#app-main" className="skip-link">Saltar al contenido principal</a>
           <Routes>

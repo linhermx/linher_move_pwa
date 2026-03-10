@@ -1,28 +1,49 @@
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const STATIC_CACHE = `linher-move-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `linher-move-runtime-${CACHE_VERSION}`;
+const STATIC_EXTENSIONS = /\.(?:js|css|png|jpg|jpeg|webp|svg|gif|ico|woff2?|ttf|map)$/i;
+
+const APP_SCOPE_URL = new URL(self.registration.scope);
+const APP_SCOPE_PATH = APP_SCOPE_URL.pathname;
+const APP_BASE_PATH = APP_SCOPE_PATH === '/' ? '' : APP_SCOPE_PATH.replace(/\/$/, '');
+
+const buildScopedPath = (path = '') => {
+    const normalizedPath = String(path || '').replace(/^\/+/, '');
+
+    if (!APP_BASE_PATH) {
+        return normalizedPath ? `/${normalizedPath}` : '/';
+    }
+
+    return normalizedPath ? `${APP_BASE_PATH}/${normalizedPath}` : `${APP_BASE_PATH}/`;
+};
+
+const isWithinAppScope = (pathname) => {
+    if (!APP_BASE_PATH) {
+        return true;
+    }
+
+    return pathname === APP_BASE_PATH || pathname.startsWith(`${APP_BASE_PATH}/`);
+};
 
 const CORE_ASSETS = [
-    '/',
-    '/index.html',
-    '/manifest.webmanifest',
-    '/icons/icon-192.png',
-    '/icons/icon-512.png',
-    '/icons/icon-maskable-192.png',
-    '/icons/icon-maskable-512.png',
-    '/icons/apple-touch-icon.png',
-    '/icons/favicon-32.png',
-    '/icons/favicon-16.png'
+    buildScopedPath(''),
+    buildScopedPath('index.html'),
+    buildScopedPath('manifest.webmanifest'),
+    buildScopedPath('icons/icon-192.png'),
+    buildScopedPath('icons/icon-512.png'),
+    buildScopedPath('icons/icon-maskable-192.png'),
+    buildScopedPath('icons/icon-maskable-512.png'),
+    buildScopedPath('icons/apple-touch-icon.png'),
+    buildScopedPath('icons/favicon-32.png'),
+    buildScopedPath('icons/favicon-16.png')
 ];
 
 const OPTIONAL_ASSETS = [
-    '/media/connectivity/offline.gif',
-    '/media/connectivity/online.gif',
-    '/icons/media/connectivity/offline.gif',
-    '/icons/media/connectivity/online.gif'
+    buildScopedPath('media/connectivity/offline.gif'),
+    buildScopedPath('media/connectivity/online.gif'),
+    buildScopedPath('icons/media/connectivity/offline.gif'),
+    buildScopedPath('icons/media/connectivity/online.gif')
 ];
-
-const STATIC_EXTENSIONS = /\.(?:js|css|png|jpg|jpeg|webp|svg|gif|ico|woff2?|ttf|map)$/i;
 
 const cacheResponse = async (cacheName, request, response) => {
     if (!response || response.status !== 200 || response.type === 'opaque') {
@@ -111,18 +132,22 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    if (!isWithinAppScope(requestUrl.pathname)) {
+        return;
+    }
+
     // Keep API traffic fully network-driven to avoid stale transactional data.
     if (requestUrl.pathname.startsWith('/api/')) {
         return;
     }
 
     if (request.mode === 'navigate') {
-        event.respondWith(networkFirst(request, '/index.html'));
+        event.respondWith(networkFirst(request, buildScopedPath('index.html')));
         return;
     }
 
-    const isConnectivityMedia = requestUrl.pathname.startsWith('/media/connectivity/')
-        || requestUrl.pathname.startsWith('/icons/media/connectivity/');
+    const isConnectivityMedia = requestUrl.pathname.startsWith(buildScopedPath('media/connectivity/'))
+        || requestUrl.pathname.startsWith(buildScopedPath('icons/media/connectivity/'));
 
     // Connectivity GIFs must be refreshed from network first so replacements are reflected quickly.
     if (isConnectivityMedia) {
@@ -130,10 +155,10 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    const shouldUseStaticStrategy = requestUrl.pathname.startsWith('/assets/')
-        || requestUrl.pathname === '/manifest.webmanifest'
-        || requestUrl.pathname.startsWith('/icons/')
-        || requestUrl.pathname.startsWith('/media/')
+    const shouldUseStaticStrategy = requestUrl.pathname.startsWith(buildScopedPath('assets/'))
+        || requestUrl.pathname === buildScopedPath('manifest.webmanifest')
+        || requestUrl.pathname.startsWith(buildScopedPath('icons/'))
+        || requestUrl.pathname.startsWith(buildScopedPath('media/'))
         || STATIC_EXTENSIONS.test(requestUrl.pathname);
 
     if (shouldUseStaticStrategy) {

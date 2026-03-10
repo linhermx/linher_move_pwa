@@ -11,6 +11,7 @@ import React, {
 import { useLocation, useNavigate } from 'react-router-dom';
 import ModalShell from '../components/ModalShell';
 import { hasPermission } from '../utils/session';
+import { isCurrentAppRoute } from '../utils/appPath';
 
 const OnboardingContext = createContext(null);
 
@@ -575,7 +576,7 @@ export const OnboardingProvider = ({ children, user }) => {
     }, [isActive]);
 
     useEffect(() => {
-        if (!userId || location.pathname === '/login' || isActive || !steps.length) {
+        if (!userId || isCurrentAppRoute(location.pathname, '/login') || isActive || !steps.length) {
             return undefined;
         }
 
@@ -611,7 +612,7 @@ export const OnboardingProvider = ({ children, user }) => {
             return;
         }
 
-        if (location.pathname !== currentStep.route) {
+        if (!isCurrentAppRoute(location.pathname, currentStep.route)) {
             navigate(currentStep.route);
         }
     }, [currentStep?.route, isActive, location.pathname, navigate]);
@@ -914,4 +915,3 @@ export const useOnboarding = () => {
 
     return context;
 };
-

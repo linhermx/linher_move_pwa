@@ -8,6 +8,7 @@ import ModalShell from '../components/ModalShell';
 import ThemeToggle from '../components/ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import { clearSession, persistSession } from '../utils/session';
+import { buildAppPath } from '../utils/appPath';
 
 const ForgotPasswordModal = ({ isOpen, onClose }) => (
     <ModalShell
@@ -61,7 +62,7 @@ const Login = () => {
                 expiresAt: data.expires_at,
                 rememberMe
             });
-            window.location.href = '/';
+            window.location.href = buildAppPath('/');
         } catch (error) {
             showNotification(error.response?.data?.message || 'Error al iniciar sesión', 'error');
         }

@@ -27,6 +27,7 @@ import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import { resolveAssetUrl } from '../utils/url';
 import { clearSession } from '../utils/session';
+import { buildAppPath } from '../utils/appPath';
 
 const Sidebar = ({
     user = {},
@@ -150,7 +151,7 @@ const Sidebar = ({
 
     const handleLogout = () => {
         clearSession();
-        window.location.href = '/login';
+        window.location.href = buildAppPath('/login');
     };
 
     const showExpandedContent = !isCollapsed || isMobileOpen;

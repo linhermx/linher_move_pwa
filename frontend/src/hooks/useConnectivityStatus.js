@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { buildApiUrl } from '../utils/url';
+import { buildBaseRelativePath } from '../utils/appPath';
 
 const HEALTHCHECK_URL = buildApiUrl('/health');
 const DEFAULT_RECOVERY_MS = 3200;
 const CONNECTIVITY_MEDIA_ASSETS = [
-    '/media/connectivity/offline.gif',
-    '/media/connectivity/online.gif',
-    '/icons/media/connectivity/offline.gif',
-    '/icons/media/connectivity/online.gif'
+    buildBaseRelativePath('media/connectivity/offline.gif'),
+    buildBaseRelativePath('media/connectivity/online.gif'),
+    buildBaseRelativePath('icons/media/connectivity/offline.gif'),
+    buildBaseRelativePath('icons/media/connectivity/online.gif')
 ];
 
 const getInitialStatus = () => {

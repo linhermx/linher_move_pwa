@@ -33,11 +33,23 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 const logger = new SystemLogger(pool);
+const toOrigin = (urlValue) => {
+    if (!urlValue) {
+        return null;
+    }
+
+    try {
+        return new URL(urlValue).origin;
+    } catch {
+        return String(urlValue).replace(/\/+$/, '');
+    }
+};
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const frontendOrigin = toOrigin(process.env.FRONTEND_URL || process.env.FRONTEND_APP_URL);
 const allowedOrigins = [
-    process.env.FRONTEND_URL,
+    frontendOrigin,
     'http://localhost:5173',
     'http://127.0.0.1:5173'
 ].filter(Boolean);

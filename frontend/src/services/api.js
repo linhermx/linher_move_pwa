@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { reportClientError } from './clientLogger';
 import { API_BASE_URL } from '../utils/url';
+import { buildAppPath, isCurrentAppRoute } from '../utils/appPath';
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL
@@ -67,8 +68,8 @@ apiClient.interceptors.response.use(
 
         if (error.response?.status === 401 && !requestUrl.includes('/auth/login')) {
             clearSession();
-            if (window.location.pathname !== '/login') {
-                window.location.href = '/login';
+            if (!isCurrentAppRoute(window.location.pathname, '/login')) {
+                window.location.href = buildAppPath('/login');
             }
         }
 

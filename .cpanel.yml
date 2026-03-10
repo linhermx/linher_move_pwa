@@ -1,0 +1,8 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/linhercom/public_html/move
+    - /bin/mkdir -p "$DEPLOYPATH"
+    - /usr/bin/env npm ci --prefix frontend
+    - /usr/bin/env npm run build --prefix frontend
+    - /bin/cp -R frontend/dist/. "$DEPLOYPATH"

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Download, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { reportClientError } from '../services/clientLogger';
+import { isCurrentAppRoute } from '../utils/appPath';
 
 const DISMISS_STORAGE_KEY = 'pwa_install_prompt_dismissed';
 const DISMISS_CLOSE_MS = 12 * 60 * 60 * 1000;
@@ -115,7 +116,7 @@ const PwaInstallPrompt = () => {
         }
     };
 
-    if (location.pathname === '/login' || isInstalled || isDismissed || !deferredPrompt) {
+    if (isCurrentAppRoute(location.pathname, '/login') || isInstalled || isDismissed || !deferredPrompt) {
         return null;
     }
 

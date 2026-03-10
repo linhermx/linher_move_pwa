@@ -1,296 +1,521 @@
 # LINHER Move PWA
 
-Aplicación web para cotizaciones, operación logística, flota, auditoría, respaldos y reportes.
+Aplicación web para la operación logística de LINHER: cotizaciones con rutas, gestión de flota y servicios, auditoría, reportes y respaldos locales/cloud.
 
-## Stack
+## Tabla de contenidos
 
-- Frontend: React + Vite
-- Backend: Node.js + Express
-- Base de datos: MySQL
-- Estilos: CSS vanilla con design tokens
+1. [Contexto de la app](#contexto-de-la-app)
+2. [Alcance funcional](#alcance-funcional)
+3. [Arquitectura técnica](#arquitectura-técnica)
+4. [Stack tecnológico](#stack-tecnológico)
+5. [Estructura del repositorio](#estructura-del-repositorio)
+6. [Requisitos previos](#requisitos-previos)
+7. [Puesta en marcha local](#puesta-en-marcha-local)
+8. [Variables de entorno](#variables-de-entorno)
+9. [Base de datos y seeds](#base-de-datos-y-seeds)
+10. [Scripts de desarrollo y operación](#scripts-de-desarrollo-y-operación)
+11. [Despliegue en cPanel (Git + subruta /move)](#despliegue-en-cpanel-git--subruta-move)
+12. [API (visión general)](#api-visión-general)
+13. [Respaldos, Dropbox y recuperación](#respaldos-dropbox-y-recuperación)
+14. [Saneamiento de base de datos para entrega](#saneamiento-de-base-de-datos-para-entrega)
+15. [Convenciones críticas de desarrollo](#convenciones-críticas-de-desarrollo)
+16. [Checklist técnico antes de entregar cambios](#checklist-técnico-antes-de-entregar-cambios)
+17. [Solución de problemas frecuentes](#solución-de-problemas-frecuentes)
+18. [Notas de seguridad](#notas-de-seguridad)
+19. [Documentación complementaria](#documentación-complementaria)
 
-## Requisitos
+## Contexto de la app
 
-- Node.js 20+
-- npm 10+
-- MySQL local (XAMPP o equivalente)
+`linher_move_pwa` centraliza el flujo operativo de transporte:
+
+- Crear cotizaciones con cálculo de ruta, tiempos y costos.
+- Administrar catálogos operativos (flota y servicios).
+- Gestionar usuarios, roles y permisos.
+- Monitorear actividad mediante auditoría y reportes.
+- Proteger continuidad operativa con respaldos locales y sincronización con Dropbox.
+
+## Alcance funcional
+
+Módulos principales del frontend:
+
+- `Dashboard`
+- `Nueva Cotización`
+- `Historial` y `Detalle de cotización`
+- `Flota`
+- `Servicios`
+- `Usuarios`
+- `Auditoría`
+- `Respaldos`
+- `Reportes`
+- `Configuración`
+
+## Arquitectura técnica
+
+Flujo general:
+
+1. Frontend React consume API REST en `http://localhost:3000/api/v1` (local).
+2. En producción, Move se publica en `https://linher.com.mx/move` y consume `https://api-move.linher.com.mx/api/v1`.
+3. Backend Express aplica autenticación JWT + autorización por rol/permisos.
+4. Persistencia en MySQL (`linher_move` por defecto).
+5. Integraciones:
+   - OpenRouteService (geocoding/ruteo)
+   - Dropbox (OAuth + sincronización de respaldos)
+6. Archivos subidos (fotos y assets operativos) se sirven desde `/uploads`.
+
+## Stack tecnológico
+
+- Frontend: React 19 + Vite 7
+- Backend: Node.js + Express 5
+- Base de datos: MySQL (XAMPP local recomendado)
+- Estilos: CSS vanilla con tokens semánticos
+- Librerías clave:
+  - `axios`, `react-router-dom`, `leaflet`, `recharts`
+  - `mysql2`, `jsonwebtoken`, `multer`, `node-cron`, `dropbox`
 
 ## Estructura del repositorio
 
-- `frontend/`: aplicación React
-- `backend/`: API y lógica de negocio
-- `database/`: esquema y seeds
+```text
+linher_move_pwa/
+|- frontend/                 # App React + Vite
+|  |- src/
+|  |  |- components/
+|  |  |- pages/
+|  |  |- context/
+|  |  |- services/
+|  |  |- design-tokens.css   # Fuente visual base
+|  |  `- index.css           # Estilos globales y utilidades
+|  |- public/                # manifest, service-worker y .htaccess para SPA
+|  `- .env.example
+|- backend/                  # API, servicios y modelos
+|  |- src/
+|  |  |- controllers/
+|  |  |- models/
+|  |  |- services/
+|  |  |- middleware/
+|  |  `- utils/
+|  |- scripts/               # Init DB, backups, restore, saneamiento
+|  |- uploads/               # Activos operativos (runtime)
+|  |- backups/               # Zips de respaldo (runtime)
+|  |- .env
+|  `- .env.example
+|- database/
+|  |- init.sql
+|  |- seed_core.sql
+|  `- seed_demo.sql
+|- .cpanel.yml               # Deploy Git en cPanel hacia /public_html/move
+|- AGENTS.md                 # Guía operativa y estándares del proyecto
+`- README.md
+```
 
-## Instalación inicial
+## Requisitos previos
 
-Desde la raíz del proyecto:
+- Node.js 20+
+- npm 10+
+- MySQL local activo (XAMPP o equivalente)
+- (Opcional) cuenta Dropbox para respaldo cloud
+- (Opcional) API key de OpenRouteService para mapa/ruteo
+
+## Puesta en marcha local
+
+1. Instalar dependencias de frontend y backend:
 
 ```bash
 npm run install-all
 ```
 
-## Variables de entorno
+2. Crear archivos de entorno desde los ejemplos:
 
-### Backend (`backend/.env`)
-
-```env
-PORT=3000
-DB_HOST=localhost
-DB_NAME=linher_move
-DB_USER=root
-DB_PASS=
-JWT_SECRET="change-this-secret"
-MYSQLDUMP_PATH="C:\xampp\mysql\bin\mysqldump.exe"
-MYSQL_PATH="C:\xampp\mysql\bin\mysql.exe"
-DROPBOX_CLIENT_ID="..."
-DROPBOX_CLIENT_SECRET="..."
-DROPBOX_REDIRECT_URI="http://localhost:3000/api/v1/backups/dropbox/callback"
-FRONTEND_URL="http://localhost:5173"
-REPORT_EXPORT_MAX_ROWS=200000
+```powershell
+Copy-Item backend/.env.example backend/.env
+Copy-Item frontend/.env.example frontend/.env.local
 ```
 
-### Frontend (`frontend/.env` o `frontend/.env.local`)
-
-```env
-VITE_API_URL=http://localhost:3000/api/v1
-VITE_BACKEND_URL=http://localhost:3000
-```
-
-## Inicialización de base de datos (importante)
-
-El script de bootstrap ahora separa esquema y seeds:
-
-- `database/init.sql`: solo esquema
-- `database/seed_core.sql`: seed obligatorio de producción limpia
-- `database/seed_demo.sql`: seed opcional para demo/pruebas
-
-Desde `backend/`:
+3. Inicializar base de datos (esquema + seed core):
 
 ```bash
+cd backend
 node scripts/init-db.js
 ```
 
-Eso ejecuta:
-
-1. `init.sql`
-2. `seed_core.sql`
-
-Si quieres cargar también datos demo:
+4. Levantar frontend + backend desde raíz:
 
 ```bash
-node scripts/init-db.js --with-demo
-```
-
-## Desarrollo
-
-Desde la raíz (frontend + backend en paralelo):
-
-```bash
+cd ..
 npm run dev
 ```
 
-También puedes levantar por separado:
+5. Validar salud de API:
+
+```text
+GET http://localhost:3000/api/v1/health
+```
+
+## Variables de entorno
+
+### Backend (`backend/.env`, base sugerida: `backend/.env.example`)
+
+| Variable | Requerida | Ejemplo / default | Uso |
+|---|---|---|---|
+| `PORT` | No | `3000` | Puerto de API |
+| `NODE_ENV` | No | `development` | Perfil de ejecución |
+| `DB_HOST` | Sí | `localhost` | Host MySQL |
+| `DB_USER` | Sí | `root` | Usuario MySQL |
+| `DB_PASS` | No | *(vacío)* | Password MySQL |
+| `DB_NAME` | Sí | `linher_move` | Nombre de base |
+| `JWT_SECRET` | Sí | `change-this-secret` | Firma de tokens |
+| `FRONTEND_URL` | Sí | `http://localhost:5173` | Origen permitido para CORS (sin path) |
+| `FRONTEND_APP_URL` | Sí | `http://localhost:5173` | URL base de la app para redirecciones (puede incluir `/move`) |
+| `ORS_API_KEY` | Sí (para mapas) | `...` | OpenRouteService |
+| `MYSQLDUMP_PATH` | No | `C:\xampp\mysql\bin\mysqldump.exe` | Generación de respaldos |
+| `MYSQL_PATH` | No | `C:\xampp\mysql\bin\mysql.exe` | Restauración de respaldos |
+| `DROPBOX_CLIENT_ID` | No* | `...` | OAuth Dropbox |
+| `DROPBOX_CLIENT_SECRET` | No* | `...` | OAuth Dropbox |
+| `DROPBOX_REDIRECT_URI` | No* | `http://localhost:3000/api/v1/backups/dropbox/callback` | Callback OAuth |
+| `REPORT_EXPORT_MAX_ROWS` | No | `200000` | Límite de exportación CSV |
+
+\* Requeridas solo si usarás integración Dropbox.
+
+### Frontend (`frontend/.env` o `frontend/.env.local`, base sugerida: `frontend/.env.example`)
+
+| Variable | Requerida | Ejemplo / default | Uso |
+|---|---|---|---|
+| `VITE_API_URL` | No | `http://localhost:3000/api/v1` | Base URL API |
+| `VITE_BACKEND_URL` | No | `http://localhost:3000` | Base URL backend para assets |
+| `VITE_APP_BASE_PATH` | Sí en producción | `/` (local) o `/move/` (prod) | Subruta base de la app |
+
+### Perfiles recomendados
+
+`Local (localhost)`
+
+```dotenv
+VITE_API_URL=http://localhost:3000/api/v1
+VITE_BACKEND_URL=http://localhost:3000
+VITE_APP_BASE_PATH=/
+```
+
+`Producción (dominio principal + app en /move)`
+
+```dotenv
+VITE_API_URL=https://api-move.linher.com.mx/api/v1
+VITE_BACKEND_URL=https://api-move.linher.com.mx
+VITE_APP_BASE_PATH=/move/
+```
+
+Para backend en producción (mínimo esperado):
+
+```dotenv
+FRONTEND_URL=https://linher.com.mx
+FRONTEND_APP_URL=https://linher.com.mx/move
+DROPBOX_REDIRECT_URI=https://api-move.linher.com.mx/api/v1/backups/dropbox/callback
+```
+
+> En esta arquitectura, la API de Move va en `https://api-move.linher.com.mx/api/v1` (no en `/move/api/v1`).
+> `/move` es la subruta del frontend, no del backend.
+> Esto evita conflicto cuando se publique otra app en `/axis` con su propio backend.
+
+> Ajusta URLs si tu API corre en otro dominio/subdominio.
+
+## Base de datos y seeds
+
+El bootstrap está dividido para separar esquema y datos base:
+
+- `database/init.sql`: estructura de tablas.
+- `database/seed_core.sql`: baseline obligatorio (roles, permisos, settings, admin inicial).
+- `database/seed_demo.sql`: catálogo demo opcional para pruebas.
+
+Comandos:
 
 ```bash
+cd backend
+node scripts/init-db.js
+node scripts/init-db.js --with-demo
+```
+
+Credencial inicial incluida en `seed_core.sql`:
+
+- Email: `programador@linher.com.mx`
+- Password: `admin123`
+
+Cambiar esta contraseña inmediatamente en cualquier entorno real.
+
+## Scripts de desarrollo y operación
+
+### Raíz
+
+```bash
+npm run dev          # frontend + backend en paralelo
+npm run install-all
 npm run backend
 npm run frontend
 ```
 
-## Scripts útiles de backend
-
-Desde `backend/`:
+### Frontend (`frontend/`)
 
 ```bash
 npm run dev
-npm run backup:test-auto
-npm run backup:restore
+npm run lint
+npm run build
+npm run preview
 ```
 
-## Saneamiento pre-entrega de base de datos
-
-Desde `backend/`:
-
-### Desarrollo
+### Backend (`backend/`)
 
 ```bash
+npm run dev
+npm run start
+npm run backup:test-auto
+npm run backup:restore
 npm run db:dev:sanitize:dry
 npm run db:dev:sanitize:apply
 npm run db:dev:sanitize:verify
-```
-
-Uso:
-
-- `db:dev:sanitize:dry`: simulación, no modifica nada.
-- `db:dev:sanitize:apply`: limpia datos transaccionales.
-- `db:dev:sanitize:verify`: valida que la limpieza de desarrollo quedó correcta.
-
-### Entrega/producción (base final limpia)
-
-```bash
 npm run db:release:sanitize:apply
 npm run db:release:sanitize:verify
 ```
 
-Incluye automáticamente:
+Nota: actualmente no hay suite de pruebas automatizadas (`npm test`) configurada en el backend.
 
-- Limpieza transaccional.
-- Limpieza de catálogos (`vehicles` y `services`).
-- Conserva solo una cuenta admin.
-- Normaliza IDs de tablas core (`roles`, `permissions`, `global_settings`, `users`).
-- Reaplica `seed_core.sql` para baseline mínimo.
+## Despliegue en cPanel (Git + subruta /move)
 
-Si necesitas una variante avanzada, puedes ejecutar `node scripts/sanitize-delivery-db.js` directamente con flags.
+Move en producción queda separado en dos endpoints:
 
-Flags disponibles:
+- `https://linher.com.mx/move`
+- `https://api-move.linher.com.mx/api/v1`
 
-- `--apply`: ejecuta cambios reales.
-- `--verify-only`: valida estado sin modificar datos.
-- `--clear-catalogs`: tambien limpia `vehicles` y `services`.
-- `--clear-non-admin-users`: elimina usuarios que no sean admin.
-- `--single-admin`: deja exactamente una cuenta admin (elimina el resto de usuarios).
-- `--normalize-core-ids`: reconstruye tablas core y reinicia IDs en secuencia.
-- `--skip-core-reseed`: omite reaplicar `seed_core.sql` (no usar en modo release).
+Frontend (Git deploy con `.cpanel.yml`):
 
-Regla:
+- carpeta destino: `/home/linhercom/public_html/move`
 
-- `--normalize-core-ids` requiere core reseed activo (no compatible con `--skip-core-reseed`).
+Backend (Node.js App en cPanel):
 
-## Respaldos automáticos
+- subdominio recomendado: `api-move.linher.com.mx`
+- app root: carpeta `backend/` del repositorio clonado
+- reiniciar app después de cada `Update from Remote`
 
-La automatización se configura desde la pantalla de `Respaldos`.
+### Flujo recomendado
 
-Settings involucrados en `global_settings`:
+1. Trabajar cambios en local (`npm run dev`).
+2. Validar frontend antes de subir:
 
-- `backups_enabled`
-- `backup_frequency`
+```bash
+npm run lint --prefix frontend
+npm run build --prefix frontend
+```
 
-Valores válidos:
+3. Hacer `push` a tu rama principal en GitHub.
+4. En cPanel -> `Git Version Control` -> repositorio:
+   - `Update from Remote`
+   - `Deploy HEAD Commit`
+5. En cPanel -> `Setup Node.js App`:
+   - verificar que usa el código actualizado del repositorio
+   - reiniciar la app para aplicar cambios backend
 
-- `backups_enabled`: `true` o `false`
-- `backup_frequency`: `daily` o `weekly`
+### Qué hace `.cpanel.yml`
 
-## Cómo funciona el scheduler
+El archivo raíz `.cpanel.yml` ejecuta:
 
-- El backend ejecuta un cron diario a medianoche.
-- Si `backups_enabled = true`, evalúa la frecuencia configurada.
-- Si la frecuencia es `daily`, genera respaldo todos los días.
-- Si la frecuencia es `weekly`, genera respaldo solo los domingos a medianoche.
+1. `npm ci --prefix frontend`
+2. `npm run build --prefix frontend`
+3. Copia `frontend/dist` a `/home/linhercom/public_html/move`
 
-La ejecución automática usa la misma lógica operativa que el respaldo manual.
+### Ruteo SPA en `/move`
 
-## Qué incluye un respaldo
+Para soportar recargas directas (`/move/history`, `/move/reports`, etc.) se usa:
+
+- `frontend/public/.htaccess`
+
+Ese archivo se incluye en `dist` durante build y queda publicado en `/move/.htaccess`.
+
+### Errores comunes de cPanel Git
+
+Si cPanel muestra `The system cannot deploy`, revisar:
+
+- existe `.cpanel.yml` válido en la rama actual
+- no hay cambios sin commit en el repo del servidor
+- log de despliegue:
+  - `/home/linhercom/.cpanel/datastore/<repo>/deployment.log`
+
+## API (visión general)
+
+Base URL local: `http://localhost:3000/api/v1`
+
+Base URL producción Move recomendada: `https://api-move.linher.com.mx/api/v1`
+
+Rutas destacadas:
+
+- Públicas:
+  - `GET /health`
+  - `POST /auth/login`
+  - `GET /backups/dropbox/callback`
+- Protegidas por token y permisos:
+  - `vehicles`, `services`, `settings`, `maps`, `quotations`
+  - `users`, `logs`, `dashboard`, `backups`, `reports`
+
+Autorización:
+
+- `requireAuth`
+- `requireRole('admin')`
+- `requirePermission(...)`
+- `requireAnyPermission(...)`
+
+## Respaldos, Dropbox y recuperación
+
+### Respaldo local
 
 Cada respaldo local genera un `.zip` con:
 
 - `database.sql`
 - carpeta `uploads/`
 
-Después:
+Además:
 
-- se registra en la tabla `backups`
-- se conservan los 7 respaldos locales más recientes
-- si Dropbox está conectado, se intenta sincronizar el mismo `.zip`
-- Dropbox también conserva los 7 respaldos cloud más recientes
+- se registra en tabla `backups`
+- retención local: se conservan los 7 más recientes
 
-## Probar automatización sin esperar medianoche
+### Automatización (scheduler)
 
-Desde `backend/`:
+- El backend evalúa la ejecución diariamente a las `00:00`.
+- Settings involucrados en `global_settings`:
+  - `backups_enabled` (`true`/`false`)
+  - `backup_frequency` (`daily`/`weekly`)
+- En modo `weekly`, ejecuta en domingo dentro de la ventana de medianoche.
+
+Prueba manual de scheduler:
 
 ```bash
+cd backend
 node scripts/run-automated-backup.js --force --skip-cloud
 ```
 
-Notas:
+### Integración Dropbox
 
-- `--force`: ejecuta la lógica aunque no sea medianoche
-- `--skip-cloud`: evita sincronización con Dropbox para una prueba local segura
-
-Si quieres solo validar si el cron correría o no, sin forzar:
-
-```bash
-npm run backup:test-auto
-```
-
-Respuesta esperada fuera de horario:
-
-- `executed: false`
-- `reason: "not_due"`
-
-## Dropbox
-
-La integración usa:
+Fuente de verdad de conexión OAuth:
 
 - `integration_connections`
 - `integration_oauth_states`
 
-Requisitos:
+Comportamiento:
 
-- la app de Dropbox debe tener registrada la callback exacta
-- la conexión se realiza desde la pantalla `Respaldos`
-- los respaldos cloud se disparan después del respaldo local
+- sincroniza al terminar respaldo local
+- registra eventos de éxito/error en logs
+- aplica retención cloud de 7 respaldos
 
-Eventos relevantes:
+### Restauración de respaldo
 
-- `BACKUP_CREATED`
-- `BACKUP_SYNC_SUCCESS`
-- `DROPBOX_SYNC_ERROR`
-- `DROPBOX_RETENTION_ERROR`
-
-## Restauración de respaldos
-
-La restauración no debe depender de que la app web esté funcional.
-
-Por eso existe un script externo de recuperación:
+Script externo (independiente del estado de la app):
 
 ```bash
+cd backend
 node scripts/restore-backup.js
 ```
 
-Comportamiento por defecto:
-
-- toma el `.zip` más reciente de `backend/backups/`
-- restaura `database.sql`
-- restaura `uploads/`
-- reaplica el esquema operativo actual para no perder ajustes recientes
-
-### Restaurar un zip específico
+Variantes:
 
 ```bash
 node scripts/restore-backup.js "C:\ruta\respaldo.zip"
-```
-
-### Restaurar sin tocar uploads
-
-```bash
 node scripts/restore-backup.js --skip-uploads
-```
-
-### Restaurar sin tocar base de datos
-
-```bash
 node scripts/restore-backup.js --skip-db
-```
-
-### Restaurar fusionando uploads en vez de reemplazarlos
-
-```bash
 node scripts/restore-backup.js --merge-uploads
 ```
 
-## Flujo recomendado de recuperación
+Flujo recomendado:
 
 1. Detener backend.
-2. Conseguir el `.zip` local o descargarlo manualmente desde Dropbox.
+2. Seleccionar ZIP (local o descargado de Dropbox).
 3. Ejecutar `restore-backup.js`.
 4. Levantar backend.
 5. Validar `GET /api/v1/health`.
-6. Validar `GET /api/v1/backups/summary`.
 
-## Limitación importante
+## Saneamiento de base de datos para entrega
 
-Si se pierde completamente la base de datos, la app no puede depender de ella para recuperar por sí sola los tokens de Dropbox, porque esos tokens viven en la propia DB.
+Modo desarrollo:
 
-En un escenario de desastre total, la recuperación correcta es:
+```bash
+cd backend
+npm run db:dev:sanitize:dry
+npm run db:dev:sanitize:apply
+npm run db:dev:sanitize:verify
+```
 
-- descargar manualmente el respaldo desde Dropbox
-- restaurar con el script externo
+Modo release (limpieza fuerte + baseline):
+
+```bash
+npm run db:release:sanitize:apply
+npm run db:release:sanitize:verify
+```
+
+Flags avanzados disponibles en `scripts/sanitize-delivery-db.js`:
+
+- `--apply`
+- `--verify-only`
+- `--clear-catalogs`
+- `--clear-non-admin-users`
+- `--single-admin`
+- `--normalize-core-ids`
+- `--skip-core-reseed` (no compatible con `--normalize-core-ids`)
+
+## Convenciones críticas de desarrollo
+
+Estas reglas son obligatorias para mantener consistencia técnica:
+
+- UI: reutilizar patrones y tokens en:
+  - `frontend/src/design-tokens.css`
+  - `frontend/src/index.css`
+  - `frontend/src/components/`
+- Accesibilidad: cada control de formulario debe tener `id`, `name` y etiqueta asociada.
+- Trazabilidad: peticiones `POST/PUT/DELETE` deben registrar `operator_id`.
+- Logging:
+  - Backend: usar `SystemLogger`
+  - Frontend: usar `clientLogger` (`POST /api/v1/logs/error`)
+- Zona horaria oficial del proyecto: `America/Mexico_City`.
+
+## Checklist técnico antes de entregar cambios
+
+1. Validar lint y build de frontend:
+
+```bash
+npm run lint --prefix frontend
+npm run build --prefix frontend
+```
+
+2. Verificar API:
+
+- `GET /api/v1/health`
+- flujo principal relacionado con tu cambio
+
+3. Si tocaste respaldos/DB:
+
+- correr script de verificación correspondiente
+- revisar registros en tabla `logs`
+
+## Solución de problemas frecuentes
+
+- `CORS_NOT_ALLOWED`:
+  - revisa `FRONTEND_URL` en `backend/.env` (solo origen, sin `/move`)
+  - verifica que el frontend corra en `http://localhost:5173`
+- API responde 404 en producción:
+  - confirma que frontend usa `https://api-move.linher.com.mx/api/v1`
+  - no uses `https://linher.com.mx/move/api/v1` salvo que configures un proxy explícito
+- callback de Dropbox redirige al lugar incorrecto:
+  - define `FRONTEND_APP_URL=https://linher.com.mx/move`
+  - valida `DROPBOX_REDIRECT_URI=https://api-move.linher.com.mx/api/v1/backups/dropbox/callback`
+- `ORS_API_KEY_MISSING`:
+  - define `ORS_API_KEY` para funciones de mapa/ruta
+- error con `mysqldump` o `mysql`:
+  - define `MYSQLDUMP_PATH` / `MYSQL_PATH` con ruta real del binario
+- no corre respaldo automático:
+  - confirma `backups_enabled=true` y frecuencia válida en `global_settings`
+- deploy cPanel falla por `npm`:
+  - valida que tu plan tenga Node/npm disponible para tareas de deploy
+  - revisa `deployment.log` y ajusta `.cpanel.yml`
+
+## Notas de seguridad
+
+- No usar credenciales por defecto en ambientes reales.
+- Rotar `JWT_SECRET` por entorno.
+- No almacenar tokens OAuth en `global_settings`; usar tablas de integración.
+- Evitar exponer secretos en logs, URLs o commits.
+
+## Documentación complementaria
+
+- `AGENTS.md`: estándares operativos y de UI del proyecto.
+- `TODO.md`: pendientes técnicos y funcionales.
