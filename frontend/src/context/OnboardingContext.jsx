@@ -10,6 +10,7 @@ import React, {
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ModalShell from '../components/ModalShell';
+import { onboardingService } from '../services/api';
 import { hasPermission } from '../utils/session';
 import { isCurrentAppRoute } from '../utils/appPath';
 
@@ -282,6 +283,8 @@ export const OnboardingProvider = ({ children, user }) => {
     const [sessionStartIndex, setSessionStartIndex] = useState(0);
     const [cardHeight, setCardHeight] = useState(DEFAULT_CARD_HEIGHT);
     const [storageRevision, setStorageRevision] = useState(0);
+    const [serverOnboardingState, setServerOnboardingState] = useState(null);
+    const [serverOnboardingStateUserId, setServerOnboardingStateUserId] = useState(null);
     const [completionRedirectTo, setCompletionRedirectTo] = useState(null);
     const [targetState, setTargetState] = useState({
         rect: null,
@@ -321,6 +324,10 @@ export const OnboardingProvider = ({ children, user }) => {
     const currentActionableIndex = useMemo(() => (
         actionableSteps.findIndex((step) => step.id === currentStep?.id)
     ), [actionableSteps, currentStep?.id]);
+    const isServerStateReadyForUser = !userId || serverOnboardingStateUserId === userId;
+    const effectiveServerOnboardingState = serverOnboardingStateUserId === userId
+        ? serverOnboardingState
+        : null;
     const completedStepCount = useMemo(() => {
         const completedIds = new Set(onboardingRecord?.completed_step_ids || []);
         return actionableSteps.reduce((count, step) => count + (completedIds.has(step.id) ? 1 : 0), 0);
@@ -330,10 +337,20 @@ export const OnboardingProvider = ({ children, user }) => {
             ? completedStepCount >= actionableSteps.length
             : true
     ), [actionableSteps.length, completedStepCount]);
-    const hasCompletedOnboarding = onboardingRecord?.version === ONBOARDING_VERSION
+    const hasRemoteFinalState = effectiveServerOnboardingState?.version === ONBOARDING_VERSION
         && (
-            onboardingRecord?.status === ONBOARDING_STATUS.COMPLETED
+            effectiveServerOnboardingState?.status === ONBOARDING_STATUS.SKIPPED
+            || effectiveServerOnboardingState?.status === ONBOARDING_STATUS.COMPLETED
+        );
+    const hasRemoteCompletedState = effectiveServerOnboardingState?.version === ONBOARDING_VERSION
+        && effectiveServerOnboardingState?.status === ONBOARDING_STATUS.COMPLETED;
+    const hasCompletedOnboarding = hasRemoteCompletedState
+        || (
+            onboardingRecord?.version === ONBOARDING_VERSION
+            && (
+                onboardingRecord?.status === ONBOARDING_STATUS.COMPLETED
             || hasCompletedAllActionableSteps
+            )
         );
     const shouldShowGuideTrigger = !hasCompletedOnboarding;
     const welcomeProgressBucket = useMemo(() => {
@@ -362,6 +379,36 @@ export const OnboardingProvider = ({ children, user }) => {
         completedStepIdsRef.current = new Set(onboardingRecord?.completed_step_ids || []);
     }, [onboardingRecord, userId]);
 
+    useEffect(() => {
+        if (!userId) {
+            return undefined;
+        }
+
+        let cancelled = false;
+
+        onboardingService.getState()
+            .then((state) => {
+                if (cancelled) {
+                    return;
+                }
+
+                setServerOnboardingState(state && typeof state === 'object' ? state : null);
+                setServerOnboardingStateUserId(userId);
+            })
+            .catch(() => {
+                if (cancelled) {
+                    return;
+                }
+
+                setServerOnboardingState(null);
+                setServerOnboardingStateUserId(userId);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [userId]);
+
     const persistRecord = useCallback((nextRecord) => {
         if (!userId) {
             return;
@@ -369,6 +416,23 @@ export const OnboardingProvider = ({ children, user }) => {
 
         persistOnboardingState(userId, nextRecord);
         setStorageRevision((currentRevision) => currentRevision + 1);
+    }, [userId]);
+
+    const syncServerState = useCallback(async ({ status, version }) => {
+        if (!userId || !status) {
+            return;
+        }
+
+        try {
+            const serverState = await onboardingService.updateState({
+                status,
+                version: version || ONBOARDING_VERSION
+            });
+            setServerOnboardingState(serverState && typeof serverState === 'object' ? serverState : null);
+            setServerOnboardingStateUserId(userId);
+        } catch {
+            // Keep local onboarding flow functional even if remote sync fails.
+        }
     }, [userId]);
 
     const registerSkippedReason = useCallback((stepId, reason) => {
@@ -409,14 +473,20 @@ export const OnboardingProvider = ({ children, user }) => {
 
         completedStepIdsRef.current = new Set(completedStepIds);
 
-        persistRecord({
+        const nextRecord = {
             status: finalStatus,
             version: ONBOARDING_VERSION,
             updated_at: new Date().toISOString(),
             skipped_reasons: skippedReasonsRef.current,
             completed_step_ids: completedStepIds
+        };
+
+        persistRecord(nextRecord);
+        void syncServerState({
+            status: finalStatus,
+            version: ONBOARDING_VERSION
         });
-    }, [actionableSteps, persistRecord, userId]);
+    }, [actionableSteps, persistRecord, syncServerState, userId]);
 
     const startTour = useCallback((options = {}) => {
         if (!steps.length || !userId) {
@@ -443,11 +513,15 @@ export const OnboardingProvider = ({ children, user }) => {
             completed_step_ids: Array.from(completedStepIdsRef.current),
             skipped_reasons: skippedReasonsRef.current
         });
+        void syncServerState({
+            status: nextStatus,
+            version: ONBOARDING_VERSION
+        });
         setCompletionRedirectTo(null);
         setSessionStartIndex(initialIndex);
         setActiveIndex(initialIndex);
         setIsActive(true);
-    }, [onboardingRecord, permissionSkippedSteps, persistRecord, steps, userId]);
+    }, [onboardingRecord, permissionSkippedSteps, persistRecord, steps, syncServerState, userId]);
 
     const recordStepAsCompleted = useCallback((stepId) => {
         if (!stepId || !userId) {
@@ -580,6 +654,14 @@ export const OnboardingProvider = ({ children, user }) => {
             return undefined;
         }
 
+        if (!isServerStateReadyForUser) {
+            return undefined;
+        }
+
+        if (hasRemoteFinalState) {
+            return undefined;
+        }
+
         const persistedState = readPersistedOnboarding(userId);
         const persistedCompletedIds = new Set(persistedState?.completed_step_ids || []);
         const hasCoveredAllActionableSteps = actionableSteps.length > 0 && actionableSteps.every((step) => (
@@ -605,7 +687,16 @@ export const OnboardingProvider = ({ children, user }) => {
         return () => {
             window.clearTimeout(timerId);
         };
-    }, [actionableSteps, isActive, location.pathname, startTour, steps.length, userId]);
+    }, [
+        actionableSteps,
+        hasRemoteFinalState,
+        isActive,
+        isServerStateReadyForUser,
+        location.pathname,
+        startTour,
+        steps.length,
+        userId
+    ]);
 
     useEffect(() => {
         if (!isActive || !currentStep?.route) {

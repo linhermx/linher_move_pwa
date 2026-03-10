@@ -108,6 +108,19 @@ export const ensureOperationalSchema = async (db) => {
     `);
 
     await db.query(`
+        CREATE TABLE IF NOT EXISTS user_onboarding_states (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL UNIQUE,
+            version VARCHAR(100) NULL,
+            status ENUM('in_progress', 'skipped', 'completed') NOT NULL DEFAULT 'in_progress',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            CONSTRAINT fk_user_onboarding_states_user
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    await db.query(`
         CREATE TABLE IF NOT EXISTS quotation_reassignments (
             id BIGINT AUTO_INCREMENT PRIMARY KEY,
             quotation_id INT NOT NULL,

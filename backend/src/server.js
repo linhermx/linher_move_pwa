@@ -15,6 +15,7 @@ import {
     BackupController
 } from './controllers/Controllers.js';
 import { ReportsController } from './controllers/ReportsController.js';
+import { OnboardingStateController } from './controllers/OnboardingController.js';
 import { BackupService } from './services/BackupService.js';
 import { BackupSchedulerService } from './services/BackupSchedulerService.js';
 import nodeCron from 'node-cron';
@@ -48,6 +49,7 @@ const toOrigin = (urlValue) => {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const frontendOrigin = toOrigin(process.env.FRONTEND_URL || process.env.FRONTEND_APP_URL);
+const localDevOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1):517\d$/;
 const allowedOrigins = [
     frontendOrigin,
     'http://localhost:5173',
@@ -73,7 +75,7 @@ const upload = multer({ storage: storage });
 
 app.use(cors({
     origin(origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin || allowedOrigins.includes(origin) || localDevOriginPattern.test(origin)) {
             callback(null, true);
             return;
         }
@@ -104,6 +106,7 @@ const logCtrl = LogController(pool);
 const dashCtrl = DashboardController(pool);
 const backupCtrl = BackupController(pool);
 const reportCtrl = ReportsController(pool);
+const onboardingCtrl = OnboardingStateController(pool);
 const authz = AuthMiddleware(pool);
 const {
     requireAuth,
@@ -165,6 +168,10 @@ v1.post('/logs/error', logCtrl.clientError);
 
 // Dashboard analytics
 v1.get('/dashboard', requireAuth, dashCtrl.stats);
+
+// Onboarding
+v1.get('/onboarding/state', requireAuth, onboardingCtrl.getState);
+v1.put('/onboarding/state', requireAuth, onboardingCtrl.updateState);
 
 // Backups
 v1.get('/backups', requireAuth, requireRole('admin'), backupCtrl.list);

@@ -274,6 +274,17 @@ export const dropboxService = {
     }
 };
 
+export const onboardingService = {
+    getState: async () => {
+        const response = await apiClient.get('/onboarding/state');
+        return response.data;
+    },
+    updateState: async (data) => {
+        const response = await apiClient.put('/onboarding/state', data);
+        return response.data;
+    }
+};
+
 export const reportService = {
     operational: async (params = {}) => {
         const response = await apiClient.get('/reports/operational', { params });
