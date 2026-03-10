@@ -1,8 +1,4 @@
 ---
 deployment:
   tasks:
-    - /bin/mkdir -p /home/linhercom/public_html/move
-    - /home/linhercom/nodevenv/repositories/linher_move_pwa/backend/10/bin/npm ci --prefix frontend || /home/linhercom/nodevenv/repositories/linher_move_pwa/backend/12/bin/npm ci --prefix frontend || /home/linhercom/nodevenv/repositories/linher_move_pwa/backend/14/bin/npm ci --prefix frontend || /home/linhercom/nodevenv/repositories/linher_move_pwa/backend/16/bin/npm ci --prefix frontend || /home/linhercom/nodevenv/repositories/linher_move_pwa/backend/18/bin/npm ci --prefix frontend || /home/linhercom/nodevenv/repositories/linher_move_pwa/backend/20/bin/npm ci --prefix frontend || /opt/cpanel/ea-nodejs20/bin/npm ci --prefix frontend || /opt/cpanel/ea-nodejs18/bin/npm ci --prefix frontend || /usr/local/bin/npm ci --prefix frontend || /usr/bin/npm ci --prefix frontend
-    - /home/linhercom/nodevenv/repositories/linher_move_pwa/backend/10/bin/npm run build --prefix frontend || /home/linhercom/nodevenv/repositories/linher_move_pwa/backend/12/bin/npm run build --prefix frontend || /home/linhercom/nodevenv/repositories/linher_move_pwa/backend/14/bin/npm run build --prefix frontend || /home/linhercom/nodevenv/repositories/linher_move_pwa/backend/16/bin/npm run build --prefix frontend || /home/linhercom/nodevenv/repositories/linher_move_pwa/backend/18/bin/npm run build --prefix frontend || /home/linhercom/nodevenv/repositories/linher_move_pwa/backend/20/bin/npm run build --prefix frontend || /opt/cpanel/ea-nodejs20/bin/npm run build --prefix frontend || /opt/cpanel/ea-nodejs18/bin/npm run build --prefix frontend || /usr/local/bin/npm run build --prefix frontend || /usr/bin/npm run build --prefix frontend
-    - /bin/test -f frontend/dist/index.html
-    - /bin/cp -R frontend/dist/. /home/linhercom/public_html/move
+    - /bin/bash scripts/cpanel-deploy.sh
