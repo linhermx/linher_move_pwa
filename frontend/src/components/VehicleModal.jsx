@@ -78,6 +78,7 @@ const VehicleModal = ({ isOpen, onClose, onVehicleCreated, editData = null }) =>
             }
 
             const formDataToSend = new FormData();
+            formDataToSend.append('entity', 'vehicles');
             formDataToSend.append('name', formData.name);
             formDataToSend.append('plate', formData.plate);
             formDataToSend.append('rendimiento_teorico', parseFloat(formData.rendimiento_teorico));

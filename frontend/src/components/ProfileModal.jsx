@@ -112,6 +112,7 @@ const ProfileModal = ({ isOpen, onClose, onUserUpdated }) => {
         setLoading(true);
         try {
             const data = new FormData();
+            data.append('entity', 'users');
             data.append('name', formData.name);
             if (formData.password) data.append('password', formData.password);
             if (photo) data.append('photo', photo);
