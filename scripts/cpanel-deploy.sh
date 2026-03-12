@@ -6,6 +6,7 @@ set -euo pipefail
 # - CPANEL_REPO_NAME: repository folder under ~/repositories.
 # - CPANEL_NODEVENV_BASE: full base path for nodevenv binaries.
 # - CPANEL_NPM_BIN: absolute npm binary path.
+# - CPANEL_DEPLOY_FRONTEND: set to 0 to skip frontend install/build/copy.
 # - CPANEL_DEPLOY_ENV_FILE: env file path (default: .cpanel-deploy.local.env)
 DEPLOY_ENV_FILE="${CPANEL_DEPLOY_ENV_FILE:-.cpanel-deploy.local.env}"
 if [ -f "$DEPLOY_ENV_FILE" ]; then
@@ -82,11 +83,16 @@ echo "Using npm at: $NPM_BIN"
 # Keep backend dependencies in sync without relying on cPanel's Run NPM Install button.
 NPM_CONFIG_PRODUCTION=true "$NPM_BIN" ci --prefix backend
 
-# Frontend build requires devDependencies (vite/plugin-react).
-NPM_CONFIG_PRODUCTION=false "$NPM_BIN" ci --prefix frontend --include=dev
-"$NPM_BIN" run build --prefix frontend
+DEPLOY_FRONTEND="${CPANEL_DEPLOY_FRONTEND:-1}"
+if [ "$DEPLOY_FRONTEND" = "1" ]; then
+  # Frontend build requires devDependencies (vite/plugin-react).
+  NPM_CONFIG_PRODUCTION=false "$NPM_BIN" ci --prefix frontend --include=dev
+  "$NPM_BIN" run build --prefix frontend
 
-test -f frontend/dist/index.html
-cp -R frontend/dist/. "$DEPLOYPATH"
+  test -f frontend/dist/index.html
+  cp -R frontend/dist/. "$DEPLOYPATH"
+else
+  echo "Skipping frontend deploy (CPANEL_DEPLOY_FRONTEND=$DEPLOY_FRONTEND)."
+fi
 
 echo "Deploy completed at $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$DEPLOYPATH/.deploy-info.txt"
