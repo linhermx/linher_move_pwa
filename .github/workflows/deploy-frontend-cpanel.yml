@@ -1,0 +1,66 @@
+name: Deploy Frontend to cPanel
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy-frontend-cpanel.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-frontend-cpanel-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      VITE_API_URL: ${{ vars.VITE_API_URL }}
+      VITE_BACKEND_URL: ${{ vars.VITE_BACKEND_URL }}
+      VITE_APP_BASE_PATH: ${{ vars.VITE_APP_BASE_PATH }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "frontend/package-lock.json"
+
+      - name: Validate required CI configuration
+        env:
+          CPANEL_FTP_HOST: ${{ secrets.CPANEL_FTP_HOST }}
+          CPANEL_FTP_USERNAME: ${{ secrets.CPANEL_FTP_USERNAME }}
+          CPANEL_FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+        run: |
+          test -n "$VITE_API_URL" || { echo "Missing repository variable: VITE_API_URL"; exit 1; }
+          test -n "$VITE_BACKEND_URL" || { echo "Missing repository variable: VITE_BACKEND_URL"; exit 1; }
+          test -n "$CPANEL_FTP_HOST" || { echo "Missing repository secret: CPANEL_FTP_HOST"; exit 1; }
+          test -n "$CPANEL_FTP_USERNAME" || { echo "Missing repository secret: CPANEL_FTP_USERNAME"; exit 1; }
+          test -n "$CPANEL_FTP_PASSWORD" || { echo "Missing repository secret: CPANEL_FTP_PASSWORD"; exit 1; }
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+
+      - name: Build frontend
+        run: npm run build --prefix frontend
+
+      - name: Deploy dist to cPanel via FTP/FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.CPANEL_FTP_HOST }}
+          username: ${{ secrets.CPANEL_FTP_USERNAME }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          protocol: ${{ vars.CPANEL_FTP_PROTOCOL || 'ftps' }}
+          port: ${{ vars.CPANEL_FTP_PORT || '21' }}
+          local-dir: frontend/dist/
+          server-dir: ${{ vars.CPANEL_FTP_REMOTE_DIR || '/public_html/move/' }}
