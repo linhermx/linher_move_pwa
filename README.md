@@ -14,7 +14,7 @@ Aplicación web para la operación logística de LINHER: cotizaciones con rutas,
 8. [Variables de entorno](#variables-de-entorno)
 9. [Base de datos y seeds](#base-de-datos-y-seeds)
 10. [Scripts de desarrollo y operación](#scripts-de-desarrollo-y-operación)
-11. [Despliegue en cPanel (Git + subruta /move)](#despliegue-en-cpanel-git--subruta-move)
+11. [Despliegue en cPanel + GitHub Actions (/move)](#despliegue-en-cpanel--github-actions-move)
 12. [API (visión general)](#api-visión-general)
 13. [Respaldos, Dropbox y recuperación](#respaldos-dropbox-y-recuperación)
 14. [Saneamiento de base de datos para entrega](#saneamiento-de-base-de-datos-para-entrega)
@@ -274,48 +274,72 @@ npm run db:release:sanitize:verify
 
 Nota: actualmente no hay suite de pruebas automatizadas (`npm test`) configurada en el backend.
 
-## Despliegue en cPanel (Git + subruta /move)
+## Despliegue en cPanel + GitHub Actions (/move)
 
-Move en producción queda separado en dos endpoints:
+Move queda separado en dos endpoints:
 
-- `https://linher.com.mx/move`
-- `https://api-move.linher.com.mx/api/v1`
+- Frontend: `https://linher.com.mx/move` (o dominio de pruebas equivalente)
+- Backend API: `https://api-move.linher.com.mx/api/v1` (o subdominio de pruebas)
 
-Frontend (Git deploy con `.cpanel.yml`):
+### Estrategia recomendada (hosting con recursos limitados)
 
-- carpeta destino: `/home/linhercom/public_html/move`
+- Frontend: compilar y publicar con GitHub Actions (evitar build en cPanel).
+- Backend: actualizar código desde Git en cPanel y reiniciar Node.js App.
 
-Backend (Node.js App en cPanel):
+Esta estrategia evita errores de memoria al ejecutar `vite build` dentro de cPanel.
 
-- subdominio recomendado: `api-move.linher.com.mx`
-- app root: carpeta `backend/` del repositorio clonado
-- reiniciar app después de cada `Update from Remote`
+### Setup inicial (una sola vez)
 
-### Flujo recomendado
+1. Clonar el repositorio en `cPanel > Git Version Control`.
+2. Crear la app en `cPanel > Setup Node.js App`:
+   - Node.js `20.x`
+   - `Application root`: `repositories/linher_move_pwa/backend`
+   - `Startup file`: `src/server.js`
+   - URL: subdominio API del entorno (`api-move-test...` o `api-move...`)
+3. Cargar `backend/.env` del entorno en el servidor.
+4. Configurar GitHub Actions (repo `linher_move_pwa`):
+   - Workflow: `.github/workflows/deploy-frontend-cpanel.yml`
+   - Secrets:
+     - `CPANEL_FTP_HOST`
+     - `CPANEL_FTP_USERNAME`
+     - `CPANEL_FTP_PASSWORD`
+   - Variables:
+     - `VITE_API_URL`
+     - `VITE_BACKEND_URL`
+     - `VITE_APP_BASE_PATH` (recomendado: `/move/`)
+     - `CPANEL_FTP_PROTOCOL` (recomendado: `ftps`)
+     - `CPANEL_FTP_PORT` (recomendado: `21`)
+     - `CPANEL_FTP_REMOTE_DIR` (según cuenta FTP; típico: `/move/`)
+5. Crear una cuenta FTP dedicada para CI y restringir su alcance.
+   - Recomendado: home FTP en `public_html` y `CPANEL_FTP_REMOTE_DIR=/move/`.
 
-1. Trabajar cambios en local (`npm run dev`).
-2. Validar frontend antes de subir:
+### Flujo diario de despliegue
 
-```bash
-npm run lint --prefix frontend
-npm run build --prefix frontend
-```
+#### A) Si cambió solo frontend
 
-3. Hacer `push` a tu rama principal en GitHub.
-4. En cPanel -> `Git Version Control` -> repositorio:
-   - `Update from Remote`
-   - `Deploy HEAD Commit`
-5. En cPanel -> `Setup Node.js App`:
-   - verificar que usa el código actualizado del repositorio
-   - reiniciar la app para aplicar cambios backend
+1. `git push origin main`.
+2. Ejecutar (o esperar) workflow `Deploy Frontend to cPanel` en GitHub Actions.
+3. Validar `https://.../move/`.
 
-### Qué hace `.cpanel.yml`
+#### B) Si cambió solo backend
 
-El archivo raíz `.cpanel.yml` ejecuta:
+1. `git push origin main`.
+2. `cPanel > Git Version Control > Update from Remote`.
+3. `cPanel > Setup Node.js App > Restart`.
+4. Si cambió `backend/package*.json`, ejecutar `Run NPM Install` antes de reiniciar.
+5. Validar `https://.../api/v1/health`.
 
-1. `npm ci --prefix frontend`
-2. `npm run build --prefix frontend`
-3. Copia `frontend/dist` a `/home/linhercom/public_html/move`
+#### C) Si cambiaron frontend y backend
+
+1. Actualizar backend primero (`Update from Remote` + `Restart`).
+2. Desplegar frontend por GitHub Actions.
+3. Ejecutar prueba funcional de login y rutas críticas.
+
+### Rol de `.cpanel.yml`
+
+`.cpanel.yml` permanece como soporte de despliegue en cPanel, pero con esta estrategia
+el despliegue principal del frontend se hace por GitHub Actions.
+Para detalles del flujo CI, ver `docs/ci-frontend-cpanel.md`.
 
 ### Ruteo SPA en `/move`
 
