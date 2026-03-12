@@ -78,6 +78,10 @@ fi
 echo "Deploy path: $DEPLOYPATH"
 echo "Nodevenv base: $NODEVENV_BASE"
 echo "Using npm at: $NPM_BIN"
+
+# Keep backend dependencies in sync without relying on cPanel's Run NPM Install button.
+NPM_CONFIG_PRODUCTION=true "$NPM_BIN" ci --prefix backend
+
 # Frontend build requires devDependencies (vite/plugin-react).
 NPM_CONFIG_PRODUCTION=false "$NPM_BIN" ci --prefix frontend --include=dev
 "$NPM_BIN" run build --prefix frontend
