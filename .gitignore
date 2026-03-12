@@ -30,3 +30,6 @@ Thumbs.db
 
 # App Uploads
 backend/uploads/
+
+# cPanel runtime artifacts
+tmp/
