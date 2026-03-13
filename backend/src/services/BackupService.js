@@ -1,18 +1,25 @@
-import { exec } from 'child_process';
+import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import archiver from 'archiver';
 import { fileURLToPath } from 'url';
 import pool from '../config/db.js';
-import { promisify } from 'util';
 import { DropboxService } from './DropboxService.js';
 import { SystemLogger } from '../utils/Logger.js';
 import { sanitizeForLog } from '../utils/RequestContext.js';
 
-const execPromise = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const logger = new SystemLogger(pool);
+const projectRootDir = path.join(__dirname, '../../');
+const backupsRootDir = path.join(projectRootDir, 'backups');
+const uploadsRootDir = path.join(projectRootDir, 'uploads');
+
+const ensureDirectory = (targetPath) => {
+    if (!fs.existsSync(targetPath)) {
+        fs.mkdirSync(targetPath, { recursive: true });
+    }
+};
 
 const resolveMysqlDumpPath = () => {
     const configuredPath = process.env.MYSQLDUMP_PATH?.trim();
@@ -28,13 +35,77 @@ const resolveMysqlDumpPath = () => {
     return 'mysqldump';
 };
 
+const runMysqlDump = ({ dumpBinary, host, user, password, database, outputFile }) => (
+    new Promise((resolve, reject) => {
+        const args = ['-h', host, '-u', user];
+        if (password) {
+            args.push(`-p${password}`);
+        }
+        args.push(database);
+
+        const dumpProcess = spawn(dumpBinary, args, {
+            cwd: projectRootDir,
+            shell: false,
+            stdio: ['ignore', 'pipe', 'pipe']
+        });
+
+        const outputStream = fs.createWriteStream(outputFile);
+        let stderrOutput = '';
+        let dumpExited = false;
+        let streamFinished = false;
+        let dumpExitCode = 0;
+
+        const cleanup = (error) => {
+            outputStream.destroy();
+            reject(error);
+        };
+
+        const maybeResolve = () => {
+            if (!dumpExited || !streamFinished) {
+                return;
+            }
+
+            if (dumpExitCode === 0) {
+                resolve();
+                return;
+            }
+
+            const safeError = new Error(
+                `mysqldump failed with code ${dumpExitCode}${stderrOutput ? `: ${stderrOutput.trim()}` : ''}`
+            );
+            reject(safeError);
+        };
+
+        dumpProcess.on('error', (error) => cleanup(error));
+        outputStream.on('error', (error) => cleanup(error));
+
+        dumpProcess.stderr.on('data', (chunk) => {
+            stderrOutput += chunk.toString();
+        });
+
+        outputStream.on('finish', () => {
+            streamFinished = true;
+            maybeResolve();
+        });
+
+        dumpProcess.on('close', (code) => {
+            dumpExitCode = Number(code || 0);
+            dumpExited = true;
+            maybeResolve();
+        });
+
+        dumpProcess.stdout.pipe(outputStream);
+    })
+);
+
 export const BackupService = {
     async generateLocalBackup(operatorId = null, requestContext = {}) {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const backupName = `backup_${timestamp}`;
-        const backupDir = path.join(__dirname, '../../backups', backupName);
-        const zipFile = `${backupDir}.zip`;
-        const sqlFile = path.join(__dirname, '../../backups', `${backupName}.sql`);
+        ensureDirectory(backupsRootDir);
+
+        const zipFile = path.join(backupsRootDir, `${backupName}.zip`);
+        const sqlFile = path.join(backupsRootDir, `${backupName}.sql`);
         const triggerSource = requestContext.source === 'cron' ? 'automated' : 'manual';
         const skipCloudSync = Boolean(requestContext.skip_cloud_sync);
 
@@ -43,11 +114,18 @@ export const BackupService = {
             const mysqlDumpPath = resolveMysqlDumpPath();
             const { DB_HOST, DB_USER, DB_PASS, DB_NAME } = process.env;
 
-            // Note: DB_PASS might be empty
-            const passArg = DB_PASS ? `-p${DB_PASS}` : '';
-            const dumpCmd = `"${mysqlDumpPath}" -h ${DB_HOST} -u ${DB_USER} ${passArg} ${DB_NAME} > "${sqlFile}"`;
+            if (!DB_USER || !DB_NAME) {
+                throw new Error('Missing DB_USER or DB_NAME for backup generation');
+            }
 
-            await execPromise(dumpCmd);
+            await runMysqlDump({
+                dumpBinary: mysqlDumpPath,
+                host: DB_HOST || 'localhost',
+                user: DB_USER,
+                password: DB_PASS || '',
+                database: DB_NAME,
+                outputFile: sqlFile
+            });
 
             // 2. Create ZIP archive (SQL + Uploads)
             const output = fs.createWriteStream(zipFile);
@@ -64,9 +142,8 @@ export const BackupService = {
             archive.file(sqlFile, { name: 'database.sql' });
 
             // Add Uploads folder
-            const uploadsDir = path.join(__dirname, '../../uploads');
-            if (fs.existsSync(uploadsDir)) {
-                archive.directory(uploadsDir, 'uploads');
+            if (fs.existsSync(uploadsRootDir)) {
+                archive.directory(uploadsRootDir, 'uploads');
             }
 
             await archive.finalize();
@@ -152,12 +229,14 @@ export const BackupService = {
     },
 
     async applyRetentionPolicy() {
+        ensureDirectory(backupsRootDir);
+
         const [rows] = await pool.query(
             'SELECT id, filename FROM backups WHERE type = "local" ORDER BY created_at DESC LIMIT 100 OFFSET 7'
         );
 
         for (const row of rows) {
-            const filePath = path.join(__dirname, '../../backups', row.filename);
+            const filePath = path.join(backupsRootDir, row.filename);
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
             }
