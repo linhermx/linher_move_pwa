@@ -120,7 +120,7 @@ export class UserModel extends BaseModel {
         const params = [
             data.name,
             data.email,
-            data.password, // Ideally hashed, but following current pattern
+            data.password,
             data.role_id,
             data.photo_path || null,
             data.status || 'active'

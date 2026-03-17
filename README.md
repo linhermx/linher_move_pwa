@@ -162,7 +162,8 @@ GET http://localhost:3000/api/v1/health
 | `DB_USER` | Sí | `root` | Usuario MySQL |
 | `DB_PASS` | No | *(vacío)* | Password MySQL |
 | `DB_NAME` | Sí | `linher_move` | Nombre de base |
-| `JWT_SECRET` | Sí | `change-this-secret` | Firma de tokens |
+| `JWT_SECRET` | Sí | `change-this-jwt-secret-32-chars-min` | Firma de access tokens |
+| `JWT_REFRESH_SECRET` | Sí | `change-this-refresh-jwt-secret-32-chars-min` | Firma de refresh tokens |
 | `FRONTEND_URL` | Sí | `http://localhost:5173` | Origen permitido para CORS (sin path) |
 | `FRONTEND_APP_URL` | Sí | `http://localhost:5173` | URL base de la app para redirecciones (puede incluir `/move`) |
 | `ORS_API_KEY` | Sí (para mapas) | `...` | OpenRouteService |
@@ -369,8 +370,11 @@ Rutas destacadas:
 - Públicas:
   - `GET /health`
   - `POST /auth/login`
+  - `POST /auth/refresh`
+  - `POST /auth/logout`
   - `GET /backups/dropbox/callback`
 - Protegidas por token y permisos:
+  - `GET /auth/me`
   - `vehicles`, `services`, `settings`, `maps`, `quotations`
   - `users`, `logs`, `dashboard`, `backups`, `reports`
 
@@ -535,7 +539,7 @@ npm run build --prefix frontend
 ## Notas de seguridad
 
 - No usar credenciales por defecto en ambientes reales.
-- Rotar `JWT_SECRET` por entorno.
+- Rotar `JWT_SECRET` y `JWT_REFRESH_SECRET` por entorno.
 - No almacenar tokens OAuth en `global_settings`; usar tablas de integración.
 - Evitar exponer secretos en logs, URLs o commits.
 

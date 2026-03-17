@@ -28,7 +28,7 @@ export const AuthMiddleware = (db) => {
             }
 
             const payload = verifyAuthToken(token);
-            const userId = payload?.sub;
+            const userId = Number(payload?.sub || payload?.id);
             if (!userId) {
                 return res.status(401).json({ message: 'Token inválido' });
             }

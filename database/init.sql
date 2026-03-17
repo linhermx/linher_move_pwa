@@ -237,6 +237,15 @@ CREATE TABLE IF NOT EXISTS `role_permissions` (
   FOREIGN KEY (`permission_id`) REFERENCES `permissions`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `refresh_tokens` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT NOT NULL,
+  `token` VARCHAR(512) NOT NULL UNIQUE,
+  `expires_at` DATETIME NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Seed data moved to dedicated files:
 -- - database/seed_core.sql (required for clean production bootstrap)
 -- - database/seed_demo.sql (optional demo/test catalog data)

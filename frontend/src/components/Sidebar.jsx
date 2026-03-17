@@ -26,7 +26,8 @@ import ProfileModal from './ProfileModal';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import { resolveAssetUrl } from '../utils/url';
-import { clearSession } from '../utils/session';
+import { authService } from '../services/api';
+import { clearSession, getSessionRefreshToken } from '../utils/session';
 import { buildAppPath } from '../utils/appPath';
 
 const Sidebar = ({
@@ -149,9 +150,19 @@ const Sidebar = ({
         onUserUpdated(updatedUser);
     };
 
-    const handleLogout = () => {
-        clearSession();
-        window.location.href = buildAppPath('/login');
+    const handleLogout = async () => {
+        const refreshToken = getSessionRefreshToken();
+
+        try {
+            if (refreshToken) {
+                await authService.logout(refreshToken);
+            }
+        } catch {
+            // Ignore logout request failures and always clear local session.
+        } finally {
+            clearSession();
+            window.location.href = buildAppPath('/login');
+        }
     };
 
     const showExpandedContent = !isCollapsed || isMobileOpen;

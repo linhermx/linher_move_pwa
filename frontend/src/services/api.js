@@ -2,51 +2,62 @@ import axios from 'axios';
 import { reportClientError } from './clientLogger';
 import { API_BASE_URL } from '../utils/url';
 import { buildAppPath, isCurrentAppRoute } from '../utils/appPath';
+import { clearSession, getSessionAccessToken, getSessionRefreshToken, getSessionUser } from '../utils/session';
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL
 });
 
 const SESSION_USER_KEY = 'user';
-const SESSION_TOKEN_KEY = 'auth_token';
-const SESSION_EXPIRES_AT_KEY = 'auth_expires_at';
+const ACCESS_TOKEN_KEY = 'accessToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
 
-const getPreferredStorage = () => (
-    localStorage.getItem(SESSION_USER_KEY) ? localStorage : sessionStorage
+const getStorageForKey = (key) => {
+    if (localStorage.getItem(key) !== null) return localStorage;
+    if (sessionStorage.getItem(key) !== null) return sessionStorage;
+    return null;
+};
+
+const getTokenStorage = () => (
+    getStorageForKey(REFRESH_TOKEN_KEY)
+    || getStorageForKey(ACCESS_TOKEN_KEY)
+    || getStorageForKey(SESSION_USER_KEY)
+    || sessionStorage
 );
 
-const getCurrentUser = () => {
-    const raw = localStorage.getItem(SESSION_USER_KEY) || sessionStorage.getItem(SESSION_USER_KEY);
-    return raw ? JSON.parse(raw) : null;
+const persistRotatedSession = ({ accessToken, refreshToken, user }) => {
+    const selectedStorage = getTokenStorage();
+    const alternateStorage = selectedStorage === localStorage ? sessionStorage : localStorage;
+
+    alternateStorage.removeItem(ACCESS_TOKEN_KEY);
+    alternateStorage.removeItem(REFRESH_TOKEN_KEY);
+
+    selectedStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    selectedStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+
+    if (user) {
+        selectedStorage.setItem(SESSION_USER_KEY, JSON.stringify(user));
+    }
 };
 
-const getCurrentToken = () => {
-    const storage = getPreferredStorage();
-    return storage.getItem(SESSION_TOKEN_KEY)
-        || localStorage.getItem(SESSION_TOKEN_KEY)
-        || sessionStorage.getItem(SESSION_TOKEN_KEY)
-        || null;
-};
-
-const clearSession = () => {
-    localStorage.removeItem(SESSION_USER_KEY);
-    sessionStorage.removeItem(SESSION_USER_KEY);
-    localStorage.removeItem(SESSION_TOKEN_KEY);
-    sessionStorage.removeItem(SESSION_TOKEN_KEY);
-    localStorage.removeItem(SESSION_EXPIRES_AT_KEY);
-    sessionStorage.removeItem(SESSION_EXPIRES_AT_KEY);
+const redirectToLogin = () => {
+    clearSession();
+    if (!isCurrentAppRoute(window.location.pathname, '/login')) {
+        window.location.href = buildAppPath('/login');
+    }
 };
 
 apiClient.interceptors.request.use((config) => {
-    const user = getCurrentUser();
-    const token = getCurrentToken();
+    const user = getSessionUser();
+    const token = getSessionAccessToken();
 
     if (token) {
         config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${token}`;
     }
 
-    if (user && user.id && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+    const requestMethod = String(config.method || 'get').toLowerCase();
+    if (user && user.id && ['post', 'put', 'patch', 'delete'].includes(requestMethod)) {
         if (config.data instanceof FormData) {
             if (!config.data.has('operator_id')) {
                 config.data.append('operator_id', user.id);
@@ -63,13 +74,41 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
     (response) => response,
-    (error) => {
-        const requestUrl = error.config?.url || '';
+    async (error) => {
+        const originalRequest = error.config || {};
+        const requestUrl = originalRequest.url || '';
+        const isRefreshRequest = requestUrl.includes('/auth/refresh');
+        const isLoginRequest = requestUrl.includes('/auth/login');
 
-        if (error.response?.status === 401 && !requestUrl.includes('/auth/login')) {
-            clearSession();
-            if (!isCurrentAppRoute(window.location.pathname, '/login')) {
-                window.location.href = buildAppPath('/login');
+        if (error.response?.status === 401 && !originalRequest._retry && !isRefreshRequest && !isLoginRequest) {
+            originalRequest._retry = true;
+            try {
+                const refreshToken = getSessionRefreshToken();
+                if (!refreshToken) {
+                    redirectToLogin();
+                    return Promise.reject(error);
+                }
+
+                const refreshResponse = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
+                const rotatedData = refreshResponse.data || {};
+
+                if (!rotatedData.accessToken || !rotatedData.refreshToken) {
+                    redirectToLogin();
+                    return Promise.reject(error);
+                }
+
+                persistRotatedSession({
+                    accessToken: rotatedData.accessToken,
+                    refreshToken: rotatedData.refreshToken,
+                    user: rotatedData.user || null
+                });
+
+                originalRequest.headers = originalRequest.headers || {};
+                originalRequest.headers.Authorization = `Bearer ${rotatedData.accessToken}`;
+                return apiClient(originalRequest);
+            } catch (refreshError) {
+                redirectToLogin();
+                return Promise.reject(refreshError);
             }
         }
 
@@ -194,6 +233,18 @@ export const authService = {
         const { data } = await apiClient.post('/auth/login', { email, password, remember_me: rememberMe });
         return data;
     },
+    refresh: async (refreshToken) => {
+        const { data } = await apiClient.post('/auth/refresh', { refreshToken });
+        return data;
+    },
+    logout: async (refreshToken) => {
+        const { data } = await apiClient.post('/auth/logout', { refreshToken });
+        return data;
+    },
+    me: async () => {
+        const { data } = await apiClient.get('/auth/me');
+        return data;
+    },
     forgotPassword: async (email) => {
         const { data } = await apiClient.post('/auth/forgot-password', { email });
         return data;
@@ -262,7 +313,7 @@ export const dropboxService = {
         return response.data;
     },
     getAuthUrl: async () => {
-        const user = getCurrentUser();
+        const user = getSessionUser();
         const response = await apiClient.get('/backups/dropbox/url', {
             params: { operator_id: user?.id || null }
         });

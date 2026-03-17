@@ -58,8 +58,8 @@ const Login = () => {
             clearSession();
             persistSession({
                 user: data.user,
-                token: data.token,
-                expiresAt: data.expires_at,
+                accessToken: data.accessToken,
+                refreshToken: data.refreshToken,
                 rememberMe
             });
             window.location.href = buildAppPath('/');

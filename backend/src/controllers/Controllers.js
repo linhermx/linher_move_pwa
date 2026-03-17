@@ -14,7 +14,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { buildRequestContext, getOperatorIdFromRequest, logHandledError, sanitizeForLog } from '../utils/RequestContext.js';
-import { signAuthToken } from '../utils/AuthToken.js';
+import { signAuthTokens, verifyRefreshToken } from '../utils/AuthToken.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -464,49 +464,153 @@ export const ServiceController = (pool) => {
 
 export const AuthController = (db) => {
     const model = new AuthModel(db);
+    const userModel = new UserModel(db);
     const logger = new SystemLogger(db);
+
+    const toBoolean = (value) => (
+        value === true
+        || value === 'true'
+        || value === 1
+        || value === '1'
+    );
+
     return {
         login: async (req, res) => {
-            const { email, password, remember_me } = req.body;
+            const { email, password, remember_me } = req.body || {};
             try {
                 const user = await model.findByEmail(email);
                 if (!user) {
                     return res.status(401).json({ message: "Usuario no encontrado o inactivo" });
                 }
 
-                // Compare passwords using bcrypt (fallback to plain text during transition)
                 const isMatch = await bcrypt.compare(password, user.password).catch(() => false);
-                const isPlainMatch = user.password === password;
-
-                if (!isMatch && !isPlainMatch) {
-                    return res.status(401).json({ message: "Contraseña incorrecta" });
+                if (!isMatch) {
+                    return res.status(401).json({ message: "Contrasena incorrecta" });
                 }
 
-                // If it was a plain text match, we could optionally hash it and save it now,
-                // but we are running a migration script anyway.
-
-                // consolidated perms = Role Perms (TBD) + Individual Perms
-                // For now, let's fetch individual perms
-                const userModel = new UserModel(db);
                 const fullUser = await userModel.getByIdWithPermissions(user.id);
-                const sessionToken = signAuthToken(
+                if (!fullUser || fullUser.status !== 'active') {
+                    return res.status(401).json({ message: "Sesion invalida o usuario inactivo" });
+                }
+
+                const sessionTokens = signAuthTokens(
                     { userId: fullUser.id, roleName: fullUser.role_name },
                     remember_me
                 );
 
+                await model.deleteExpiredRefreshTokens();
+                await model.saveRefreshToken(fullUser.id, sessionTokens.refreshToken, sessionTokens.refresh_expires_at);
+
                 res.json({
-                    user: fullUser,
-                    token: sessionToken.token,
-                    expires_at: sessionToken.expires_at,
-                    message: "Login exitoso"
+                    accessToken: sessionTokens.accessToken,
+                    refreshToken: sessionTokens.refreshToken,
+                    user: fullUser
                 });
 
-                // Log action
                 await logger.auth(fullUser.id, 'LOGIN', { email: fullUser.email }, req.ip);
             } catch (error) {
-                console.error(error);
                 await handleApiError(logger, req, res, error, 'AUTH_LOGIN_ERROR', {
                     message: 'Error en el servidor'
+                });
+            }
+        },
+        refresh: async (req, res) => {
+            const { refreshToken } = req.body || {};
+            if (!refreshToken) {
+                return res.status(401).json({ message: 'Refresh token requerido' });
+            }
+
+            try {
+                const decoded = verifyRefreshToken(refreshToken);
+                const persistedToken = await model.findRefreshToken(refreshToken);
+
+                if (!persistedToken) {
+                    return res.status(403).json({ message: 'Refresh token invalido' });
+                }
+
+                if (new Date(persistedToken.expires_at) < new Date()) {
+                    await model.deleteRefreshToken(refreshToken);
+                    return res.status(403).json({ message: 'Refresh token expirado' });
+                }
+
+                const userId = Number(decoded?.sub || decoded?.id || persistedToken.user_id);
+                if (!Number.isInteger(userId) || userId <= 0) {
+                    await model.deleteRefreshToken(refreshToken);
+                    return res.status(403).json({ message: 'Refresh token invalido' });
+                }
+
+                const fullUser = await userModel.getByIdWithPermissions(userId);
+                if (!fullUser || fullUser.status !== 'active') {
+                    await model.deleteRefreshToken(refreshToken);
+                    return res.status(403).json({ message: 'Usuario inactivo o no encontrado' });
+                }
+
+                const rememberMe = toBoolean(decoded?.remember_me);
+                const rotatedTokens = signAuthTokens(
+                    { userId: fullUser.id, roleName: fullUser.role_name },
+                    rememberMe
+                );
+
+                await model.deleteRefreshToken(refreshToken);
+                await model.saveRefreshToken(fullUser.id, rotatedTokens.refreshToken, rotatedTokens.refresh_expires_at);
+
+                res.json({
+                    accessToken: rotatedTokens.accessToken,
+                    refreshToken: rotatedTokens.refreshToken,
+                    user: fullUser
+                });
+
+                await logger.auth(fullUser.id, 'TOKEN_REFRESH', {
+                    request_id: req.requestId || null
+                }, req.ip);
+            } catch (error) {
+                return res.status(403).json({ message: 'Refresh token invalido o expirado' });
+            }
+        },
+        logout: async (req, res) => {
+            const { refreshToken } = req.body || {};
+            if (!refreshToken) {
+                return res.status(400).json({ message: 'Refresh token requerido' });
+            }
+
+            try {
+                await model.deleteRefreshToken(refreshToken);
+
+                try {
+                    const decoded = verifyRefreshToken(refreshToken);
+                    const userId = Number(decoded?.sub || decoded?.id || null);
+                    if (Number.isInteger(userId) && userId > 0) {
+                        await logger.auth(userId, 'LOGOUT', {
+                            request_id: req.requestId || null
+                        }, req.ip);
+                    }
+                } catch {
+                    // Ignore token decode errors for logout responses.
+                }
+
+                res.json({ message: 'Sesion cerrada correctamente' });
+            } catch (error) {
+                await handleApiError(logger, req, res, error, 'AUTH_LOGOUT_ERROR', {
+                    message: 'Error al cerrar sesion'
+                });
+            }
+        },
+        me: async (req, res) => {
+            try {
+                const userId = Number(req.authUser?.id);
+                if (!Number.isInteger(userId) || userId <= 0) {
+                    return res.status(401).json({ message: 'Autenticacion requerida' });
+                }
+
+                const fullUser = await userModel.getByIdWithPermissions(userId);
+                if (!fullUser || fullUser.status !== 'active') {
+                    return res.status(404).json({ message: 'Usuario no encontrado o inactivo' });
+                }
+
+                res.json({ user: fullUser });
+            } catch (error) {
+                await handleApiError(logger, req, res, error, 'AUTH_ME_ERROR', {
+                    message: 'Error al cargar sesion'
                 });
             }
         }
@@ -1247,5 +1351,3 @@ export const BackupController = (db) => {
         }
     };
 };
-
-

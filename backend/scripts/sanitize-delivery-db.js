@@ -2,6 +2,7 @@ import mysql from 'mysql2/promise';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -37,6 +38,8 @@ const dbConfig = {
     multipleStatements: true
 };
 
+const DEFAULT_ADMIN_PASSWORD_HASH = await bcrypt.hash('admin123', 10);
+
 const BASE_TRANSIENT_TABLES = [
     'quotation_services',
     'quotation_stops',
@@ -47,6 +50,7 @@ const BASE_TRANSIENT_TABLES = [
     'quotations',
     'folio_counters',
     'logs',
+    'refresh_tokens',
     'backups',
     'integration_oauth_states',
     'integration_connections'
@@ -231,7 +235,7 @@ const applySanitization = async (connection, tableNames) => {
                         password = VALUES(password),
                         role_id = VALUES(role_id),
                         status = VALUES(status)
-                `, ['Administrador LINHER', 'programador@linher.com.mx', 'admin123', 1, 'active']);
+                `, ['Administrador LINHER', 'programador@linher.com.mx', DEFAULT_ADMIN_PASSWORD_HASH, 1, 'active']);
 
                 const [reloadedCandidates] = await connection.query(`
                     SELECT u.id

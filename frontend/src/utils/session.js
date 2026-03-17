@@ -1,60 +1,88 @@
 const USER_KEY = 'user';
-const TOKEN_KEY = 'auth_token';
-const EXPIRES_AT_KEY = 'auth_expires_at';
+const ACCESS_TOKEN_KEY = 'accessToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
+const LEGACY_TOKEN_KEY = 'auth_token';
+const LEGACY_EXPIRES_AT_KEY = 'auth_expires_at';
 
-const getAvailableStorage = () => (
-    localStorage.getItem(USER_KEY) ? localStorage : sessionStorage
+const getValueFromAnyStorage = (key) => (
+    localStorage.getItem(key)
+    || sessionStorage.getItem(key)
+    || null
 );
+
+const getStorageForExistingKey = (key) => {
+    if (localStorage.getItem(key) !== null) return localStorage;
+    if (sessionStorage.getItem(key) !== null) return sessionStorage;
+    return null;
+};
+
+const migrateLegacyTokenIfNeeded = () => {
+    const existingAccessToken = getValueFromAnyStorage(ACCESS_TOKEN_KEY);
+    if (existingAccessToken) {
+        return existingAccessToken;
+    }
+
+    const legacyToken = getValueFromAnyStorage(LEGACY_TOKEN_KEY);
+    if (!legacyToken) {
+        return null;
+    }
+
+    const sourceStorage = getStorageForExistingKey(LEGACY_TOKEN_KEY) || sessionStorage;
+    sourceStorage.setItem(ACCESS_TOKEN_KEY, legacyToken);
+    sourceStorage.removeItem(LEGACY_TOKEN_KEY);
+    sourceStorage.removeItem(LEGACY_EXPIRES_AT_KEY);
+    return legacyToken;
+};
 
 export const getSessionUser = () => {
     try {
-        const userRaw = localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY);
+        const userRaw = getValueFromAnyStorage(USER_KEY);
         return userRaw ? JSON.parse(userRaw) : null;
     } catch {
         return null;
     }
 };
 
-export const getSessionToken = () => {
-    const preferredStorage = getAvailableStorage();
-    return preferredStorage.getItem(TOKEN_KEY)
-        || localStorage.getItem(TOKEN_KEY)
-        || sessionStorage.getItem(TOKEN_KEY)
-        || null;
-};
+export const getSessionAccessToken = () => (
+    getValueFromAnyStorage(ACCESS_TOKEN_KEY)
+    || migrateLegacyTokenIfNeeded()
+    || null
+);
 
-export const getSessionExpiration = () => {
-    const preferredStorage = getAvailableStorage();
-    return preferredStorage.getItem(EXPIRES_AT_KEY)
-        || localStorage.getItem(EXPIRES_AT_KEY)
-        || sessionStorage.getItem(EXPIRES_AT_KEY)
-        || null;
-};
+export const getSessionRefreshToken = () => getValueFromAnyStorage(REFRESH_TOKEN_KEY);
+
+export const getSessionToken = () => getSessionAccessToken();
+
+export const getSessionExpiration = () => null;
 
 export const clearSession = () => {
     localStorage.removeItem(USER_KEY);
     sessionStorage.removeItem(USER_KEY);
-    localStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(EXPIRES_AT_KEY);
-    sessionStorage.removeItem(EXPIRES_AT_KEY);
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+    sessionStorage.removeItem(LEGACY_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_EXPIRES_AT_KEY);
+    sessionStorage.removeItem(LEGACY_EXPIRES_AT_KEY);
 };
 
-export const persistSession = ({ user, token, expiresAt, rememberMe = false }) => {
+export const persistSession = ({ user, accessToken, refreshToken, rememberMe = false }) => {
     const selectedStorage = rememberMe ? localStorage : sessionStorage;
     const alternateStorage = rememberMe ? sessionStorage : localStorage;
 
     alternateStorage.removeItem(USER_KEY);
-    alternateStorage.removeItem(TOKEN_KEY);
-    alternateStorage.removeItem(EXPIRES_AT_KEY);
+    alternateStorage.removeItem(ACCESS_TOKEN_KEY);
+    alternateStorage.removeItem(REFRESH_TOKEN_KEY);
+    alternateStorage.removeItem(LEGACY_TOKEN_KEY);
+    alternateStorage.removeItem(LEGACY_EXPIRES_AT_KEY);
 
     selectedStorage.setItem(USER_KEY, JSON.stringify(user));
-    selectedStorage.setItem(TOKEN_KEY, token);
-    if (expiresAt) {
-        selectedStorage.setItem(EXPIRES_AT_KEY, expiresAt);
-    } else {
-        selectedStorage.removeItem(EXPIRES_AT_KEY);
-    }
+    selectedStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    selectedStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    selectedStorage.removeItem(LEGACY_TOKEN_KEY);
+    selectedStorage.removeItem(LEGACY_EXPIRES_AT_KEY);
 };
 
 export const isAdminUser = (user) => (

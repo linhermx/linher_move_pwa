@@ -1,3 +1,5 @@
+import bcrypt from 'bcryptjs';
+
 const columnExists = async (db, tableName, columnName) => {
     const [rows] = await db.query(
         `
@@ -44,6 +46,23 @@ const foreignKeyExistsForColumn = async (db, tableName, columnName) => {
     );
 
     return rows.length > 0;
+};
+
+const BCRYPT_HASH_PATTERN = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/;
+
+const isPasswordHashed = (value) => (
+    typeof value === 'string'
+    && (BCRYPT_HASH_PATTERN.test(value) || value.startsWith('$argon2'))
+);
+
+const migrateLegacyPlainPasswords = async (db) => {
+    const [rows] = await db.query('SELECT id, password FROM users WHERE password IS NOT NULL');
+    const legacyRows = rows.filter((row) => !isPasswordHashed(row.password));
+
+    for (const row of legacyRows) {
+        const hash = await bcrypt.hash(String(row.password), 10);
+        await db.query('UPDATE users SET password = ? WHERE id = ?', [hash, row.id]);
+    }
 };
 
 export const ensureOperationalSchema = async (db) => {
@@ -116,6 +135,18 @@ export const ensureOperationalSchema = async (db) => {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             CONSTRAINT fk_user_onboarding_states_user
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+
+    await db.query(`
+        CREATE TABLE IF NOT EXISTS refresh_tokens (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            token VARCHAR(512) NOT NULL UNIQUE,
+            expires_at DATETIME NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT fk_refresh_tokens_user
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
@@ -253,4 +284,6 @@ export const ensureOperationalSchema = async (db) => {
         WHERE u.role_id <> 1
           AND p.slug IN ('manage_users', 'manage_backups')
     `);
+
+    await migrateLegacyPlainPasswords(db);
 };

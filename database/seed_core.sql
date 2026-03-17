@@ -61,7 +61,7 @@ INSERT IGNORE INTO `global_settings` (`setting_key`, `setting_value`, `descripti
 ('backups_enabled', 'false', 'Enable automated backups from the server scheduler'),
 ('backup_frequency', 'daily', 'Automatic backup frequency: daily or weekly');
 
--- Seed default admin user (Password: admin123)
+-- Seed default admin user (Initial password: admin123)
 -- Keep this credential temporary and rotate in deployment hardening.
 INSERT IGNORE INTO `users` (`id`, `name`, `email`, `password`, `role_id`, `status`) VALUES
-(1, 'Administrador LINHER', 'programador@linher.com.mx', 'admin123', 1, 'active');
+(1, 'Administrador LINHER', 'programador@linher.com.mx', '$2b$10$Nuw1ogWRbU8DBfOPlSdjReeD6i02n.lP5HwKK.nEpZUO.43NZ2KB2', 1, 'active');

@@ -28,8 +28,10 @@ import { SystemLogger } from './utils/Logger.js';
 import { ensureOperationalSchema } from './utils/SchemaManager.js';
 import { requestContextMiddleware, logRuntimeError } from './utils/RequestContext.js';
 import { AuthMiddleware } from './middleware/AuthMiddleware.js';
+import { validateAuthConfig } from './utils/AuthToken.js';
 
 dotenv.config();
+validateAuthConfig();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -117,6 +119,9 @@ const {
 
 // Auth
 v1.post('/auth/login', authCtrl.login);
+v1.post('/auth/refresh', authCtrl.refresh);
+v1.post('/auth/logout', authCtrl.logout);
+v1.get('/auth/me', requireAuth, authCtrl.me);
 
 
 // Vehicles
